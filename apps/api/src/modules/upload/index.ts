@@ -1,0 +1,242 @@
+import { Elysia } from 'elysia'
+import { join } from 'path'
+import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import { db } from '../../db'
+import { volunteer } from '../../db/schema'
+import { eq } from 'drizzle-orm'
+import { errorHandler } from '../../lib/middleware/error-handler'
+import { authMiddleware } from '../../lib/middleware/auth'
+import { ValidationError } from '../../lib/errors/base'
+import { createLogger } from '../../log'
+
+const logger = createLogger()
+const AVATAR_DIR = join(process.cwd(), 'public/upload/avatar')
+
+// 确保目录存在
+if (!existsSync(AVATAR_DIR)) {
+  mkdirSync(AVATAR_DIR, { recursive: true })
+}
+
+/**
+ * 上传模块
+ * 处理文件上传（照片等）
+ */
+export const uploadModule = new Elysia({ prefix: '/api/upload' })
+  .use(errorHandler)
+  
+  /**
+   * 公开的头像上传接口（用于注册）
+   * 不需要登录
+   */
+  .post('/avatar/public', async ({ body }: any) => {
+    const { file } = body
+
+    // 验证文件
+    if (!file) {
+      throw new ValidationError('请选择文件')
+    }
+
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      throw new ValidationError('只支持 JPG 和 PNG 格式')
+    }
+
+    // 验证文件大小（2MB）
+    const maxSize = 2 * 1024 * 1024
+    if (file.size > maxSize) {
+      throw new ValidationError('文件大小不能超过 2MB')
+    }
+
+    try {
+      // 生成文件名
+      const timestamp = Date.now()
+      const ext = file.name.split('.').pop() || 'jpg'
+      const fileName = `temp-${timestamp}-${Math.random().toString(36).substring(7)}.${ext}`
+
+      // 保存文件
+      const filePath = join(AVATAR_DIR, fileName)
+      const buffer = await file.arrayBuffer()
+      writeFileSync(filePath, Buffer.from(buffer))
+
+      const url = `/upload/avatar/${fileName}`
+
+      logger.info(`📸 公开照片上传成功: ${fileName} (${(file.size / 1024).toFixed(2)} KB)`)
+
+      return {
+        success: true,
+        message: '照片上传成功',
+        data: { url },
+      }
+    } catch (error) {
+      logger.error('照片上传失败:', error)
+      throw new ValidationError('照片上传失败', error instanceof Error ? error.message : String(error))
+    }
+  })
+
+  .use(authMiddleware) // 以下接口需要登录
+
+  /**
+   * 上传头像（需要登录）
+   */
+  .post('/avatar', async ({ body }: any) => {
+    const { file, lotusId } = body
+
+    // 验证文件
+    if (!file) {
+      throw new ValidationError('请选择文件')
+    }
+
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      throw new ValidationError('只支持 JPG 和 PNG 格式')
+    }
+
+    // 验证文件大小（2MB）
+    const maxSize = 2 * 1024 * 1024
+    if (file.size > maxSize) {
+      throw new ValidationError('文件大小不能超过 2MB')
+    }
+
+    try {
+      // 生成文件名
+      const timestamp = Date.now()
+      const ext = file.name.split('.').pop() || 'jpg'
+      const fileName = lotusId ? `${lotusId}-${timestamp}.${ext}` : `${timestamp}.${ext}`
+
+      // 保存文件
+      const filePath = join(AVATAR_DIR, fileName)
+      const buffer = await file.arrayBuffer()
+      writeFileSync(filePath, Buffer.from(buffer))
+
+      const url = `/upload/avatar/${fileName}`
+
+      logger.info(`📸 照片上传成功: ${fileName} (${(file.size / 1024).toFixed(2)} KB)`)
+
+      // 如果提供了 lotusId，自动更新用户头像
+      if (lotusId) {
+        const [user] = await db.select().from(volunteer).where(eq(volunteer.lotusId, lotusId))
+
+        if (user) {
+          await db.update(volunteer).set({ avatar: url }).where(eq(volunteer.lotusId, lotusId))
+
+          logger.info(`📸 用户 ${lotusId}(${user.name}) 头像已更新: ${url}`)
+
+          return {
+            success: true,
+            message: '照片上传成功，已自动关联到用户',
+            data:    {
+              url,
+              lotusId,
+              userName: user.name,
+            },
+          }
+        } else {
+          logger.warn(`⚠️  用户 ${lotusId} 不存在，照片已上传但未关联`)
+
+          return {
+            success: true,
+            message: '照片上传成功，但用户不存在',
+            data:    {
+              url,
+              lotusId,
+              warning: '用户不存在，请手动关联',
+            },
+          }
+        }
+      }
+
+      return {
+        success: true,
+        message: '照片上传成功',
+        data:    { url },
+      }
+    } catch (error) {
+      logger.error('照片上传失败:', error)
+      throw new ValidationError('照片上传失败', error instanceof Error ? error.message : error)
+    }
+  })
+
+  /**
+   * 批量上传头像
+   */
+  .post('/avatars/batch', async ({ body }: any) => {
+    const { files } = body
+
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      throw new ValidationError('请选择文件')
+    }
+
+    const results = []
+
+    for (const file of files) {
+      try {
+        // 验证文件类型
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+        if (!allowedTypes.includes(file.type)) {
+          results.push({
+            success:  false,
+            fileName: file.name,
+            error:    '只支持 JPG 和 PNG 格式',
+          })
+          continue
+        }
+
+        // 验证文件大小
+        const maxSize = 2 * 1024 * 1024
+        if (file.size > maxSize) {
+          results.push({
+            success:  false,
+            fileName: file.name,
+            error:    '文件大小不能超过 2MB',
+          })
+          continue
+        }
+
+        // 生成文件名
+        const timestamp = Date.now()
+        const ext = file.name.split('.').pop() || 'jpg'
+        const fileName = `${timestamp}-${Math.random().toString(36).substring(7)}.${ext}`
+
+        // 保存文件
+        const filePath = join(AVATAR_DIR, fileName)
+        const buffer = await file.arrayBuffer()
+        writeFileSync(filePath, Buffer.from(buffer))
+
+        const url = `/upload/avatar/${fileName}`
+
+        results.push({
+          success:  true,
+          fileName: file.name,
+          url,
+        })
+
+        logger.info(`📸 批量上传: ${file.name} → ${fileName}`)
+      } catch (error) {
+        results.push({
+          success:  false,
+          fileName: file.name,
+          error:    error instanceof Error ? error.message : '上传失败',
+        })
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length
+    const failCount = results.filter(r => !r.success).length
+
+    logger.info(`📊 批量上传完成: 成功 ${successCount}, 失败 ${failCount}`)
+
+    return {
+      success: true,
+      message: `批量上传完成: 成功 ${successCount}, 失败 ${failCount}`,
+      data:    {
+        results,
+        summary: {
+          total:   files.length,
+          success: successCount,
+          fail:    failCount,
+        },
+      },
+    }
+  })

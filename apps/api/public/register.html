@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>义工注册 - 莲花斋</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+      font-weight: 500;
+    }
+    
+    .required {
+      color: #e74c3c;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+    }
+    
+    .checkbox-group input {
+      width: auto;
+      margin-right: 10px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    .btn-check {
+      flex: none;
+      width: auto;
+      padding: 10px 15px;
+      font-size: 14px;
+      background: #3498db;
+      color: white;
+    }
+    
+    .btn-check:hover {
+      background: #2980b9;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      color: #667eea;
+      margin: 30px 0 15px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+    
+    .hint {
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+    }
+    
+    .success-message, .error-message {
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    
+    .success-message {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    
+    .error-message {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .avatar-upload {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .avatar-preview {
+      width: 100px;
+      height: 100px;
+      border: 2px dashed #ddd;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #f9f9f9;
+    }
+    
+    .avatar-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .avatar-preview-empty {
+      color: #999;
+      font-size: 12px;
+      text-align: center;
+    }
+    
+    .upload-btn {
+      padding: 8px 15px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .upload-btn:hover {
+      background: #2980b9;
+    }
+    
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🙏 莲花斋义工注册</h1>
+    <p class="subtitle">欢迎加入我们的义工团队</p>
+    
+    <div id="message"></div>
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>正在提交...</p>
+    </div>
+    
+    <form id="registerForm">
+      <!-- 照片上传 -->
+      <div class="section-title">个人照片</div>
+      <div class="form-group">
+        <div class="avatar-upload">
+          <div class="avatar-preview" id="avatarPreview">
+            <div class="avatar-preview-empty">点击上传照片</div>
+          </div>
+          <div>
+            <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+            <button type="button" class="upload-btn" onclick="document.getElementById('avatarInput').click()">选择照片</button>
+            <div class="hint">支持 JPG、PNG 格式，建议尺寸 300x300</div>
+          </div>
+        </div>
+        <input type="hidden" name="avatar" id="avatarUrl">
+      </div>
+      
+      <!-- 基本信息 -->
+      <div class="section-title">基本信息</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>姓名 <span class="required">*</span></label>
+          <input type="text" name="name" required minlength="2" maxlength="50" placeholder="请输入真实姓名">
+        </div>
+        
+        <div class="form-group">
+          <label>性别</label>
+          <select name="gender">
+            <option value="">从身份证自动提取</option>
+            <option value="male">男</option>
+            <option value="female">女</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>身份证号 <span class="required">*</span></label>
+          <div class="button-group">
+            <input type="text" name="idNumber" required minlength="18" maxlength="18" placeholder="18位身份证号">
+            <button type="button" class="btn-check" onclick="checkIdNumber()">检查</button>
+          </div>
+          <div class="hint">将自动提取出生日期和性别</div>
+        </div>
+        
+        <div class="form-group">
+          <label>民族</label>
+          <input type="text" name="nation" placeholder="例如：汉" value="汉">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>出生年月</label>
+        <input type="date" name="birthDate">
+        <div class="hint">可选，默认从身份证提取</div>
+      </div>
+      
+      <div class="form-group">
+        <label>住址</label>
+        <textarea name="address" placeholder="请输入详细地址"></textarea>
+      </div>
+      
+      <!-- 联系方式 -->
+      <div class="section-title">联系方式</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>手机号 <span class="required">*</span></label>
+          <div class="button-group">
+            <input type="tel" name="phone" required pattern="^1[3-9]\\d{9}$" placeholder="11位手机号">
+            <button type="button" class="btn-check" onclick="checkPhone()">检查</button>
+          </div>
+          <div class="hint">手机号将作为登录账号</div>
+        </div>
+        
+        <div class="form-group">
+          <label>邮箱</label>
+          <input type="email" name="email" placeholder="example@email.com">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>微信号</label>
+          <input type="text" name="wechat" maxlength="50" placeholder="请输入微信号">
+        </div>
+        
+        <div class="form-group">
+          <label>QQ号</label>
+          <input type="text" name="qq" placeholder="请输入QQ号">
+        </div>
+      </div>
+      
+      <!-- 教育和信仰 -->
+      <div class="section-title">教育与信仰</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>学历</label>
+          <select name="education">
+            <option value="none">无</option>
+            <option value="elementary">小学</option>
+            <option value="middle_school">初中</option>
+            <option value="high_school">高中</option>
+            <option value="bachelor">本科</option>
+            <option value="master">硕士</option>
+            <option value="phd">博士</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>宗教信仰</label>
+          <input type="text" name="religiousBackground" placeholder="例如：佛教" value="佛教">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>法名</label>
+          <input type="text" name="dharmaName" maxlength="50" placeholder="如有法名请填写">
+        </div>
+        
+        <div class="form-group">
+          <label>是否皈依</label>
+          <select name="refugeStatus">
+            <option value="none">未皈依</option>
+            <option value="took_refuge">已皈依</option>
+            <option value="five_precepts">五戒</option>
+            <option value="bodhisattva">菩萨戒</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group checkbox-group">
+        <input type="checkbox" name="hasBuddhismFaith" id="hasBuddhismFaith">
+        <label for="hasBuddhismFaith">我有佛教信仰</label>
+      </div>
+      
+      <!-- 其他信息 -->
+      <div class="section-title">其他信息</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>健康状况</label>
+          <select name="healthConditions">
+            <option value="healthy">健康</option>
+            <option value="has_chronic_disease">有慢性病</option>
+            <option value="has_disability">有残疾</option>
+            <option value="has_allergies">有过敏</option>
+            <option value="recovering_from_illness">康复中</option>
+            <option value="other_conditions">其他</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>深圳义工号</label>
+          <input type="text" name="volunteerId" placeholder="如有请填写">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>住宿情况</label>
+        <input type="text" name="accommodation" placeholder="例如：需要住宿、自行解决等">
+      </div>
+      
+      <div class="form-group">
+        <label>加入原因</label>
+        <textarea name="joinReason" placeholder="请简单说明您加入义工团队的原因"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>兴趣爱好</label>
+        <textarea name="hobbies" placeholder="请填写您的兴趣爱好"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>可服务时间</label>
+        <input type="text" name="availableTimes" placeholder="例如：周末全天、工作日晚上">
+      </div>
+      
+      <div class="form-group">
+        <label>紧急联系人</label>
+        <input type="text" name="emergencyContact" maxlength="50" placeholder="姓名 电话">
+      </div>
+      
+      <div class="form-group">
+        <label>家人同意情况</label>
+        <select name="familyConsent">
+          <option value="self_decided">自己决定</option>
+          <option value="approved">家人同意</option>
+          <option value="partial">部分同意</option>
+          <option value="rejected">家人反对</option>
+        </select>
+      </div>
+      
+      <div class="button-group" style="margin-top: 30px;">
+        <button type="submit" class="btn-primary">提交注册</button>
+        <button type="reset" class="btn-secondary">重置</button>
+      </div>
+    </form>
+  </div>
+  
+  <script>
+    const API_BASE = window.location.origin
+    
+    // 照片上传
+    document.getElementById('avatarInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      
+      // 预览
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        document.getElementById('avatarPreview').innerHTML = `<img src="${e.target.result}" alt="预览">`
+      }
+      reader.readAsDataURL(file)
+      
+      // 上传
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      try {
+        const response = await fetch(`${API_BASE}/api/upload/avatar/public`, {
+          method: 'POST',
+          body: formData
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          document.getElementById('avatarUrl').value = result.data.url
+          alert('照片上传成功')
+        } else {
+          alert('照片上传失败：' + result.message)
+        }
+      } catch (error) {
+        alert('照片上传失败，请稍后重试')
+        console.error(error)
+      }
+    })
+    
+    // 检查手机号
+    async function checkPhone() {
+      const phone = document.querySelector('[name="phone"]').value
+      if (!phone) {
+        alert('请先输入手机号')
+        return
+      }
+      
+      if (!/^1[3-9]\d{9}$/.test(phone)) {
+        alert('手机号格式不正确')
+        return
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/volunteer/register/check-phone/${phone}`)
+        const data = await response.json()
+        
+        if (data.data.exists) {
+          alert('❌ 该手机号已注册')
+        } else {
+          alert('✅ 该手机号可以注册')
+        }
+      } catch (error) {
+        alert('检查失败，请稍后重试')
+      }
+    }
+    
+    // 检查身份证号
+    async function checkIdNumber() {
+      const idNumber = document.querySelector('[name="idNumber"]').value
+      if (!idNumber) {
+        alert('请先输入身份证号')
+        return
+      }
+      
+      if (idNumber.length !== 18) {
+        alert('身份证号必须为18位')
+        return
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/volunteer/register/check-id/${idNumber}`)
+        const data = await response.json()
+        
+        if (data.data.exists) {
+          alert('❌ 该身份证号已注册')
+        } else {
+          alert('✅ 该身份证号可以注册')
+        }
+      } catch (error) {
+        alert('检查失败，请稍后重试')
+      }
+    }
+    
+    // 显示消息
+    function showMessage(message, type = 'success') {
+      const messageDiv = document.getElementById('message')
+      messageDiv.className = type === 'success' ? 'success-message' : 'error-message'
+      messageDiv.innerHTML = message
+      messageDiv.style.display = 'block'
+      
+      setTimeout(() => {
+        messageDiv.style.display = 'none'
+      }, 5000)
+    }
+    
+    // 提交注册
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      
+      const formData = new FormData(e.target)
+      const data = {}
+      
+      // 转换表单数据
+      for (const [key, value] of formData.entries()) {
+        if (value && key !== 'avatar') {
+          data[key] = value
+        }
+      }
+      
+      // 添加头像URL
+      const avatarUrl = document.getElementById('avatarUrl').value
+      if (avatarUrl) {
+        data.avatar = avatarUrl
+      }
+      
+      // 转换 checkbox
+      data.hasBuddhismFaith = formData.get('hasBuddhismFaith') === 'on'
+      
+      // 显示加载状态
+      document.getElementById('loading').style.display = 'block'
+      document.getElementById('registerForm').style.display = 'none'
+      
+      try {
+        const response = await fetch(`${API_BASE}/volunteer/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        })
+        
+        const result = await response.json()
+        
+        // 隐藏加载状态
+        document.getElementById('loading').style.display = 'none'
+        document.getElementById('registerForm').style.display = 'block'
+        
+        if (result.success) {
+          const message = `
+            <h3>🎉 注册成功！</h3>
+            <p><strong>莲花斋ID：</strong>${result.data.lotusId}</p>
+            <p><strong>登录账号：</strong>${result.data.account}</p>
+            <p><strong>默认密码：</strong>${result.data.defaultPassword}</p>
+            <p style="margin-top: 15px; color: #e74c3c;">
+              <strong>重要提示：</strong>请使用手机号和默认密码登录，并尽快修改密码！
+            </p>
+          `
+          showMessage(message, 'success')
+          
+          // 清空表单
+          e.target.reset()
+          document.getElementById('avatarPreview').innerHTML = '<div class="avatar-preview-empty">点击上传照片</div>'
+          document.getElementById('avatarUrl').value = ''
+          
+          // 5秒后提示
+          setTimeout(() => {
+            alert('请前往登录页面使用账号密码登录')
+          }, 5000)
+        } else {
+          showMessage(`❌ 注册失败：${result.message}`, 'error')
+        }
+      } catch (error) {
+        document.getElementById('loading').style.display = 'none'
+        document.getElementById('registerForm').style.display = 'block'
+        showMessage('❌ 注册失败，请稍后重试', 'error')
+        console.error(error)
+      }
+    })
+  </script>
+</body>
+</html>
