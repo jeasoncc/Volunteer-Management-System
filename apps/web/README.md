@@ -1,310 +1,285 @@
-Welcome to your new TanStack app! 
+# 莲花斋义工管理系统 - 前端
 
-# Getting Started
+基于 React + Vite + TanStack Router/Query 的现代化前端应用。
 
-To run this application:
+## 技术栈
+
+- **框架**: React 19
+- **构建工具**: Vite 7
+- **路由**: TanStack Router
+- **状态管理**: TanStack Query (React Query)
+- **表单**: TanStack Form
+- **UI 组件**: shadcn/ui + Tailwind CSS 4
+- **HTTP 客户端**: Axios
+- **日期处理**: dayjs
+- **代码规范**: Biome
+
+## 功能模块
+
+### 1. 认证模块
+- ✅ 用户登录
+- ✅ 用户登出
+- ✅ 会话管理
+- ✅ 路由守卫
+
+### 2. 义工管理
+- ✅ 义工列表（分页）
+- ✅ 义工搜索
+- ✅ 义工详情查看
+- 🚧 义工创建/编辑
+- 🚧 义工删除
+- 🚧 批量操作
+
+### 3. 考勤管理
+- ✅ 月度考勤报表
+- ✅ 考勤统计概览
+- ✅ Excel 导出
+- 🚧 考勤记录详情
+- 🚧 考勤数据筛选
+
+## 快速开始
+
+### 安装依赖
 
 ```bash
 bun install
-bun --bun run start
 ```
 
-# Building For Production
-
-To build this application for production:
+### 开发模式
 
 ```bash
-bun --bun run build
+bun run dev
 ```
 
-## Testing
+应用将在 http://localhost:3000 启动
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+### 构建生产版本
 
 ```bash
-bun --bun run test
+bun run build
 ```
 
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
+### 预览生产版本
 
 ```bash
-bun --bun run lint
-bun --bun run format
-bun --bun run check
+bun run serve
 ```
 
+## 项目结构
 
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpx shadcn@latest add button
+```
+src/
+├── components/          # 组件
+│   ├── ui/             # UI 基础组件（shadcn/ui）
+│   └── Layout.tsx      # 布局组件
+├── hooks/              # 自定义 Hooks
+│   └── useAuth.ts      # 认证 Hook
+├── lib/                # 工具库
+│   ├── api.ts          # API 客户端
+│   ├── query-client.ts # React Query 配置
+│   └── utils.ts        # 工具函数
+├── routes/             # 路由页面
+│   ├── __root.tsx      # 根路由
+│   ├── index.tsx       # 首页
+│   ├── login.tsx       # 登录页
+│   ├── volunteers.tsx  # 义工管理
+│   └── checkin.tsx     # 考勤管理
+├── services/           # API 服务
+│   ├── auth.ts         # 认证服务
+│   ├── volunteer.ts    # 义工服务
+│   ├── checkin.ts      # 考勤服务
+│   └── upload.ts       # 上传服务
+├── types/              # 类型定义
+│   └── index.ts        # 全局类型
+├── main.tsx            # 应用入口
+└── styles.css          # 全局样式
 ```
 
+## 环境变量
 
+创建 `.env` 文件：
 
-## Routing
-This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
+```env
+# API 基础地址
+VITE_API_BASE_URL=http://localhost:3001
 
-### Adding A Route
-
-To add a new route to your application just add another a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
+# 应用配置
+VITE_APP_TITLE=莲花斋义工管理系统
+VITE_APP_VERSION=1.0.0
 ```
 
-Then anywhere in your JSX you can use it like so:
+## API 集成
 
-```tsx
-<Link to="/about">About</Link>
+### 认证
+
+```typescript
+import { authService } from './services/auth'
+
+// 登录
+await authService.login({ account, password })
+
+// 登出
+await authService.logout()
+
+// 获取当前用户
+await authService.me()
 ```
 
-This will create a link that will navigate to the `/about` route.
+### 义工管理
 
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
+```typescript
+import { volunteerService } from './services/volunteer'
 
-### Using A Layout
+// 获取列表
+await volunteerService.getList({ page: 1, pageSize: 20 })
 
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you use the `<Outlet />` component.
+// 获取详情
+await volunteerService.getByLotusId('LZ-V-6020135')
 
-Here is an example layout that includes a header:
+// 创建义工
+await volunteerService.create({ name, phone, idNumber, gender })
 
-```tsx
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+// 更新义工
+await volunteerService.update(lotusId, { name, phone })
 
-import { Link } from "@tanstack/react-router";
+// 删除义工
+await volunteerService.delete(lotusId)
+```
 
-export const Route = createRootRoute({
-  component: () => (
-    <>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-        </nav>
-      </header>
-      <Outlet />
-      <TanStackRouterDevtools />
-    </>
-  ),
+### 考勤管理
+
+```typescript
+import { checkinService } from './services/checkin'
+
+// 获取月度报表
+await checkinService.getMonthlyReport({ year: 2025, month: 11 })
+
+// 导出 Excel
+const blob = await checkinService.exportVolunteerService(startDate, endDate)
+```
+
+## 使用 React Query
+
+```typescript
+import { useQuery, useMutation } from '@tanstack/react-query'
+
+// 查询数据
+const { data, isLoading } = useQuery({
+  queryKey: ['volunteers', page],
+  queryFn: () => volunteerService.getList({ page }),
+})
+
+// 修改数据
+const mutation = useMutation({
+  mutationFn: volunteerService.create,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['volunteers'] })
+  },
 })
 ```
 
-The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
+## 路由
 
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+使用 TanStack Router 的文件路由系统：
 
+- `/` - 首页（需要登录）
+- `/login` - 登录页
+- `/volunteers` - 义工管理（需要登录）
+- `/checkin` - 考勤管理（需要登录）
 
-## Data Fetching
+## UI 组件
 
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
+使用 shadcn/ui 组件库，已添加的组件：
 
-For example:
+- Button - 按钮
+- Input - 输入框
+- Card - 卡片
+- Table - 表格
+- Alert - 警告
 
-```tsx
-const peopleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/people",
-  loader: async () => {
-    const response = await fetch("https://swapi.dev/api/people");
-    return response.json() as Promise<{
-      results: {
-        name: string;
-      }[];
-    }>;
-  },
-  component: () => {
-    const data = peopleRoute.useLoaderData();
-    return (
-      <ul>
-        {data.results.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    );
-  },
-});
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-### React-Query
-
-React-Query is an excellent addition or alternative to route loading and integrating it into you application is a breeze.
-
-First add your dependencies:
+添加更多组件：
 
 ```bash
-bun install @tanstack/react-query @tanstack/react-query-devtools
+pnpx shadcn@latest add dialog
+pnpx shadcn@latest add select
+pnpx shadcn@latest add form
 ```
 
-Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
+## 代码规范
 
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// ...
-
-const queryClient = new QueryClient();
-
-// ...
-
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
-}
-```
-
-You can also add TanStack Query Devtools to the root route (optional).
-
-```tsx
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
-const rootRoute = createRootRoute({
-  component: () => (
-    <>
-      <Outlet />
-      <ReactQueryDevtools buttonPosition="top-right" />
-      <TanStackRouterDevtools />
-    </>
-  ),
-});
-```
-
-Now you can use `useQuery` to fetch your data.
-
-```tsx
-import { useQuery } from "@tanstack/react-query";
-
-import "./App.css";
-
-function App() {
-  const { data } = useQuery({
-    queryKey: ["people"],
-    queryFn: () =>
-      fetch("https://swapi.dev/api/people")
-        .then((res) => res.json())
-        .then((data) => data.results as { name: string }[]),
-    initialData: [],
-  });
-
-  return (
-    <div>
-      <ul>
-        {data.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export default App;
-```
-
-You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
-
-## State Management
-
-Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.
-
-First you need to add TanStack Store as a dependency:
+使用 Biome 进行代码检查和格式化：
 
 ```bash
-bun install @tanstack/store
+# 检查代码
+bun run lint
+
+# 格式化代码
+bun run format
+
+# 检查并修复
+bun run check
 ```
 
-Now let's create a simple counter in the `src/App.tsx` file as a demonstration.
+## 测试
 
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-function App() {
-  const count = useStore(countStore);
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-    </div>
-  );
-}
-
-export default App;
+```bash
+bun run test
 ```
 
-One of the many nice features of TanStack Store is the ability to derive state from other state. That derived state will update when the base state updates.
+## 待完成功能
 
-Let's check this out by doubling the count using derived state.
+### 义工管理
+- [ ] 义工创建表单
+- [ ] 义工编辑表单
+- [ ] 义工详情页面
+- [ ] 批量导入
+- [ ] 批量删除
+- [ ] 头像上传
 
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store, Derived } from "@tanstack/store";
-import "./App.css";
+### 考勤管理
+- [ ] 考勤记录列表
+- [ ] 考勤详情查看
+- [ ] 日期范围筛选
+- [ ] 按义工筛选
+- [ ] 手动添加考勤
 
-const countStore = new Store(0);
+### 其他
+- [ ] 用户个人中心
+- [ ] 密码修改
+- [ ] 系统设置
+- [ ] 权限管理
+- [ ] 数据统计图表
 
-const doubledStore = new Derived({
-  fn: () => countStore.state * 2,
-  deps: [countStore],
-});
-doubledStore.mount();
+## 开发建议
 
-function App() {
-  const count = useStore(countStore);
-  const doubledCount = useStore(doubledStore);
+1. **组件复用**: 将常用的 UI 模式抽取为组件
+2. **类型安全**: 充分利用 TypeScript 的类型系统
+3. **错误处理**: 统一的错误提示和处理
+4. **加载状态**: 为异步操作提供加载反馈
+5. **响应式设计**: 确保在不同设备上的良好体验
 
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-      <div>Doubled - {doubledCount}</div>
-    </div>
-  );
-}
+## 常见问题
 
-export default App;
-```
+### 1. API 请求失败
 
-We use the `Derived` class to create a new store that is derived from another store. The `Derived` class has a `mount` method that will start the derived store updating.
+检查 `.env` 中的 `VITE_API_BASE_URL` 是否正确，确保后端服务已启动。
 
-Once we've created the derived store we can use it in the `App` component just like we would any other store using the `useStore` hook.
+### 2. 路由不工作
 
-You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
+确保已安装 `@tanstack/router-plugin` 并在 `vite.config.ts` 中配置。
 
-# Demo files
+### 3. 样式不生效
 
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
+检查 Tailwind CSS 配置，确保 `@tailwindcss/vite` 插件已添加。
 
-# Learn More
+## 贡献指南
 
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+1. Fork 项目
+2. 创建特性分支
+3. 提交更改
+4. 推送到分支
+5. 创建 Pull Request
+
+## 许可证
+
+MIT License
