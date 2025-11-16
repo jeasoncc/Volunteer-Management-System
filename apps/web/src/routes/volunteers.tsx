@@ -1,182 +1,163 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { volunteerService } from "../services/volunteer";
 import { Layout } from "../components/Layout";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Dialog } from "../components/ui/dialog";
+import { VolunteerForm } from "../components/VolunteerForm";
+import { VolunteerTable } from "../components/VolunteerTable";
+import { useAuth } from "../hooks/useAuth";
+import { volunteerService } from "../services/volunteer";
+import type { Volunteer } from "../types";
 
 export const Route = createFileRoute("/volunteers")({
-  component: VolunteersPage,
+	component: VolunteersPage,
 } as any);
 
 function VolunteersPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState("");
-  const [searchKeyword, setSearchKeyword] = useState("");
+	const { isAuthenticated, isLoading: authLoading } = useAuth();
+	const queryClient = useQueryClient();
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [editingVolunteer, setEditingVolunteer] = useState<
+		Volunteer | undefined
+	>();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["volunteers", page, searchKeyword],
-    queryFn: () => volunteerService.getList({ page, pageSize: 20, keyword: searchKeyword }),
-    enabled: isAuthenticated,
-  });
+	const { data, isLoading } = useQuery({
+		queryKey: ["volunteers"],
+		queryFn: () => volunteerService.getList({ page: 1, pageSize: 1000 }), // 获取所有数据，由表格组件处理分页
+		enabled: isAuthenticated,
+	});
 
-  if (authLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">加载中...</div>
-        </div>
-      </Layout>
-    );
-  }
+	const createMutation = useMutation({
+		mutationFn: volunteerService.create,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			setIsDialogOpen(false);
+			alert("创建成功！");
+		},
+		onError: (error: any) => {
+			alert(error.message || "创建失败");
+		},
+	});
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
+	const updateMutation = useMutation({
+		mutationFn: ({
+			lotusId,
+			data,
+		}: {
+			lotusId: string;
+			data: Partial<Volunteer>;
+		}) => volunteerService.update(lotusId, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			setIsDialogOpen(false);
+			setEditingVolunteer(undefined);
+			alert("更新成功！");
+		},
+		onError: (error: any) => {
+			alert(error.message || "更新失败");
+		},
+	});
 
-  const handleSearch = () => {
-    setSearchKeyword(keyword);
-    setPage(1);
-  };
+	const deleteMutation = useMutation({
+		mutationFn: volunteerService.delete,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			alert("删除成功！");
+		},
+		onError: (error: any) => {
+			alert(error.message || "删除失败");
+		},
+	});
 
-  const volunteers = data?.data?.data || [];
-  const total = data?.data?.total || 0;
-  const totalPages = data?.data?.totalPages || 1;
+	if (authLoading) {
+		return (
+			<Layout>
+				<div className="flex items-center justify-center h-64">
+					<div className="text-gray-500">加载中...</div>
+				</div>
+			</Layout>
+		);
+	}
 
-  return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">义工管理</h1>
-          <Button>添加义工</Button>
-        </div>
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
+	}
 
-        {/* 搜索栏 */}
-        <div className="flex gap-4">
-          <Input
-            placeholder="搜索义工（姓名、手机号、莲花斋ID）"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="max-w-md"
-          />
-          <Button onClick={handleSearch}>搜索</Button>
-          {searchKeyword && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setKeyword("");
-                setSearchKeyword("");
-                setPage(1);
-              }}
-            >
-              清除搜索
-            </Button>
-          )}
-        </div>
+	const volunteers = data?.data?.data || [];
 
-        {/* 义工列表 */}
-        <div className="bg-white rounded-lg shadow">
-          {isLoading ? (
-            <div className="p-8 text-center text-gray-500">加载中...</div>
-          ) : volunteers.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">暂无数据</div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>莲花斋ID</TableHead>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>性别</TableHead>
-                    <TableHead>手机号</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>角色</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead>操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {volunteers.map((volunteer: any) => (
-                    <TableRow key={volunteer.id}>
-                      <TableCell className="font-medium">{volunteer.lotusId}</TableCell>
-                      <TableCell>{volunteer.name}</TableCell>
-                      <TableCell>
-                        {volunteer.gender === "male" ? "男" : volunteer.gender === "female" ? "女" : "其他"}
-                      </TableCell>
-                      <TableCell>{volunteer.phone}</TableCell>
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            volunteer.volunteerStatus === "registered"
-                              ? "bg-green-100 text-green-800"
-                              : volunteer.volunteerStatus === "trainee"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {volunteer.volunteerStatus === "registered"
-                            ? "已注册"
-                            : volunteer.volunteerStatus === "trainee"
-                            ? "培训中"
-                            : volunteer.volunteerStatus === "applicant"
-                            ? "申请中"
-                            : volunteer.volunteerStatus}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {volunteer.lotusRole === "admin" ? "管理员" : "义工"}
-                      </TableCell>
-                      <TableCell>
-                        {volunteer.createdAt ? new Date(volunteer.createdAt).toLocaleDateString() : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            查看
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            编辑
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+	const handleView = (volunteer: Volunteer) => {
+		alert(
+			`查看义工详情功能待实现\n\n姓名: ${volunteer.name}\nID: ${volunteer.lotusId}\n手机: ${volunteer.phone}`,
+		);
+		// TODO: 导航到详情页面
+	};
 
-              {/* 分页 */}
-              <div className="flex items-center justify-between px-6 py-4 border-t">
-                <div className="text-sm text-gray-700">
-                  共 {total} 条记录，第 {page} / {totalPages} 页
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                  >
-                    上一页
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= totalPages}
-                  >
-                    下一页
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </Layout>
-  );
+	const handleEdit = (volunteer: Volunteer) => {
+		setEditingVolunteer(volunteer);
+		setIsDialogOpen(true);
+	};
+
+	const handleDelete = (volunteer: Volunteer) => {
+		if (confirm(`确定要删除义工 ${volunteer.name} 吗？此操作不可恢复。`)) {
+			deleteMutation.mutate(volunteer.lotusId);
+		}
+	};
+
+	const handleAdd = () => {
+		setEditingVolunteer(undefined);
+		setIsDialogOpen(true);
+	};
+
+	const handleFormSubmit = async (data: Partial<Volunteer>) => {
+		if (editingVolunteer) {
+			await updateMutation.mutateAsync({
+				lotusId: editingVolunteer.lotusId,
+				data,
+			});
+		} else {
+			await createMutation.mutateAsync(data as any);
+		}
+	};
+
+	const handleDialogClose = () => {
+		setIsDialogOpen(false);
+		setEditingVolunteer(undefined);
+	};
+
+	return (
+		<Layout>
+			<div className="space-y-6">
+				<div className="flex justify-between items-center">
+					<h1 className="text-2xl font-bold">义工管理</h1>
+					<Button onClick={handleAdd}>添加义工</Button>
+				</div>
+
+				{/* 义工列表 */}
+				<div className="bg-white rounded-lg shadow p-6">
+					<VolunteerTable
+						data={volunteers}
+						isLoading={isLoading}
+						onView={handleView}
+						onEdit={handleEdit}
+						onDelete={handleDelete}
+					/>
+				</div>
+
+				{/* 添加/编辑对话框 */}
+				<Dialog
+					open={isDialogOpen}
+					onClose={handleDialogClose}
+					title={editingVolunteer ? "编辑义工" : "添加义工"}
+					maxWidth="lg"
+				>
+					<VolunteerForm
+						volunteer={editingVolunteer}
+						onSubmit={handleFormSubmit}
+						onCancel={handleDialogClose}
+					/>
+				</Dialog>
+			</div>
+		</Layout>
+	);
 }
