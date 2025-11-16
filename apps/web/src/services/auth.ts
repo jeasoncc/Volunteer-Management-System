@@ -40,21 +40,21 @@ export const authService = {
 	 * 登录
 	 */
 	login: async (params: LoginParams): Promise<ApiResponse<User>> => {
-		return api.post("/auth/login", params);
+		return api.post("/api/auth/login", params);
 	},
 
 	/**
 	 * 登出
 	 */
 	logout: async (): Promise<ApiResponse> => {
-		return api.post("/auth/logout");
+		return api.post("/api/auth/logout");
 	},
 
 	/**
 	 * 获取当前用户信息
 	 */
 	me: async (): Promise<ApiResponse<User>> => {
-		return api.get("/auth/me");
+		return api.get("/api/auth/me");
 	},
 
 	/**

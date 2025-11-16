@@ -19,7 +19,10 @@ import { startCronJobs } from './cron'
 dotenvExpand.expand(dotenv.config())
 
 const app = new Elysia()
-  .use(cors())
+  .use(cors({
+    origin: true,
+    credentials: true,
+  }))
   .use(staticPlugin({
     assets: 'public',
     prefix: '/',

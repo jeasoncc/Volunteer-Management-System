@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { queryClient } from "../lib/query-client";
+import { NotFound } from "../components/NotFound";
 
 export const Route = createRootRoute({
 	component: () => (
@@ -23,4 +24,5 @@ export const Route = createRootRoute({
 			/>
 		</QueryClientProvider>
 	),
+	notFoundComponent: NotFound,
 });

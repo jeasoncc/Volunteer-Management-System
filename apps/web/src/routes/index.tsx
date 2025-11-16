@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { Layout } from "../components/Layout";
+import { DashboardLayout } from "../components/DashboardLayout";
+import { Button } from "../components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -10,6 +11,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { checkinService } from "../services/checkin";
 import { volunteerService } from "../services/volunteer";
+import { Users, Clock, Calendar, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
@@ -37,18 +39,18 @@ function HomePage() {
 		enabled: isAuthenticated,
 	});
 
-	if (isLoading) {
-		return (
-			<Layout>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-gray-500">加载中...</div>
-				</div>
-			</Layout>
-		);
-	}
-
 	if (!isAuthenticated) {
 		return <Navigate to="/login" />;
+	}
+
+	if (isLoading) {
+		return (
+			<DashboardLayout breadcrumbs={[{ label: "首页" }]}>
+				<div className="flex items-center justify-center h-64">
+					<div className="text-muted-foreground">加载中...</div>
+				</div>
+			</DashboardLayout>
+		);
 	}
 
 	const totalVolunteers = volunteersData?.data?.total || 0;
@@ -63,14 +65,14 @@ function HomePage() {
 	);
 
 	return (
-		<Layout>
+		<DashboardLayout breadcrumbs={[{ label: "首页" }]}>
 			<div className="space-y-6">
 				{/* 欢迎信息 */}
 				<div>
-					<h1 className="text-3xl font-bold text-gray-900">
+					<h1 className="text-3xl font-bold">
 						欢迎回来，{user?.name || "管理员"}
 					</h1>
-					<p className="mt-2 text-gray-600">
+					<p className="mt-2 text-muted-foreground">
 						今天是{" "}
 						{currentDate.toLocaleDateString("zh-CN", {
 							year: "numeric",
@@ -82,96 +84,78 @@ function HomePage() {
 				</div>
 
 				{/* 统计卡片 */}
-				<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm font-medium text-gray-600">
-								义工总数
-							</CardTitle>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">义工总数</CardTitle>
+							<Users className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-3xl font-bold text-blue-600">
-								{totalVolunteers}
-							</div>
-							<p className="text-xs text-gray-500 mt-1">注册义工人数</p>
+							<div className="text-2xl font-bold">{totalVolunteers}</div>
+							<p className="text-xs text-muted-foreground mt-1">注册义工人数</p>
 						</CardContent>
 					</Card>
 
 					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm font-medium text-gray-600">
-								本月活跃义工
-							</CardTitle>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">本月活跃义工</CardTitle>
+							<TrendingUp className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-3xl font-bold text-green-600">
-								{volunteers.length}
-							</div>
-							<p className="text-xs text-gray-500 mt-1">本月有打卡记录</p>
+							<div className="text-2xl font-bold">{volunteers.length}</div>
+							<p className="text-xs text-muted-foreground mt-1">本月有打卡记录</p>
 						</CardContent>
 					</Card>
 
 					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm font-medium text-gray-600">
-								本月服务时长
-							</CardTitle>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">本月服务时长</CardTitle>
+							<Clock className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-3xl font-bold text-purple-600">
-								{totalHours.toFixed(1)}
-							</div>
-							<p className="text-xs text-gray-500 mt-1">小时</p>
+							<div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
+							<p className="text-xs text-muted-foreground mt-1">小时</p>
 						</CardContent>
 					</Card>
 
 					<Card>
-						<CardHeader>
-							<CardTitle className="text-sm font-medium text-gray-600">
-								本月打卡次数
-							</CardTitle>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">本月打卡次数</CardTitle>
+							<Calendar className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-3xl font-bold text-orange-600">
-								{totalDays}
-							</div>
-							<p className="text-xs text-gray-500 mt-1">次</p>
+							<div className="text-2xl font-bold">{totalDays}</div>
+							<p className="text-xs text-muted-foreground mt-1">次</p>
 						</CardContent>
 					</Card>
 				</div>
 
 				{/* 快捷入口 */}
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-					<Card className="hover:shadow-lg transition-shadow">
+				<div className="grid gap-4 md:grid-cols-2">
+					<Card className="hover:shadow-md transition-shadow">
 						<CardHeader>
-							<CardTitle className="text-xl">义工管理</CardTitle>
+							<CardTitle>义工管理</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<p className="text-gray-600 mb-4">
+							<p className="text-sm text-muted-foreground mb-4">
 								管理义工信息、查看义工列表、添加新义工
 							</p>
-							<Link
-								to="/volunteers"
-								className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-							>
-								进入义工管理 →
+							<Link to="/volunteers">
+								<Button className="w-full">进入义工管理 →</Button>
 							</Link>
 						</CardContent>
 					</Card>
 
-					<Card className="hover:shadow-lg transition-shadow">
+					<Card className="hover:shadow-md transition-shadow">
 						<CardHeader>
-							<CardTitle className="text-xl">考勤管理</CardTitle>
+							<CardTitle>考勤管理</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<p className="text-gray-600 mb-4">
+							<p className="text-sm text-muted-foreground mb-4">
 								查看考勤记录、生成考勤报表、导出统计数据
 							</p>
-							<Link
-								to="/checkin"
-								className="inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-							>
-								进入考勤管理 →
+							<Link to="/checkin">
+								<Button className="w-full">进入考勤管理 →</Button>
 							</Link>
 						</CardContent>
 					</Card>
@@ -186,42 +170,39 @@ function HomePage() {
 						<CardContent>
 							<div className="space-y-3">
 								{volunteers
-									.sort(
-										(a: any, b: any) =>
-											(b.totalHours || 0) - (a.totalHours || 0),
-									)
+									.sort((a: any, b: any) => (b.totalHours || 0) - (a.totalHours || 0))
 									.slice(0, 10)
 									.map((volunteer: any, index: number) => (
 										<div
 											key={volunteer.lotusId}
-											className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+											className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
 										>
 											<div className="flex items-center gap-4">
 												<div
-													className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+													className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
 														index === 0
 															? "bg-yellow-400 text-yellow-900"
 															: index === 1
-																? "bg-gray-300 text-gray-700"
-																: index === 2
-																	? "bg-orange-300 text-orange-900"
-																	: "bg-blue-100 text-blue-700"
+															? "bg-gray-300 text-gray-700"
+															: index === 2
+															? "bg-orange-300 text-orange-900"
+															: "bg-muted text-muted-foreground"
 													}`}
 												>
 													{index + 1}
 												</div>
 												<div>
 													<div className="font-medium">{volunteer.name}</div>
-													<div className="text-sm text-gray-500">
+													<div className="text-sm text-muted-foreground">
 														{volunteer.lotusId}
 													</div>
 												</div>
 											</div>
 											<div className="text-right">
-												<div className="font-bold text-lg text-blue-600">
+												<div className="font-bold text-lg">
 													{volunteer.totalHours || 0} 小时
 												</div>
-												<div className="text-sm text-gray-500">
+												<div className="text-sm text-muted-foreground">
 													{volunteer.totalDays || 0} 天
 												</div>
 											</div>
@@ -232,6 +213,6 @@ function HomePage() {
 					</Card>
 				)}
 			</div>
-		</Layout>
+		</DashboardLayout>
 	);
 }

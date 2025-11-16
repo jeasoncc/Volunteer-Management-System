@@ -7,6 +7,7 @@
     "check-volunteer-ids": "bun run scripts/check-volunteer-ids.ts",
     "clean-avatars": "bun run scripts/clean-duplicate-avatars.ts",
     "clean-exports": "bash scripts/clean-exports.sh",
+    "create-admin": "bun run scripts/create-admin.ts",
     "dev": "bun run --watch src/index.ts",
     "export:batch": "bash scripts/export-batch.sh",
     "export:monthly": "bash scripts/export-monthly.sh",

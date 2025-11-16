@@ -16,26 +16,58 @@ lianhuazhai-monorepo/
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 1. 安装依赖
 
 ```bash
 bun install
 ```
 
-### 开发模式
+### 2. 配置环境变量
 
 ```bash
-# 同时启动前后端
-bun run dev
+# 后端配置
+cd apps/api
+cp .env.example .env
+# 编辑 .env 文件，配置数据库等信息
 
-# 只启动后端
-bun run dev --filter=@lianhuazhai/api
-
-# 只启动前端
-bun run dev --filter=@lianhuazhai/web
+# 前端配置
+cd ../web
+cp .env.example .env
+# 编辑 .env 文件，配置 API 地址
 ```
 
-### 构建
+### 3. 初始化数据库
+
+```bash
+cd apps/api
+bun run db:generate  # 生成迁移
+bun run db:push      # 执行迁移
+bun run db:seed      # 初始化数据（可选）
+```
+
+### 4. 启动项目
+
+```bash
+# 回到根目录
+cd ../..
+
+# 同时启动前后端（推荐）
+bun run dev
+
+# 或分别启动
+bun run dev --filter=@lianhuazhai/api   # 只启动后端
+bun run dev --filter=@lianhuazhai/web   # 只启动前端
+```
+
+### 5. 访问应用
+
+- 前端：http://localhost:3000
+- 后端 API：http://localhost:3001
+- API 文档：http://localhost:3001/swagger
+
+**默认登录账号**：`admin` / `admin123`
+
+### 构建生产版本
 
 ```bash
 # 构建所有项目
@@ -83,8 +115,35 @@ bun run clean
 
 ## 📚 文档
 
-- [后端 API 文档](./apps/api/README.md)
-- [前端 Web 文档](./apps/web/README.md)
+- [启动指南](./START_GUIDE.md) - 详细的启动和配置说明
+- [快速开始](./QUICK_START.md) - 快速上手指南
+- [前端总结](./FRONTEND_SUMMARY.md) - 前端技术栈和功能说明
+- [架构评估](./PROJECT_ARCHITECTURE_REVIEW.md) - 项目架构分析
+- [后端 API 文档](./apps/api/README.md) - 后端开发文档
+- [前端 Web 文档](./apps/web/README.md) - 前端开发文档
+
+## ✨ 新功能
+
+### 美化的登录页面
+- 渐变背景动画效果
+- 图标装饰和加载动画
+- 优化的错误提示
+- 响应式设计
+
+### 404 错误页面
+- 友好的错误提示
+- 快速导航按钮
+- 常用链接快捷入口
+
+### TanStack Table 集成
+- 强大的表格功能（排序、搜索、分页）
+- 义工管理表格
+- 考勤管理表格
+
+### 完整的 CRUD 功能
+- 义工创建、编辑、删除
+- 表单验证
+- 乐观更新
 
 ## 🤝 贡献
 

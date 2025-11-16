@@ -3,7 +3,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { CheckinTable } from "../components/CheckinTable";
-import { Layout } from "../components/Layout";
+import { DashboardLayout } from "../components/DashboardLayout";
 import { Button } from "../components/ui/button";
 import {
 	Card,
@@ -33,11 +33,11 @@ function CheckinPage() {
 
 	if (authLoading) {
 		return (
-			<Layout>
+			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "考勤管理" }]}>
 				<div className="flex items-center justify-center h-64">
-					<div className="text-gray-500">加载中...</div>
+					<div className="text-muted-foreground">加载中...</div>
 				</div>
-			</Layout>
+			</DashboardLayout>
 		);
 	}
 
@@ -80,10 +80,10 @@ function CheckinPage() {
 	};
 
 	return (
-		<Layout>
+		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "考勤管理" }]}>
 			<div className="space-y-6">
 				<div className="flex justify-between items-center">
-					<h1 className="text-2xl font-bold">考勤管理</h1>
+					<h1 className="text-3xl font-bold">考勤管理</h1>
 				</div>
 
 				{/* 月份选择 */}
@@ -186,6 +186,6 @@ function CheckinPage() {
 					</>
 				)}
 			</div>
-		</Layout>
+		</DashboardLayout>
 	);
 }

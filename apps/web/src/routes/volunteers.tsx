@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Layout } from "../components/Layout";
+import { DashboardLayout } from "../components/DashboardLayout";
 import { Button } from "../components/ui/button";
 import { Dialog } from "../components/ui/dialog";
 import { VolunteerForm } from "../components/VolunteerForm";
@@ -72,11 +72,11 @@ function VolunteersPage() {
 
 	if (authLoading) {
 		return (
-			<Layout>
+			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
 				<div className="flex items-center justify-center h-64">
-					<div className="text-gray-500">加载中...</div>
+					<div className="text-muted-foreground">加载中...</div>
 				</div>
-			</Layout>
+			</DashboardLayout>
 		);
 	}
 
@@ -126,15 +126,15 @@ function VolunteersPage() {
 	};
 
 	return (
-		<Layout>
+		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
 			<div className="space-y-6">
 				<div className="flex justify-between items-center">
-					<h1 className="text-2xl font-bold">义工管理</h1>
+					<h1 className="text-3xl font-bold">义工管理</h1>
 					<Button onClick={handleAdd}>添加义工</Button>
 				</div>
 
 				{/* 义工列表 */}
-				<div className="bg-white rounded-lg shadow p-6">
+				<div className="bg-card rounded-lg border p-6">
 					<VolunteerTable
 						data={volunteers}
 						isLoading={isLoading}
@@ -158,6 +158,6 @@ function VolunteersPage() {
 					/>
 				</Dialog>
 			</div>
-		</Layout>
+		</DashboardLayout>
 	);
 }
