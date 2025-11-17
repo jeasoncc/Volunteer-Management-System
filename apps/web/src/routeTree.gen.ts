@@ -13,6 +13,7 @@ import { Route as VolunteersRouteImport } from './routes/volunteers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
 
 const VolunteersRoute = VolunteersRouteImport.update({
   id: '/volunteers',
@@ -34,39 +35,58 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VolunteersLotusIdRoute = VolunteersLotusIdRouteImport.update({
+  id: '/$lotusId',
+  path: '/$lotusId',
+  getParentRoute: () => VolunteersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
-  '/volunteers': typeof VolunteersRoute
+  '/volunteers': typeof VolunteersRouteWithChildren
+  '/volunteers/$lotusId': typeof VolunteersLotusIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
-  '/volunteers': typeof VolunteersRoute
+  '/volunteers': typeof VolunteersRouteWithChildren
+  '/volunteers/$lotusId': typeof VolunteersLotusIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
-  '/volunteers': typeof VolunteersRoute
+  '/volunteers': typeof VolunteersRouteWithChildren
+  '/volunteers/$lotusId': typeof VolunteersLotusIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/checkin' | '/login' | '/volunteers'
+  fullPaths:
+    | '/'
+    | '/checkin'
+    | '/login'
+    | '/volunteers'
+    | '/volunteers/$lotusId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkin' | '/login' | '/volunteers'
-  id: '__root__' | '/' | '/checkin' | '/login' | '/volunteers'
+  to: '/' | '/checkin' | '/login' | '/volunteers' | '/volunteers/$lotusId'
+  id:
+    | '__root__'
+    | '/'
+    | '/checkin'
+    | '/login'
+    | '/volunteers'
+    | '/volunteers/$lotusId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckinRoute: typeof CheckinRoute
   LoginRoute: typeof LoginRoute
-  VolunteersRoute: typeof VolunteersRoute
+  VolunteersRoute: typeof VolunteersRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -99,14 +119,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/volunteers/$lotusId': {
+      id: '/volunteers/$lotusId'
+      path: '/$lotusId'
+      fullPath: '/volunteers/$lotusId'
+      preLoaderRoute: typeof VolunteersLotusIdRouteImport
+      parentRoute: typeof VolunteersRoute
+    }
   }
 }
+
+interface VolunteersRouteChildren {
+  VolunteersLotusIdRoute: typeof VolunteersLotusIdRoute
+}
+
+const VolunteersRouteChildren: VolunteersRouteChildren = {
+  VolunteersLotusIdRoute: VolunteersLotusIdRoute,
+}
+
+const VolunteersRouteWithChildren = VolunteersRoute._addFileChildren(
+  VolunteersRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckinRoute: CheckinRoute,
   LoginRoute: LoginRoute,
-  VolunteersRoute: VolunteersRoute,
+  VolunteersRoute: VolunteersRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
