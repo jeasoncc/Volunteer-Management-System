@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VolunteersRouteImport } from './routes/volunteers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CheckinRouteImport } from './routes/checkin'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
+import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$lotusId/edit'
 
 const VolunteersRoute = VolunteersRouteImport.update({
   id: '/volunteers',
@@ -30,6 +32,11 @@ const CheckinRoute = CheckinRouteImport.update({
   path: '/checkin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -40,50 +47,73 @@ const VolunteersLotusIdRoute = VolunteersLotusIdRouteImport.update({
   path: '/$lotusId',
   getParentRoute: () => VolunteersRoute,
 } as any)
+const VolunteersLotusIdEditRoute = VolunteersLotusIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => VolunteersLotusIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
   '/volunteers': typeof VolunteersRouteWithChildren
-  '/volunteers/$lotusId': typeof VolunteersLotusIdRoute
+  '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
+  '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
   '/volunteers': typeof VolunteersRouteWithChildren
-  '/volunteers/$lotusId': typeof VolunteersLotusIdRoute
+  '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
+  '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
   '/volunteers': typeof VolunteersRouteWithChildren
-  '/volunteers/$lotusId': typeof VolunteersLotusIdRoute
+  '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
+  '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/checkin'
     | '/login'
     | '/volunteers'
     | '/volunteers/$lotusId'
+    | '/volunteers/$lotusId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkin' | '/login' | '/volunteers' | '/volunteers/$lotusId'
+  to:
+    | '/'
+    | '/admin'
+    | '/checkin'
+    | '/login'
+    | '/volunteers'
+    | '/volunteers/$lotusId'
+    | '/volunteers/$lotusId/edit'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/checkin'
     | '/login'
     | '/volunteers'
     | '/volunteers/$lotusId'
+    | '/volunteers/$lotusId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   CheckinRoute: typeof CheckinRoute
   LoginRoute: typeof LoginRoute
   VolunteersRoute: typeof VolunteersRouteWithChildren
@@ -112,6 +142,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckinRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -126,15 +163,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VolunteersLotusIdRouteImport
       parentRoute: typeof VolunteersRoute
     }
+    '/volunteers/$lotusId/edit': {
+      id: '/volunteers/$lotusId/edit'
+      path: '/edit'
+      fullPath: '/volunteers/$lotusId/edit'
+      preLoaderRoute: typeof VolunteersLotusIdEditRouteImport
+      parentRoute: typeof VolunteersLotusIdRoute
+    }
   }
 }
 
+interface VolunteersLotusIdRouteChildren {
+  VolunteersLotusIdEditRoute: typeof VolunteersLotusIdEditRoute
+}
+
+const VolunteersLotusIdRouteChildren: VolunteersLotusIdRouteChildren = {
+  VolunteersLotusIdEditRoute: VolunteersLotusIdEditRoute,
+}
+
+const VolunteersLotusIdRouteWithChildren =
+  VolunteersLotusIdRoute._addFileChildren(VolunteersLotusIdRouteChildren)
+
 interface VolunteersRouteChildren {
-  VolunteersLotusIdRoute: typeof VolunteersLotusIdRoute
+  VolunteersLotusIdRoute: typeof VolunteersLotusIdRouteWithChildren
 }
 
 const VolunteersRouteChildren: VolunteersRouteChildren = {
-  VolunteersLotusIdRoute: VolunteersLotusIdRoute,
+  VolunteersLotusIdRoute: VolunteersLotusIdRouteWithChildren,
 }
 
 const VolunteersRouteWithChildren = VolunteersRoute._addFileChildren(
@@ -143,6 +198,7 @@ const VolunteersRouteWithChildren = VolunteersRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   CheckinRoute: CheckinRoute,
   LoginRoute: LoginRoute,
   VolunteersRoute: VolunteersRouteWithChildren,

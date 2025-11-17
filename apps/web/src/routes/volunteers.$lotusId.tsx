@@ -1,5 +1,5 @@
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import { volunteerService } from "../services/volunteer";
 import { checkinService } from "../services/checkin";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/volunteers/$lotusId")({
 function VolunteerDetailPage() {
 	const { lotusId } = Route.useParams();
 	const { isAuthenticated, isLoading: authLoading } = useAuth();
+	const queryClient = useQueryClient();
 
 	const { data: volunteerData, isLoading } = useQuery({
 		queryKey: ["volunteer", lotusId],
@@ -33,6 +34,19 @@ function VolunteerDetailPage() {
 		queryKey: ["checkin", "user", lotusId],
 		queryFn: () => checkinService.getUserSummary(lotusId, startDate, endDate),
 		enabled: isAuthenticated && !!lotusId,
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: (lotusId: string) => volunteerService.delete(lotusId),
+		onSuccess: () => {
+			// Invalidate and refetch
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			// Navigate back to volunteers list
+			window.location.hash = "#/volunteers";
+		},
+		onError: (error: any) => {
+			alert(error.message || "删除失败");
+		},
 	});
 
 	if (!isAuthenticated) {
@@ -99,6 +113,12 @@ function VolunteerDetailPage() {
 		bodhisattva: "菩萨戒",
 	};
 
+	const handleDelete = () => {
+		if (confirm(`确定要删除义工 ${volunteer.name} 吗？此操作不可恢复。`)) {
+			deleteMutation.mutate(lotusId);
+		}
+	};
+
 	return (
 		<DashboardLayout
 			breadcrumbs={[
@@ -134,7 +154,7 @@ function VolunteerDetailPage() {
 						<Link to="/volunteers/$lotusId/edit" params={{ lotusId }}>
 							<Button variant="outline">编辑</Button>
 						</Link>
-						<Button variant="destructive">删除</Button>
+						<Button variant="destructive" onClick={handleDelete}>删除</Button>
 					</div>
 				</div>
 

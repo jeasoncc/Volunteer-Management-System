@@ -32,6 +32,51 @@ export const checkinService = {
 	},
 
 	/**
+	 * 根据 ID 获取考勤记录详情
+	 */
+	getById: async (id: number): Promise<ApiResponse<CheckInSummary>> => {
+		return api.get(`/api/v1/summary/${id}`);
+	},
+
+	/**
+	 * 创建考勤汇总记录
+	 */
+	create: async (data: Partial<CheckInSummary>): Promise<ApiResponse> => {
+		return api.post("/api/v1/summary", data);
+	},
+
+	/**
+	 * 更新考勤汇总记录
+	 */
+	update: async (
+		id: number,
+		data: Partial<CheckInSummary>,
+	): Promise<ApiResponse> => {
+		return api.put(`/api/v1/summary/${id}`, data);
+	},
+
+	/**
+	 * 删除考勤汇总记录
+	 */
+	delete: async (id: number): Promise<ApiResponse> => {
+		return api.delete(`/api/v1/summary/${id}`);
+	},
+
+	/**
+	 * 批量删除考勤汇总记录
+	 */
+	batchDelete: async (ids: number[]): Promise<ApiResponse> => {
+		return api.post("/api/v1/summary/batch-delete", { ids });
+	},
+
+	/**
+	 * 重新计算考勤汇总
+	 */
+	recalculate: async (userId: number, date: string): Promise<ApiResponse> => {
+		return api.post("/api/v1/summary/recalculate", { userId, date });
+	},
+
+	/**
 	 * 获取用户考勤汇总
 	 */
 	getUserSummary: async (

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "../hooks/useAuth";
+import type { LoginResponse } from "../services/auth";
 
 export function LoginForm({
 	className,
@@ -29,15 +30,27 @@ export function LoginForm({
 		try {
 			const response = await login({ account, password });
 
-			// 检查用户角色
-			if (response?.data?.user?.role !== "admin") {
+			// 检查用户角色 - 登录响应结构: data.user.lotusRole
+			if (response?.data?.user?.lotusRole !== "admin") {
 				setError("权限不足：只有管理员才能登录此系统");
+				// Clear the form to prevent brute force attempts
+				setPassword("");
 				return;
 			}
 
+			// Redirect to dashboard after successful login
 			navigate({ to: "/" });
 		} catch (err: any) {
-			setError(err.message || "登录失败，请检查账号密码");
+			// More specific error handling
+			if (err.message?.includes("401")) {
+				setError("账号或密码错误");
+			} else if (err.message?.includes("网络")) {
+				setError("网络连接失败，请检查网络设置");
+			} else {
+				setError(err.message || "登录失败，请检查账号密码");
+			}
+			// Clear password field on error
+			setPassword("");
 		}
 	};
 

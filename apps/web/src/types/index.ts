@@ -85,9 +85,18 @@ export interface CheckInSummary {
 	userId: number;
 	lotusId: string;
 	name: string;
-	month: string;
-	totalDays: number;
-	totalHours: number;
+	date: string;
+	firstCheckinTime?: string;
+	lastCheckinTime?: string;
+	checkinCount?: number;
+	workHours: number;
+	status?: "present" | "late" | "early_leave" | "absent" | "on_leave" | "manual";
+	isManual?: boolean;
+	notes?: string;
+	// For monthly report
+	month?: string;
+	totalDays?: number;
+	totalHours?: number;
 	firstCheckIn?: string;
 	lastCheckIn?: string;
 }

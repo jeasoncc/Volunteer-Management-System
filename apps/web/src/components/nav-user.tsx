@@ -1,4 +1,5 @@
 import { LogOutIcon, MoreVerticalIcon, User2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -26,14 +27,19 @@ export function NavUser({
 		avatar: string;
 	};
 }) {
+	const navigate = useNavigate();
 	const { isMobile } = useSidebar();
 	const { logout } = useAuth();
 
 	const handleLogout = async () => {
 		try {
 			await logout();
+			// Redirect to login page after successful logout
+			navigate({ to: "/login" });
 		} catch (error) {
 			console.error("登出失败:", error);
+			// Even if logout fails, redirect to login page
+			navigate({ to: "/login" });
 		}
 	};
 

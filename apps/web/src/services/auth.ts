@@ -10,6 +10,12 @@ export interface LoginParams {
 	password: string;
 }
 
+export interface LoginResponse {
+	user: User & { lotusRole: string };
+	adminInfo: any;
+	token: string;
+}
+
 export interface RegisterParams {
 	name: string;
 	phone: string;
@@ -39,7 +45,7 @@ export const authService = {
 	/**
 	 * 登录
 	 */
-	login: async (params: LoginParams): Promise<ApiResponse<User>> => {
+	login: async (params: LoginParams): Promise<ApiResponse<LoginResponse>> => {
 		return api.post("/api/auth/login", params);
 	},
 
