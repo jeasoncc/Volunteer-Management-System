@@ -25,7 +25,7 @@ function VolunteersPage() {
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["volunteers"],
-		queryFn: () => volunteerService.getList({ page: 1, pageSize: 1000 }), // 获取所有数据，由表格组件处理分页
+		queryFn: () => volunteerService.getList({ page: 1, pageSize: 100 }), // 后端限制最大 100
 		enabled: isAuthenticated,
 	});
 
@@ -97,7 +97,7 @@ function VolunteersPage() {
 		return <Navigate to="/login" />;
 	}
 
-	const volunteers = data?.data?.data || [];
+	const volunteers = data?.data || [];
 
 	const handleView = (volunteer: Volunteer) => {
 		alert(

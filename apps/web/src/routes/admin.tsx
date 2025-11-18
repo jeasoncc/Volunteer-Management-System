@@ -32,7 +32,7 @@ function AdminPage() {
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["admins"],
-		queryFn: () => adminService.getList({ page: 1, pageSize: 1000 }),
+		queryFn: () => adminService.getList({ page: 1, pageSize: 100 }), // 后端限制最大 100
 		enabled: isAuthenticated,
 	});
 
@@ -87,7 +87,7 @@ function AdminPage() {
 	}
 
 	// Transform User[] to AdminData[]
-	const admins: AdminData[] = (data?.data?.data || []).map((user: User) => ({
+	const admins: AdminData[] = (data?.data || []).map((user: User) => ({
 		id: user.id,
 		lotusId: user.lotusId,
 		name: user.name,

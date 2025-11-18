@@ -36,7 +36,13 @@ export const volunteerService = {
 	getList: async (
 		params: VolunteerListParams,
 	): Promise<ApiResponse<PaginationResponse<Volunteer>>> => {
-		return api.get("/volunteer", { params });
+		// 转换参数：pageSize -> limit
+		const { pageSize, ...rest } = params;
+		const apiParams = {
+			...rest,
+			limit: pageSize,
+		};
+		return api.get("/volunteer", { params: apiParams });
 	},
 
 	/**

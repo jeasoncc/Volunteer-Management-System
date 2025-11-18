@@ -302,12 +302,10 @@ export class VolunteerService {
 
     return {
       data:       volunteers,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      total,
+      page,
+      pageSize:   limit,
+      totalPages: Math.ceil(total / limit),
     }
   }
 

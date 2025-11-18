@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "../hooks/useAuth";
 import type { LoginResponse } from "../services/auth";
@@ -16,7 +17,23 @@ export function LoginForm({
 	const { login, isLoggingIn } = useAuth();
 	const [account, setAccount] = useState("");
 	const [password, setPassword] = useState("");
+	const [rememberMe, setRememberMe] = useState(false);
 	const [error, setError] = useState("");
+
+	// 从 localStorage 加载保存的账号密码
+	useEffect(() => {
+		const savedAccount = localStorage.getItem("rememberedAccount");
+		const savedPassword = localStorage.getItem("rememberedPassword");
+		const savedRememberMe = localStorage.getItem("rememberMe") === "true";
+
+		if (savedRememberMe && savedAccount) {
+			setAccount(savedAccount);
+			setRememberMe(true);
+			if (savedPassword) {
+				setPassword(savedPassword);
+			}
+		}
+	}, []);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -36,6 +53,17 @@ export function LoginForm({
 				// Clear the form to prevent brute force attempts
 				setPassword("");
 				return;
+			}
+
+			// 处理记住密码
+			if (rememberMe) {
+				localStorage.setItem("rememberedAccount", account);
+				localStorage.setItem("rememberedPassword", password);
+				localStorage.setItem("rememberMe", "true");
+			} else {
+				localStorage.removeItem("rememberedAccount");
+				localStorage.removeItem("rememberedPassword");
+				localStorage.removeItem("rememberMe");
 			}
 
 			// Redirect to dashboard after successful login
@@ -93,6 +121,20 @@ export function LoginForm({
 						disabled={isLoggingIn}
 						required
 					/>
+				</div>
+				<div className="flex items-center space-x-2">
+					<Checkbox
+						id="remember"
+						checked={rememberMe}
+						onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+						disabled={isLoggingIn}
+					/>
+					<Label
+						htmlFor="remember"
+						className="text-sm font-normal cursor-pointer"
+					>
+						记住密码
+					</Label>
 				</div>
 				{error && (
 					<Alert variant="destructive">

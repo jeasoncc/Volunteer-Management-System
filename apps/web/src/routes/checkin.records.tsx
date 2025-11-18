@@ -27,7 +27,7 @@ function CheckinRecordsPage() {
 		queryFn: () =>
 			checkinService.getList({
 				page: 1,
-				pageSize: 1000,
+				pageSize: 100, // 后端限制最大 100
 				startDate,
 				endDate,
 				lotusId: lotusId || undefined,
@@ -55,8 +55,8 @@ function CheckinRecordsPage() {
 		);
 	}
 
-	const records = data?.data?.data || [];
-	const total = data?.data?.total || 0;
+	const records = data?.data || [];
+	const total = data?.total || 0;
 
 	return (
 		<DashboardLayout

@@ -53,7 +53,7 @@ function HomePage() {
 		);
 	}
 
-	const totalVolunteers = volunteersData?.data?.total || 0;
+	const totalVolunteers = volunteersData?.total || 0;
 	const volunteers = checkinData?.data?.volunteers || [];
 	const totalHours = volunteers.reduce(
 		(sum: number, v: any) => sum + (v.totalHours || 0),

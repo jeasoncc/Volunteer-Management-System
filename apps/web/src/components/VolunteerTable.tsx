@@ -195,7 +195,8 @@ export function VolunteerTable({
 			const selectedLotusIds = Object.keys(rowSelection);
 			onSelectionChange(selectedLotusIds);
 		}
-	}, [rowSelection, enableSelection, onSelectionChange]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [rowSelection, enableSelection]);
 
 	const table = useReactTable({
 		data,

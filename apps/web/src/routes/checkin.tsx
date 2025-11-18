@@ -49,7 +49,7 @@ function CheckinPage() {
 	const { data: recordsData, isLoading: recordsLoading } = useQuery({
 		queryKey: ["checkin", "records", startDate, endDate],
 		queryFn: () =>
-			checkinService.getList({ startDate, endDate, page: 1, pageSize: 1000 }),
+			checkinService.getList({ startDate, endDate, page: 1, pageSize: 100 }), // 后端限制最大 100
 		enabled: isAuthenticated && viewMode === "records",
 	});
 
@@ -120,7 +120,7 @@ function CheckinPage() {
 
 	const report = reportData?.data || {};
 	const volunteers = report.volunteers || [];
-	const records = (recordsData?.data?.data || []) as any[];
+	const records = (recordsData?.data || []) as any[];
 
 	const handleEdit = (record: CheckInSummary) => {
 		setEditingRecord(record);
