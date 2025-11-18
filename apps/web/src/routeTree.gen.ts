@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VolunteersRouteImport } from './routes/volunteers'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
+import { Route as CheckinRecordsRouteImport } from './routes/checkin.records'
 import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$lotusId/edit'
 
 const VolunteersRoute = VolunteersRouteImport.update({
@@ -31,6 +33,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckinRoute = CheckinRouteImport.update({
@@ -53,6 +60,11 @@ const VolunteersLotusIdRoute = VolunteersLotusIdRouteImport.update({
   path: '/$lotusId',
   getParentRoute: () => VolunteersRoute,
 } as any)
+const CheckinRecordsRoute = CheckinRecordsRouteImport.update({
+  id: '/records',
+  path: '/records',
+  getParentRoute: () => CheckinRoute,
+} as any)
 const VolunteersLotusIdEditRoute = VolunteersLotusIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -62,20 +74,24 @@ const VolunteersLotusIdEditRoute = VolunteersLotusIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/checkin': typeof CheckinRoute
+  '/checkin': typeof CheckinRouteWithChildren
+  '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
+  '/checkin/records': typeof CheckinRecordsRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/checkin': typeof CheckinRoute
+  '/checkin': typeof CheckinRouteWithChildren
+  '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
+  '/checkin/records': typeof CheckinRecordsRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
@@ -83,10 +99,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/checkin': typeof CheckinRoute
+  '/checkin': typeof CheckinRouteWithChildren
+  '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
+  '/checkin/records': typeof CheckinRecordsRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
@@ -96,9 +114,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/checkin'
+    | '/documents'
     | '/login'
     | '/settings'
     | '/volunteers'
+    | '/checkin/records'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -106,9 +126,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/checkin'
+    | '/documents'
     | '/login'
     | '/settings'
     | '/volunteers'
+    | '/checkin/records'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
   id:
@@ -116,9 +138,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/checkin'
+    | '/documents'
     | '/login'
     | '/settings'
     | '/volunteers'
+    | '/checkin/records'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
   fileRoutesById: FileRoutesById
@@ -126,7 +150,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  CheckinRoute: typeof CheckinRoute
+  CheckinRoute: typeof CheckinRouteWithChildren
+  DocumentsRoute: typeof DocumentsRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   VolunteersRoute: typeof VolunteersRouteWithChildren
@@ -153,6 +178,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkin': {
@@ -183,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VolunteersLotusIdRouteImport
       parentRoute: typeof VolunteersRoute
     }
+    '/checkin/records': {
+      id: '/checkin/records'
+      path: '/records'
+      fullPath: '/checkin/records'
+      preLoaderRoute: typeof CheckinRecordsRouteImport
+      parentRoute: typeof CheckinRoute
+    }
     '/volunteers/$lotusId/edit': {
       id: '/volunteers/$lotusId/edit'
       path: '/edit'
@@ -192,6 +231,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface CheckinRouteChildren {
+  CheckinRecordsRoute: typeof CheckinRecordsRoute
+}
+
+const CheckinRouteChildren: CheckinRouteChildren = {
+  CheckinRecordsRoute: CheckinRecordsRoute,
+}
+
+const CheckinRouteWithChildren =
+  CheckinRoute._addFileChildren(CheckinRouteChildren)
 
 interface VolunteersLotusIdRouteChildren {
   VolunteersLotusIdEditRoute: typeof VolunteersLotusIdEditRoute
@@ -219,7 +269,8 @@ const VolunteersRouteWithChildren = VolunteersRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  CheckinRoute: CheckinRoute,
+  CheckinRoute: CheckinRouteWithChildren,
+  DocumentsRoute: DocumentsRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   VolunteersRoute: VolunteersRouteWithChildren,

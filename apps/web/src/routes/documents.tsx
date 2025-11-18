@@ -1,0 +1,217 @@
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { DashboardLayout } from "../components/DashboardLayout";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "../components/ui/card";
+import { useAuth } from "../hooks/useAuth";
+import { checkinService } from "../services/checkin";
+import { Download, FileSpreadsheet, Calendar } from "lucide-react";
+import dayjs from "dayjs";
+
+export const Route = createFileRoute("/documents")({
+	component: DocumentsPage,
+} as any);
+
+function DocumentsPage() {
+	const { isAuthenticated, isLoading: authLoading } = useAuth();
+	const [startDate, setStartDate] = useState(
+		dayjs().startOf("month").format("YYYY-MM-DD")
+	);
+	const [endDate, setEndDate] = useState(
+		dayjs().endOf("month").format("YYYY-MM-DD")
+	);
+	const [isExporting, setIsExporting] = useState(false);
+
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
+	}
+
+	if (authLoading) {
+		return (
+			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "文档管理" }]}>
+				<div className="flex items-center justify-center h-64">
+					<div className="text-muted-foreground">加载中...</div>
+				</div>
+			</DashboardLayout>
+		);
+	}
+
+	const handleExport = async () => {
+		try {
+			setIsExporting(true);
+			const blob = await checkinService.exportVolunteerService(
+				startDate,
+				endDate
+			);
+
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = `志愿者服务时间统计表_${startDate}_${endDate}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+
+			alert("导出成功！");
+		} catch (error: any) {
+			alert(error.message || "导出失败");
+		} finally {
+			setIsExporting(false);
+		}
+	};
+
+	const handleQuickExport = async (months: number) => {
+		const start = dayjs()
+			.subtract(months, "month")
+			.startOf("month")
+			.format("YYYY-MM-DD");
+		const end = dayjs()
+			.subtract(months, "month")
+			.endOf("month")
+			.format("YYYY-MM-DD");
+
+		try {
+			setIsExporting(true);
+			const blob = await checkinService.exportVolunteerService(start, end);
+
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			const monthName = dayjs().subtract(months, "month").format("YYYY年MM月");
+			a.download = `志愿者服务时间统计表_${monthName}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+
+			alert("导出成功！");
+		} catch (error: any) {
+			alert(error.message || "导出失败");
+		} finally {
+			setIsExporting(false);
+		}
+	};
+
+	return (
+		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "文档管理" }]}>
+			<div className="space-y-6">
+				<div>
+					<h1 className="text-3xl font-bold">文档管理</h1>
+					<p className="mt-2 text-muted-foreground">
+						导出各类统计报表和文档
+					</p>
+				</div>
+
+				{/* 快捷导出 */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<FileSpreadsheet className="h-5 w-5" />
+							<CardTitle>快捷导出</CardTitle>
+						</div>
+						<CardDescription>快速导出常用月份的统计表</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+							<Button
+								variant="outline"
+								onClick={() => handleQuickExport(0)}
+								disabled={isExporting}
+							>
+								<Calendar className="h-4 w-4 mr-2" />
+								本月
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => handleQuickExport(1)}
+								disabled={isExporting}
+							>
+								<Calendar className="h-4 w-4 mr-2" />
+								上月
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => handleQuickExport(2)}
+								disabled={isExporting}
+							>
+								<Calendar className="h-4 w-4 mr-2" />
+								上上月
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => handleQuickExport(3)}
+								disabled={isExporting}
+							>
+								<Calendar className="h-4 w-4 mr-2" />
+								三个月前
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+
+				{/* 自定义导出 */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<Download className="h-5 w-5" />
+							<CardTitle>自定义导出</CardTitle>
+						</div>
+						<CardDescription>
+							选择自定义日期范围导出志愿者服务时间统计表
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<label className="text-sm font-medium">开始日期</label>
+								<Input
+									type="date"
+									value={startDate}
+									onChange={(e) => setStartDate(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<label className="text-sm font-medium">结束日期</label>
+								<Input
+									type="date"
+									value={endDate}
+									onChange={(e) => setEndDate(e.target.value)}
+								/>
+							</div>
+						</div>
+						<Button
+							onClick={handleExport}
+							disabled={isExporting}
+							className="w-full md:w-auto"
+						>
+							<Download className="h-4 w-4 mr-2" />
+							{isExporting ? "导出中..." : "导出 Excel"}
+						</Button>
+					</CardContent>
+				</Card>
+
+				{/* 导出说明 */}
+				<Card>
+					<CardHeader>
+						<CardTitle>导出说明</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-2 text-sm text-muted-foreground">
+						<p>• 导出文件格式：符合深圳志愿者管理系统要求的 Excel 格式</p>
+						<p>• 工时计算：自动计算签到签退时间差，单次打卡默认1小时</p>
+						<p>• 时长限制：单日服务时长最多8小时</p>
+						<p>• 数据来源：基于原始打卡记录实时计算</p>
+						<p>• 适用场景：用于向深圳志愿者管理系统上报月度数据</p>
+					</CardContent>
+				</Card>
+			</div>
+		</DashboardLayout>
+	);
+}

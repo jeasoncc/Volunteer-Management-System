@@ -131,7 +131,7 @@ function HomePage() {
 				</div>
 
 				{/* 快捷入口 */}
-				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 					<Card className="hover:shadow-md transition-shadow">
 						<CardHeader>
 							<CardTitle>义工管理</CardTitle>
@@ -171,6 +171,20 @@ function HomePage() {
 							<Link to="/admin">
 								<Button className="w-full">进入管理员管理 →</Button>
 							</Link>
+						</CardContent>
+					</Card>
+
+					<Card className="hover:shadow-md transition-shadow">
+						<CardHeader>
+							<CardTitle>文档管理</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm text-muted-foreground mb-4">
+								导出志愿者服务统计表、查看文档模板
+							</p>
+							<Button className="w-full" onClick={() => window.location.hash = '#/documents'}>
+								进入文档管理 →
+							</Button>
 						</CardContent>
 					</Card>
 				</div>

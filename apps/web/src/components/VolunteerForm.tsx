@@ -7,12 +7,14 @@ interface VolunteerFormProps {
 	volunteer?: Volunteer;
 	onSubmit: (data: Partial<Volunteer>) => Promise<void>;
 	onCancel: () => void;
+	isLoading?: boolean;
 }
 
 export function VolunteerForm({
 	volunteer,
 	onSubmit,
 	onCancel,
+	isLoading = false,
 }: VolunteerFormProps) {
 	const form = useForm({
 		defaultValues: {
@@ -47,14 +49,35 @@ export function VolunteerForm({
 					<label className="text-sm font-medium">
 						姓名 <span className="text-red-500">*</span>
 					</label>
-					<form.Field name="name">
+					<form.Field
+						name="name"
+						validators={{
+							onChange: ({ value }) => {
+								if (!value || value.trim().length === 0) {
+									return "请输入姓名";
+								}
+								if (value.length < 2 || value.length > 20) {
+									return "姓名长度应为2-20个字符";
+								}
+								return undefined;
+							},
+						}}
+					>
 						{(field) => (
-							<Input
-								value={field.state.value}
-								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="请输入姓名"
-								required
-							/>
+							<>
+								<Input
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									placeholder="请输入姓名"
+									required
+									className={field.state.meta.errors.length > 0 ? "border-red-500" : ""}
+								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-sm text-red-500 mt-1">
+										{field.state.meta.errors[0]}
+									</p>
+								)}
+							</>
 						)}
 					</form.Field>
 				</div>
@@ -63,14 +86,36 @@ export function VolunteerForm({
 					<label className="text-sm font-medium">
 						手机号 <span className="text-red-500">*</span>
 					</label>
-					<form.Field name="phone">
+					<form.Field
+						name="phone"
+						validators={{
+							onChange: ({ value }) => {
+								if (!value || value.trim().length === 0) {
+									return "请输入手机号";
+								}
+								const phoneRegex = /^1[3-9]\d{9}$/;
+								if (!phoneRegex.test(value)) {
+									return "请输入有效的手机号";
+								}
+								return undefined;
+							},
+						}}
+					>
 						{(field) => (
-							<Input
-								value={field.state.value}
-								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="请输入手机号"
-								required
-							/>
+							<>
+								<Input
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									placeholder="请输入手机号"
+									required
+									className={field.state.meta.errors.length > 0 ? "border-red-500" : ""}
+								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-sm text-red-500 mt-1">
+										{field.state.meta.errors[0]}
+									</p>
+								)}
+							</>
 						)}
 					</form.Field>
 				</div>
@@ -79,14 +124,36 @@ export function VolunteerForm({
 					<label className="text-sm font-medium">
 						身份证号 <span className="text-red-500">*</span>
 					</label>
-					<form.Field name="idNumber">
+					<form.Field
+						name="idNumber"
+						validators={{
+							onChange: ({ value }) => {
+								if (!value || value.trim().length === 0) {
+									return "请输入身份证号";
+								}
+								const idRegex = /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[\dXx]$/;
+								if (!idRegex.test(value)) {
+									return "请输入有效的身份证号";
+								}
+								return undefined;
+							},
+						}}
+					>
 						{(field) => (
-							<Input
-								value={field.state.value}
-								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="请输入身份证号"
-								required
-							/>
+							<>
+								<Input
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									placeholder="请输入身份证号"
+									required
+									className={field.state.meta.errors.length > 0 ? "border-red-500" : ""}
+								/>
+								{field.state.meta.errors.length > 0 && (
+									<p className="text-sm text-red-500 mt-1">
+										{field.state.meta.errors[0]}
+									</p>
+								)}
+							</>
 						)}
 					</form.Field>
 				</div>
@@ -195,10 +262,12 @@ export function VolunteerForm({
 
 			{/* 按钮 */}
 			<div className="flex justify-end gap-4">
-				<Button type="button" variant="outline" onClick={onCancel}>
+				<Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
 					取消
 				</Button>
-				<Button type="submit">{volunteer ? "更新" : "创建"}</Button>
+				<Button type="submit" disabled={isLoading}>
+					{isLoading ? "处理中..." : (volunteer ? "更新" : "创建")}
+				</Button>
 			</div>
 		</form>
 	);

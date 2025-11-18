@@ -21,6 +21,7 @@ function VolunteersPage() {
 	const [editingVolunteer, setEditingVolunteer] = useState<
 		Volunteer | undefined
 	>();
+	const [selectedVolunteers, setSelectedVolunteers] = useState<string[]>([]);
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["volunteers"],
@@ -70,6 +71,18 @@ function VolunteersPage() {
 		},
 	});
 
+	const batchDeleteMutation = useMutation({
+		mutationFn: volunteerService.batchDelete,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			setSelectedVolunteers([]);
+			alert("批量删除成功！");
+		},
+		onError: (error: any) => {
+			alert(error.message || "批量删除失败");
+		},
+	});
+
 	if (authLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
@@ -88,7 +101,11 @@ function VolunteersPage() {
 
 	const handleView = (volunteer: Volunteer) => {
 		alert(
-			`查看义工详情功能待实现\n\n姓名: ${volunteer.name}\nID: ${volunteer.lotusId}\n手机: ${volunteer.phone}`,
+			`查看义工详情功能待实现
+
+姓名: ${volunteer.name}
+ID: ${volunteer.lotusId}
+手机: ${volunteer.phone}`,
 		);
 		// TODO: 导航到详情页面
 	};
@@ -125,12 +142,38 @@ function VolunteersPage() {
 		setEditingVolunteer(undefined);
 	};
 
+	const handleBatchDelete = () => {
+		if (selectedVolunteers.length === 0) {
+			alert("请选择要删除的义工");
+			return;
+		}
+
+		if (confirm(`确定要删除选中的 ${selectedVolunteers.length} 个义工吗？此操作不可恢复。`)) {
+			batchDeleteMutation.mutate(selectedVolunteers);
+		}
+	};
+
+	const handleSelectionChange = (lotusIds: string[]) => {
+		setSelectedVolunteers(lotusIds);
+	};
+
 	return (
 		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
 			<div className="space-y-6">
 				<div className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold">义工管理</h1>
-					<Button onClick={handleAdd}>添加义工</Button>
+					<div className="flex gap-2">
+						{selectedVolunteers.length > 0 && (
+							<Button
+								variant="destructive"
+								onClick={handleBatchDelete}
+								disabled={batchDeleteMutation.isPending}
+							>
+								{batchDeleteMutation.isPending ? "删除中..." : `批量删除 (${selectedVolunteers.length})`}
+							</Button>
+						)}
+						<Button onClick={handleAdd}>添加义工</Button>
+					</div>
 				</div>
 
 				{/* 义工列表 */}
@@ -141,6 +184,8 @@ function VolunteersPage() {
 						onView={handleView}
 						onEdit={handleEdit}
 						onDelete={handleDelete}
+						enableSelection={true}
+						onSelectionChange={handleSelectionChange}
 					/>
 				</div>
 

@@ -7,6 +7,7 @@ import {
 	Shield,
 	Settings,
 	LogOut,
+	FileText,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -45,6 +46,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			title: "考勤管理",
 			url: "/checkin",
 			icon: ClipboardCheck,
+		},
+		{
+			title: "文档管理",
+			url: "/documents",
+			icon: FileText,
 		},
 		{
 			title: "设置",

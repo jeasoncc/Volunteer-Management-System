@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { CheckinTable } from "../components/CheckinTable";
@@ -19,7 +19,7 @@ import { useAuth } from "../hooks/useAuth";
 import { checkinService } from "../services/checkin";
 import { documentService } from "../services/document";
 import type { CheckInSummary } from "../types";
-import { Download, FileDown } from "lucide-react";
+import { Download, FileDown, List } from "lucide-react";
 
 export const Route = createFileRoute("/checkin")({
 	component: CheckinPage,
@@ -164,6 +164,13 @@ function CheckinPage() {
 				<div className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold">考勤管理</h1>
 					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							onClick={() => window.location.hash = '#/checkin/records'}
+						>
+							<List className="h-4 w-4 mr-2" />
+							原始记录
+						</Button>
 						<Button
 							variant={viewMode === "summary" ? "default" : "outline"}
 							onClick={() => setViewMode("summary")}

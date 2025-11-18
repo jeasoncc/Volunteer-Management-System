@@ -9,10 +9,11 @@ import {
 	type SortingState,
 	useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Volunteer } from "../types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
 
 interface VolunteerTableProps {
 	data: Volunteer[];
@@ -20,6 +21,8 @@ interface VolunteerTableProps {
 	onEdit?: (volunteer: Volunteer) => void;
 	onView?: (volunteer: Volunteer) => void;
 	onDelete?: (volunteer: Volunteer) => void;
+	enableSelection?: boolean;
+	onSelectionChange?: (lotusIds: string[]) => void;
 }
 
 export function VolunteerTable({
@@ -28,12 +31,40 @@ export function VolunteerTable({
 	onEdit,
 	onView,
 	onDelete,
+	enableSelection = false,
+	onSelectionChange,
 }: VolunteerTableProps) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
+	const [rowSelection, setRowSelection] = useState({});
 
 	const columns: ColumnDef<Volunteer>[] = [
+		// 选择框列（仅当启用选择时显示）
+		...(enableSelection
+			? [
+					{
+						id: "select",
+						header: ({ table }: any) => (
+							<Checkbox
+								checked={table.getIsAllPageRowsSelected()}
+								onCheckedChange={(value) =>
+									table.toggleAllPageRowsSelected(!!value)
+								}
+								aria-label="选择全部"
+							/>
+						),
+						cell: ({ row }: any) => (
+							<Checkbox
+								checked={row.getIsSelected()}
+								onCheckedChange={(value) => row.toggleSelected(!!value)}
+								aria-label="选择行"
+							/>
+						),
+						enableHiding: false,
+					} as ColumnDef<Volunteer>,
+			  ]
+			: []),
 		{
 			accessorKey: "lotusId",
 			header: "莲花斋ID",
@@ -158,6 +189,14 @@ export function VolunteerTable({
 		},
 	];
 
+	// 监听选中状态变化
+	useEffect(() => {
+		if (enableSelection && onSelectionChange) {
+			const selectedLotusIds = Object.keys(rowSelection);
+			onSelectionChange(selectedLotusIds);
+		}
+	}, [rowSelection, enableSelection, onSelectionChange]);
+
 	const table = useReactTable({
 		data,
 		columns,
@@ -168,10 +207,14 @@ export function VolunteerTable({
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
 		onGlobalFilterChange: setGlobalFilter,
+		onRowSelectionChange: setRowSelection,
+		getRowId: (row) => row.lotusId,
+		enableRowSelection: enableSelection,
 		state: {
 			sorting,
 			columnFilters,
 			globalFilter,
+			rowSelection,
 		},
 	});
 

@@ -59,6 +59,24 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
+ * Login with custom credentials
+ */
+export async function login(page: Page, account: string, password: string): Promise<void> {
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle2' })
+  
+  // Fill in login form
+  await page.waitForSelector('input[id="account"]')
+  await page.type('input[id="account"]', account)
+  await page.type('input[id="password"]', password)
+  
+  // Click login button
+  await page.click('button[type="submit"]')
+  
+  // Wait for navigation to complete
+  await page.waitForNavigation({ waitUntil: 'networkidle2' })
+}
+
+/**
  * Wait for element to be visible
  */
 export async function waitForElement(page: Page, selector: string, timeout = 5000): Promise<void> {
