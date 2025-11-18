@@ -17,7 +17,9 @@ import { Input } from "../components/ui/input";
 import { Dialog } from "../components/ui/dialog";
 import { useAuth } from "../hooks/useAuth";
 import { checkinService } from "../services/checkin";
+import { documentService } from "../services/document";
 import type { CheckInSummary } from "../types";
+import { Download, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/checkin")({
 	component: CheckinPage,

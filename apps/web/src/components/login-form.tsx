@@ -30,8 +30,8 @@ export function LoginForm({
 		try {
 			const response = await login({ account, password });
 
-			// 检查用户角色 - 登录响应结构: data.user.lotusRole
-			if (response?.data?.user?.lotusRole !== "admin") {
+			// 检查用户角色 - 后端返回的是 role 字段，不是 lotusRole
+			if (response?.data?.user?.role !== "admin") {
 				setError("权限不足：只有管理员才能登录此系统");
 				// Clear the form to prevent brute force attempts
 				setPassword("");

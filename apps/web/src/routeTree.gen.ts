@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VolunteersRouteImport } from './routes/volunteers'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -20,6 +21,11 @@ import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$
 const VolunteersRoute = VolunteersRouteImport.update({
   id: '/volunteers',
   path: '/volunteers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/checkin': typeof CheckinRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkin'
     | '/login'
+    | '/settings'
     | '/volunteers'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkin'
     | '/login'
+    | '/settings'
     | '/volunteers'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkin'
     | '/login'
+    | '/settings'
     | '/volunteers'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   CheckinRoute: typeof CheckinRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   VolunteersRoute: typeof VolunteersRouteWithChildren
 }
 
@@ -126,6 +139,13 @@ declare module '@tanstack/react-router' {
       path: '/volunteers'
       fullPath: '/volunteers'
       preLoaderRoute: typeof VolunteersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   CheckinRoute: CheckinRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   VolunteersRoute: VolunteersRouteWithChildren,
 }
 export const routeTree = rootRouteImport

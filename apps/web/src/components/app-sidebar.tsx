@@ -4,6 +4,7 @@ import {
 	Home,
 	Users,
 	ClipboardCheck,
+	Shield,
 	Settings,
 	LogOut,
 } from "lucide-react";
@@ -34,6 +35,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			title: "义工管理",
 			url: "/volunteers",
 			icon: Users,
+		},
+		{
+			title: "管理员管理",
+			url: "/admin",
+			icon: Shield,
 		},
 		{
 			title: "考勤管理",

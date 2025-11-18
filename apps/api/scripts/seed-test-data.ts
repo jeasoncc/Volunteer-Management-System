@@ -7,6 +7,7 @@
 import { db } from '../src/db'
 import { volunteer, admin } from '../src/db/schema'
 import { hashPassword } from '../src/lib/auth'
+import { eq } from 'drizzle-orm'
 
 const testVolunteers = [
   {
@@ -152,9 +153,22 @@ const testVolunteers = [
 ]
 
 async function seedTestData() {
-  console.log('🌱 开始插入测试数据...\n')
+  console.error('🌱 开始插入测试数据...\n')
+  console.error('📊 数据库连接信息:', process.env.CURR_DATABASE_URL)
 
   try {
+    // 先检查是否已有数据
+    const existingUsers = await db.query.volunteer.findMany({
+      columns: { id: true, account: true, name: true },
+    })
+    
+    if (existingUsers.length > 0) {
+      console.log(`⚠️  数据库中已有 ${existingUsers.length} 个用户，跳过插入`)
+      console.log('现有用户:', existingUsers.map(u => `${u.name} (${u.account})`).join(', '))
+      console.log('\n如需重新插入，请先清空数据库\n')
+      return
+    }
+
     // 1. 插入义工数据
     console.log('📝 插入义工数据...')
     const insertedVolunteers: number[] = []
@@ -175,6 +189,17 @@ async function seedTestData() {
 
     // 2. 将前3个义工升级为管理员
     console.log('\n👑 创建管理员数据...')
+    
+    // 首先更新这些用户的 lotus_role 为 admin
+    const adminUserIds = [insertedVolunteers[0], insertedVolunteers[1], insertedVolunteers[2]]
+    
+    for (let i = 0; i < adminUserIds.length; i++) {
+      await db.update(volunteer)
+        .set({ lotusRole: 'admin' })
+        .where(eq(volunteer.id, adminUserIds[i]))
+      console.log(`  ✓ 更新 ${testVolunteers[i].name} 的角色为 admin`)
+    }
+    
     const adminData = [
       {
         id: insertedVolunteers[0],
@@ -224,7 +249,7 @@ async function seedTestData() {
 // 运行脚本
 seedTestData()
   .then(() => {
-    console.log('✨ 脚本执行完成')
+    console.error('✨ 脚本执行完成')
     process.exit(0)
   })
   .catch((error) => {

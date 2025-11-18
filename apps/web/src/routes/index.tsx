@@ -131,7 +131,7 @@ function HomePage() {
 				</div>
 
 				{/* 快捷入口 */}
-				<div className="grid gap-4 md:grid-cols-2">
+				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 					<Card className="hover:shadow-md transition-shadow">
 						<CardHeader>
 							<CardTitle>义工管理</CardTitle>
@@ -156,6 +156,20 @@ function HomePage() {
 							</p>
 							<Link to="/checkin">
 								<Button className="w-full">进入考勤管理 →</Button>
+							</Link>
+						</CardContent>
+					</Card>
+
+					<Card className="hover:shadow-md transition-shadow">
+						<CardHeader>
+							<CardTitle>管理员管理</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm text-muted-foreground mb-4">
+								管理系统管理员、权限分配、角色设置
+							</p>
+							<Link to="/admin">
+								<Button className="w-full">进入管理员管理 →</Button>
 							</Link>
 						</CardContent>
 					</Card>

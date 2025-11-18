@@ -11,7 +11,7 @@ export interface LoginParams {
 }
 
 export interface LoginResponse {
-	user: User & { lotusRole: string };
+	user: User & { role: string };
 	adminInfo: any;
 	token: string;
 }
