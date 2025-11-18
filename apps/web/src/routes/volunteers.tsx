@@ -5,7 +5,7 @@ import { DashboardLayout } from "../components/DashboardLayout";
 import { Button } from "../components/ui/button";
 import { Dialog } from "../components/ui/dialog";
 import { VolunteerForm } from "../components/VolunteerForm";
-import { VolunteerTable } from "../components/VolunteerTable";
+import { VolunteerDataTable } from "../components/VolunteerDataTable";
 import { useAuth } from "../hooks/useAuth";
 import { volunteerService } from "../services/volunteer";
 import type { Volunteer } from "../types";
@@ -97,7 +97,7 @@ function VolunteersPage() {
 		return <Navigate to="/login" />;
 	}
 
-	const volunteers = data?.data || [];
+	const volunteers = Array.isArray(data?.data) ? data.data : [];
 
 	const handleView = (volunteer: Volunteer) => {
 		alert(
@@ -172,13 +172,16 @@ ID: ${volunteer.lotusId}
 								{batchDeleteMutation.isPending ? "删除中..." : `批量删除 (${selectedVolunteers.length})`}
 							</Button>
 						)}
+						<Button variant="outline" onClick={() => window.location.href = '/approval'}>
+							义工审批
+						</Button>
 						<Button onClick={handleAdd}>添加义工</Button>
 					</div>
 				</div>
 
 				{/* 义工列表 */}
 				<div className="bg-card rounded-lg border p-6">
-					<VolunteerTable
+					<VolunteerDataTable
 						data={volunteers}
 						isLoading={isLoading}
 						onView={handleView}

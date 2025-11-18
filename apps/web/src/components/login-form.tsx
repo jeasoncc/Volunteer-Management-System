@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "../hooks/useAuth";
-import type { LoginResponse } from "../services/auth";
 
 export function LoginForm({
 	className,

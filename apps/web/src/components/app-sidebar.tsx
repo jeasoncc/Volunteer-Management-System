@@ -8,6 +8,7 @@ import {
 	Settings,
 	LogOut,
 	FileText,
+	CheckSquare,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -31,6 +32,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			title: "首页",
 			url: "/",
 			icon: Home,
+		},
+		{
+			title: "义工审批",
+			url: "/approval",
+			icon: CheckSquare,
 		},
 		{
 			title: "义工管理",

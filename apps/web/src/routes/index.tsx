@@ -11,7 +11,8 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { checkinService } from "../services/checkin";
 import { volunteerService } from "../services/volunteer";
-import { Users, Clock, Calendar, TrendingUp } from "lucide-react";
+import { approvalService } from "../services/approval";
+import { Users, Clock, Calendar, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
@@ -24,6 +25,13 @@ function HomePage() {
 	const { data: volunteersData } = useQuery({
 		queryKey: ["volunteers", "stats"],
 		queryFn: () => volunteerService.getList({ page: 1, pageSize: 1 }),
+		enabled: isAuthenticated,
+	});
+
+	// 获取待审批义工数量
+	const { data: pendingData } = useQuery({
+		queryKey: ["approval", "pending", "count"],
+		queryFn: () => approvalService.getPendingList({ page: 1, pageSize: 1 }),
 		enabled: isAuthenticated,
 	});
 
@@ -53,7 +61,8 @@ function HomePage() {
 		);
 	}
 
-	const totalVolunteers = volunteersData?.total || 0;
+	const totalVolunteers = volunteersData?.data?.total || 0;
+	const pendingCount = pendingData?.data?.total || 0;
 	const volunteers = checkinData?.data?.volunteers || [];
 	const totalHours = volunteers.reduce(
 		(sum: number, v: any) => sum + (v.totalHours || 0),
@@ -96,14 +105,18 @@ function HomePage() {
 						</CardContent>
 					</Card>
 
-					<Card>
+					<Card className={pendingCount > 0 ? "border-orange-500 bg-orange-50/50" : ""}>
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">本月活跃义工</CardTitle>
-							<TrendingUp className="h-4 w-4 text-muted-foreground" />
+							<CardTitle className="text-sm font-medium">待审批义工</CardTitle>
+							<AlertCircle className={`h-4 w-4 ${pendingCount > 0 ? "text-orange-500" : "text-muted-foreground"}`} />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold">{volunteers.length}</div>
-							<p className="text-xs text-muted-foreground mt-1">本月有打卡记录</p>
+							<div className={`text-2xl font-bold ${pendingCount > 0 ? "text-orange-600" : ""}`}>
+								{pendingCount}
+							</div>
+							<p className="text-xs text-muted-foreground mt-1">
+								{pendingCount > 0 ? "需要处理" : "暂无待审批"}
+							</p>
 						</CardContent>
 					</Card>
 
@@ -132,6 +145,31 @@ function HomePage() {
 
 				{/* 快捷入口 */}
 				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+					<Card className={`hover:shadow-md transition-shadow ${pendingCount > 0 ? "border-orange-500" : ""}`}>
+						<CardHeader>
+							<CardTitle className="flex items-center justify-between">
+								义工审批
+								{pendingCount > 0 && (
+									<span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-orange-500 rounded-full">
+										{pendingCount}
+									</span>
+								)}
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm text-muted-foreground mb-4">
+								{pendingCount > 0 
+									? `有 ${pendingCount} 个义工申请待审批` 
+									: "审批义工申请、查看待审批列表、批量审批"}
+							</p>
+							<Link to="/approval">
+								<Button className={`w-full ${pendingCount > 0 ? "bg-orange-500 hover:bg-orange-600" : ""}`}>
+									进入义工审批 →
+								</Button>
+							</Link>
+						</CardContent>
+					</Card>
+
 					<Card className="hover:shadow-md transition-shadow">
 						<CardHeader>
 							<CardTitle>义工管理</CardTitle>

@@ -6,6 +6,7 @@ import { createLogger } from './log'
 import { adminModule } from './modules/admin'
 import { volunteerModule } from './modules/volunteer'
 import { volunteerRegisterModule } from './modules/volunteer/register'
+import { approvalModule } from './modules/volunteer/approval'
 import { authModule } from './modules/auth'
 import { checkinModule } from './modules/checkin'
 import { staticPlugin } from '@elysiajs/static'
@@ -31,6 +32,7 @@ const app = new Elysia()
   .use(authModule)
   .use(uploadModule)
   .use(volunteerRegisterModule) // 公开的注册接口
+  .use(approvalModule) // 义工审批模块
   .use(volunteerModule)
   .use(adminModule)
   .use(checkinModule)
