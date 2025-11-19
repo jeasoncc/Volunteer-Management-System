@@ -12,7 +12,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { MoreHorizontal, Eye, Pencil, Trash2, UserCircle } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2, UserCircle, CheckCircle, XCircle } from "lucide-react";
 
 interface VolunteerDataTableProps {
 	data: Volunteer[];
@@ -20,8 +20,11 @@ interface VolunteerDataTableProps {
 	onEdit?: (volunteer: Volunteer) => void;
 	onView?: (volunteer: Volunteer) => void;
 	onDelete?: (volunteer: Volunteer) => void;
+	onApprove?: (volunteer: Volunteer) => void;
+	onReject?: (volunteer: Volunteer) => void;
 	enableSelection?: boolean;
 	onSelectionChange?: (lotusIds: string[]) => void;
+	showApprovalActions?: boolean;
 }
 
 export function VolunteerDataTable({
@@ -30,8 +33,11 @@ export function VolunteerDataTable({
 	onEdit,
 	onView,
 	onDelete,
+	onApprove,
+	onReject,
 	enableSelection = false,
 	onSelectionChange,
+	showApprovalActions = false,
 }: VolunteerDataTableProps) {
 	const columns: ColumnDef<Volunteer>[] = [
 		// 选择框列
@@ -150,6 +156,36 @@ export function VolunteerDataTable({
 			header: "操作",
 			cell: ({ row }) => {
 				const volunteer = row.original;
+				
+				// 如果显示审批操作，使用简化的按钮组
+				if (showApprovalActions) {
+					return (
+						<div className="flex gap-2">
+							{onApprove && (
+								<Button
+									variant="default"
+									size="sm"
+									onClick={() => onApprove(volunteer)}
+								>
+									<CheckCircle className="h-4 w-4 mr-1" />
+									通过
+								</Button>
+							)}
+							{onReject && (
+								<Button
+									variant="destructive"
+									size="sm"
+									onClick={() => onReject(volunteer)}
+								>
+									<XCircle className="h-4 w-4 mr-1" />
+									拒绝
+								</Button>
+							)}
+						</div>
+					);
+				}
+				
+				// 否则显示下拉菜单
 				return (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
