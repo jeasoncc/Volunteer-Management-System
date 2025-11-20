@@ -1,10 +1,8 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog } from "@/components/ui/dialog";
 import {
 	Card,
 	CardContent,
@@ -12,12 +10,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { CareRecordForm } from "@/components/CareRecordForm";
 import { useAuth } from "@/hooks/useAuth";
 import { checkinService } from "@/services/checkin";
-import { documentService, type CareRecordData } from "@/services/document";
 import { Download, FileSpreadsheet, Calendar, FileText } from "lucide-react";
-import { toast } from "@/lib/toast";
 import dayjs from "dayjs";
 
 export const Route = createFileRoute("/documents")({
@@ -33,39 +28,6 @@ function DocumentsPage() {
 		dayjs().endOf("month").format("YYYY-MM-DD")
 	);
 	const [isExporting, setIsExporting] = useState(false);
-	const [isCareRecordDialogOpen, setIsCareRecordDialogOpen] = useState(false);
-
-	// 生成助念记录表 mutation
-	const createCareRecordMutation = useMutation({
-		mutationFn: documentService.createCareRecord,
-		onSuccess: async (result) => {
-			toast.success("助念记录表生成成功！");
-			setIsCareRecordDialogOpen(false);
-			// 自动下载
-			await documentService.downloadCareRecord(result.downloadUrl);
-		},
-		onError: (error: any) => {
-			toast.error(error.message || "生成失败");
-		},
-	});
-
-	if (authLoading) {
-		return (
-			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "文档管理" }]}>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-muted-foreground">加载中...</div>
-				</div>
-			</DashboardLayout>
-		);
-	}
-
-	if (!isAuthenticated) {
-		return <Navigate to="/login" />;
-	}
-
-	const handleCareRecordSubmit = (data: CareRecordData) => {
-		createCareRecordMutation.mutate(data);
-	};
 
 	// 生成关怀登记表（示例数据）
 	const handleGenerateCareRegistration = async () => {
@@ -230,6 +192,20 @@ function DocumentsPage() {
 		}
 	};
 
+	if (authLoading) {
+		return (
+			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "文档管理" }]}>
+				<div className="flex items-center justify-center h-64">
+					<div className="text-muted-foreground">加载中...</div>
+				</div>
+			</DashboardLayout>
+		);
+	}
+
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
+	}
+
 	return (
 		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "文档管理" }]}>
 			<div className="space-y-6">
@@ -361,28 +337,6 @@ function DocumentsPage() {
 					</CardContent>
 				</Card>
 
-				{/* 助念记录表 */}
-				<Card>
-					<CardHeader>
-						<div className="flex items-center gap-2">
-							<FileText className="h-5 w-5" />
-							<CardTitle>助念记录表</CardTitle>
-						</div>
-						<CardDescription>
-							生成深圳莲花关怀团助念记录表（Excel格式）
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Button
-							onClick={() => setIsCareRecordDialogOpen(true)}
-							className="w-full md:w-auto"
-						>
-							<FileText className="h-4 w-4 mr-2" />
-							创建助念记录表
-						</Button>
-					</CardContent>
-				</Card>
-
 				{/* 导出说明 */}
 				<Card>
 					<CardHeader>
@@ -397,19 +351,6 @@ function DocumentsPage() {
 					</CardContent>
 				</Card>
 			</div>
-
-			{/* 助念记录表对话框 */}
-			<Dialog
-				open={isCareRecordDialogOpen}
-				onClose={() => setIsCareRecordDialogOpen(false)}
-				title="创建助念记录表"
-				maxWidth="4xl"
-			>
-				<CareRecordForm
-					onSubmit={handleCareRecordSubmit}
-					onCancel={() => setIsCareRecordDialogOpen(false)}
-				/>
-			</Dialog>
 		</DashboardLayout>
 	);
 }

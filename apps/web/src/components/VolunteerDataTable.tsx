@@ -70,16 +70,20 @@ export function VolunteerDataTable({
 			accessorKey: "lotusId",
 			header: "莲花斋ID",
 			cell: ({ row }) => (
-				<div className="font-mono font-medium">{row.getValue("lotusId")}</div>
+				<div className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-mono font-medium text-muted-foreground">
+					{row.getValue("lotusId")}
+				</div>
 			),
 		},
 		{
 			accessorKey: "name",
 			header: "姓名",
 			cell: ({ row }) => (
-				<div className="flex items-center gap-2">
-					<UserCircle className="h-4 w-4 text-muted-foreground" />
-					<span className="font-medium">{row.getValue("name")}</span>
+				<div className="flex flex-col leading-tight">
+					<span className="font-medium text-sm">{row.getValue("name")}</span>
+					<span className="text-[11px] text-muted-foreground">
+						{row.original.account || row.original.email || ""}
+					</span>
 				</div>
 			),
 		},
@@ -99,7 +103,9 @@ export function VolunteerDataTable({
 			accessorKey: "phone",
 			header: "手机号",
 			cell: ({ row }) => (
-				<div className="font-mono text-sm">{row.getValue("phone")}</div>
+				<div className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-mono text-muted-foreground">
+					{row.getValue("phone")}
+				</div>
 			),
 		},
 		{
@@ -145,8 +151,18 @@ export function VolunteerDataTable({
 			cell: ({ row }) => {
 				const date = row.getValue("createdAt") as string;
 				return (
-					<div className="text-sm text-muted-foreground">
-						{date ? new Date(date).toLocaleDateString("zh-CN") : "-"}
+					<div className="flex flex-col text-xs text-muted-foreground">
+						<span>
+							{date ? new Date(date).toLocaleDateString("zh-CN") : "-"}
+						</span>
+						{date && (
+							<span className="text-[11px] opacity-80">
+								{new Date(date).toLocaleTimeString("zh-CN", {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</span>
+						)}
 					</div>
 				);
 			},

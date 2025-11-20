@@ -17,7 +17,6 @@ lianhuazhai-monorepo/
 │   └── setup/               # 设置指南
 │
 ├── screenshots/             # 项目截图
-├── tests/                   # 测试文件
 │
 ├── README.md                # 项目说明
 ├── ROADMAP.md               # 产品路线图

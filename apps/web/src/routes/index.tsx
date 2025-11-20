@@ -76,6 +76,54 @@ function HomePage() {
 	const isDataLoading = volunteersLoading || pendingLoading || checkinLoading;
 	const hasError = volunteersError || pendingError || checkinError;
 
+	const totalVolunteers = volunteersData?.data?.total || 0;
+	const pendingCount = pendingData?.data?.total || 0;
+	const volunteers = checkinData?.data?.volunteers || [];
+	const totalHours = volunteers.reduce(
+		(sum: number, v: any) => sum + (v.totalHours || 0),
+		0,
+	);
+	const totalDays = volunteers.reduce(
+		(sum: number, v: any) => sum + (v.totalDays || 0),
+		0,
+	);
+
+	// 构造服务时长趋势数据（最近7天）
+	// 使用固定的模拟数据，保持页面刷新时的一致性
+	const trendChartData = React.useMemo(() => {
+		return Array.from({ length: 7 }, (_, i) => {
+			const date = new Date();
+			date.setDate(date.getDate() - (6 - i));
+			const dayName = date.toLocaleDateString("zh-CN", { weekday: "short" });
+			// 固定模拟数据，基于日期生成确定性的值
+			const seed = date.getDate() + date.getMonth();
+			const hours = ((seed * 17) % 20) + 15; // 15-35小时范围
+			return { day: dayName, hours };
+		});
+	}, []);
+
+	// 构造义工参与度数据（TOP 5）
+	const pieChartData = volunteers
+		.sort((a: any, b: any) => (b.totalHours || 0) - (a.totalHours || 0))
+		.slice(0, 5)
+		.map((v: any, index: number) => ({
+			name: v.name,
+			hours: v.totalHours || 0,
+			fill: `hsl(var(--chart-${index + 1}))`,
+		}));
+
+	const totalPieHours = pieChartData.reduce(
+		(sum: number, item: any) => sum + item.hours,
+		0,
+	);
+
+	const chartConfig = {
+		hours: {
+			label: "服务时长",
+			color: "hsl(var(--chart-1))",
+		},
+	};
+
 	if (isLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页" }]}>
@@ -124,51 +172,6 @@ function HomePage() {
 			</DashboardLayout>
 		);
 	}
-
-	const totalVolunteers = volunteersData?.data?.total || 0;
-	const pendingCount = pendingData?.data?.total || 0;
-	const volunteers = checkinData?.data?.volunteers || [];
-	const totalHours = volunteers.reduce(
-		(sum: number, v: any) => sum + (v.totalHours || 0),
-		0,
-	);
-	const totalDays = volunteers.reduce(
-		(sum: number, v: any) => sum + (v.totalDays || 0),
-		0,
-	);
-
-	// 构造服务时长趋势数据（最近7天）
-	// 使用固定的模拟数据，保持页面刷新时的一致性
-	const trendChartData = React.useMemo(() => {
-		return Array.from({ length: 7 }, (_, i) => {
-			const date = new Date();
-			date.setDate(date.getDate() - (6 - i));
-			const dayName = date.toLocaleDateString('zh-CN', { weekday: 'short' });
-			// 固定模拟数据，基于日期生成确定性的值
-			const seed = date.getDate() + date.getMonth();
-			const hours = ((seed * 17) % 20) + 15; // 15-35小时范围
-			return { day: dayName, hours };
-		});
-	}, []);
-
-	// 构造义工参与度数据（TOP 5）
-	const pieChartData = volunteers
-		.sort((a: any, b: any) => (b.totalHours || 0) - (a.totalHours || 0))
-		.slice(0, 5)
-		.map((v: any, index: number) => ({
-			name: v.name,
-			hours: v.totalHours || 0,
-			fill: `hsl(var(--chart-${index + 1}))`,
-		}));
-
-	const totalPieHours = pieChartData.reduce((sum: number, item: any) => sum + item.hours, 0);
-
-	const chartConfig = {
-		hours: {
-			label: "服务时长",
-			color: "hsl(var(--chart-1))",
-		},
-	};
 
 	return (
 		<DashboardLayout breadcrumbs={[{ label: "首页" }]}>

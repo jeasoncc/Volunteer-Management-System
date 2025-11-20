@@ -8,15 +8,12 @@
     "packages/*"
   ],
   "scripts": {
-    "predev": "bash check-db.sh",
     "dev": "turbo run dev",
     "dev:studio": "turbo run dev & (lsof -ti:4983 | xargs kill -9 2>/dev/null; cd apps/api && npm run studio)",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "format": "turbo run format",
     "test": "turbo run test",
-    "test:login": "bash test-login.sh",
-    "check:db": "bash check-db.sh",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

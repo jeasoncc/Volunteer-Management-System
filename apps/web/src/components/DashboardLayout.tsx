@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import React, { Fragment, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -32,8 +32,8 @@ export function DashboardLayout({
 						<Breadcrumb>
 							<BreadcrumbList>
 								{breadcrumbs.map((crumb, index) => (
-									<>
-										<BreadcrumbItem key={crumb.label}>
+									<Fragment key={crumb.href ?? crumb.label ?? index}>
+										<BreadcrumbItem>
 											{crumb.href ? (
 												<BreadcrumbLink asChild>
 													<Link to={crumb.href}>{crumb.label}</Link>
@@ -43,7 +43,7 @@ export function DashboardLayout({
 											)}
 										</BreadcrumbItem>
 										{index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-									</>
+									</Fragment>
 								))}
 							</BreadcrumbList>
 						</Breadcrumb>
