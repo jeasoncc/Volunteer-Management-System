@@ -42,10 +42,8 @@ export class LatexGenerator {
 \\usepackage[UTF8]{ctex}
 \\usepackage{geometry}
 \\usepackage{array}
-\\usepackage{longtable}
-\\usepackage{booktabs}
 
-\\geometry{left=2cm,right=2cm,top=2cm,bottom=2cm}
+\\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
 
 \\begin{document}
 
@@ -56,41 +54,39 @@ export class LatexGenerator {
 \\vspace{0.5cm}
 
 \\noindent
-项目日期：${data.projectDate} \\hfill 了缘 生根之床
+项目日期：${data.projectDate} \\hfill ${data.serialNumber}
 
-\\vspace{0.3cm}
+\\vspace{0.5cm}
 
-\\begin{longtable}{|p{3cm}|p{1.5cm}|p{1cm}|p{1.5cm}|p{2cm}|p{1cm}|p{3cm}|}
+\\begin{tabular}{|p{2cm}|p{3cm}|p{2cm}|p{2cm}|p{2cm}|p{2cm}|}
 \\hline
-\\textbf{姓名} & \\multicolumn{2}{c|}{${data.name}} & \\textbf{性别} & ${data.gender} & \\textbf{年龄} & ${data.age} \\\\
+\\textbf{姓名} & ${data.name} & \\textbf{性别} & ${data.gender} & \\textbf{年龄} & ${data.age} \\\\
 \\hline
-\\textbf{住址} & \\multicolumn{6}{p{11cm}|}{${data.address}} \\\\
+\\textbf{住址} & \\multicolumn{5}{p{11cm}|}{${data.address}} \\\\
 \\hline
-\\textbf{病况} & \\multicolumn{6}{p{11cm}|}{${data.illness}} \\\\
+\\textbf{病况} & \\multicolumn{5}{p{11cm}|}{${data.illness}} \\\\
 \\hline
-\\textbf{关怀日期} & \\multicolumn{2}{c|}{${data.careDate || ''}} & \\multicolumn{4}{p{8cm}|}{
-\\textbf{病者状况}（病况变化、饮食、睡眠、心念、对助念的态度等）\\newline
-\\textbf{家属状况}（对助法、助念的认识和态度等）
-} \\\\
-\\cline{1-3}
- & \\multicolumn{2}{c|}{} & \\multicolumn{4}{p{8cm}|}{${data.patientCondition || ''}} \\\\
-\\cline{1-3}
- & \\multicolumn{2}{c|}{} & \\multicolumn{4}{p{8cm}|}{} \\\\
-\\cline{1-3}
- & \\multicolumn{2}{c|}{} & \\multicolumn{4}{p{8cm}|}{} \\\\
+\\textbf{关怀日期} & ${data.careDate || '参加莲友'} & \\multicolumn{4}{p{8cm}|}{\\textbf{病者状况}（病况变化、饮食、睡眠、心念、对助念的态度等）\\newline\\textbf{家属状况}（对助法、助念的认识和态度等）} \\\\
+\\cline{1-2}
+ & & \\multicolumn{4}{p{8cm}|}{${data.patientCondition || '同意义工关怀'}} \\\\
+\\cline{1-2}
+ & & \\multicolumn{4}{p{8cm}|}{同意助念流程} \\\\
+\\cline{1-2}
+ & & \\multicolumn{4}{p{8cm}|}{家属们助念配合} \\\\
 \\hline
-\\multicolumn{7}{|p{14cm}|}{
-\\textbf{申请送花衣一套}\\newline
-\\textbf{同意义工关怀流程}\\newline
-\\textbf{家属们助念配合}
-} \\\\
+\\multicolumn{6}{|p{13.5cm}|}{\\textbf{申请送花衣一套}\\newline${data.notes || '身高 172cm，体重 50 斤'}} \\\\
 \\hline
-\\multicolumn{7}{|p{14cm}|}{
-\\textbf{申请送花衣一套}\\newline
-身高 ${data.notes || '172cm'}，体重 50斤
-} \\\\
-\\hline
-\\end{longtable}
+\\end{tabular}
+
+\\vspace{1cm}
+
+\\noindent
+\\textbf{家属信息：}
+
+\\begin{itemize}
+\\item 家属姓名：${data.familyStatus}
+\\item 联系电话：${data.familyPhone}
+\\end{itemize}
 
 \\end{document}
 `
