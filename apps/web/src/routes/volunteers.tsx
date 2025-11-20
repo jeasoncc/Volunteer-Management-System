@@ -1,19 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { Button } from "../components/ui/button";
-import { Dialog } from "../components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Badge } from "../components/ui/badge";
-import { Textarea } from "../components/ui/textarea";
-import { VolunteerForm } from "../components/VolunteerForm";
-import { VolunteerDataTable } from "../components/VolunteerDataTable";
-import { useAuth } from "../hooks/useAuth";
-import { volunteerService } from "../services/volunteer";
-import { approvalService } from "../services/approval";
-import type { Volunteer } from "../types";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { VolunteerForm } from "@/components/VolunteerForm";
+import { VolunteerDataTable } from "@/components/VolunteerDataTable";
+import { useAuth } from "@/hooks/useAuth";
+import { volunteerService } from "@/services/volunteer";
+import { approvalService } from "@/services/approval";
+import type { Volunteer } from "@/types";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/volunteers")({
 	component: VolunteersPage,
@@ -54,10 +55,10 @@ function VolunteersPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
 			setIsDialogOpen(false);
-			alert("创建成功！");
+			toast.success("创建成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "创建失败");
+			toast.error(error.message || "创建失败");
 		},
 	});
 
@@ -73,10 +74,10 @@ function VolunteersPage() {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
 			setIsDialogOpen(false);
 			setEditingVolunteer(undefined);
-			alert("更新成功！");
+			toast.success("更新成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "更新失败");
+			toast.error(error.message || "更新失败");
 		},
 	});
 
@@ -84,10 +85,10 @@ function VolunteersPage() {
 		mutationFn: volunteerService.delete,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
-			alert("删除成功！");
+			toast.success("删除成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "删除失败");
+			toast.error(error.message || "删除失败");
 		},
 	});
 
@@ -96,10 +97,10 @@ function VolunteersPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
 			setSelectedVolunteers([]);
-			alert("批量删除成功！");
+			toast.success("批量删除成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "批量删除失败");
+			toast.error(error.message || "批量删除失败");
 		},
 	});
 
@@ -121,13 +122,13 @@ function VolunteersPage() {
 			setApprovalDialog({ open: false });
 			setApprovalNotes("");
 			const actionText = variables.action === "approve" ? "通过" : "拒绝";
-			alert(`审批${actionText}成功！`);
+			toast.success(`审批${actionText}成功！`);
 		},
 		onError: (error: any) => {
 			console.error("审批失败:", error);
 			const message =
 				error?.response?.data?.message || error?.message || "审批失败";
-			alert(`审批失败: ${message}`);
+			toast.error(`审批失败: ${message}`);
 		},
 	});
 
@@ -150,21 +151,26 @@ function VolunteersPage() {
 			setApprovalNotes("");
 			const actionText = variables.action === "approve" ? "通过" : "拒绝";
 			const count = variables.lotusIds.length;
-			alert(`批量审批${actionText}成功！共处理 ${count} 个申请`);
+			toast.success(`批量审批${actionText}成功！共处理 ${count} 个申请`);
 		},
 		onError: (error: any) => {
 			console.error("批量审批失败:", error);
 			const message =
 				error?.response?.data?.message || error?.message || "批量审批失败";
-			alert(`批量审批失败: ${message}`);
+			toast.error(`批量审批失败: ${message}`);
 		},
 	});
 
 	if (authLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-muted-foreground">加载中...</div>
+				<div className="space-y-6">
+					{/* Skeleton 加载状态 */}
+					<div className="flex justify-between items-center">
+						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
+						<div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
+					</div>
+					<div className="h-96 bg-muted rounded-lg animate-pulse" />
 				</div>
 			</DashboardLayout>
 		);

@@ -1,18 +1,23 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { useMutation } from "@tanstack/react-query";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog } from "@/components/ui/dialog";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { useAuth } from "../hooks/useAuth";
-import { checkinService } from "../services/checkin";
-import { Download, FileSpreadsheet, Calendar } from "lucide-react";
+} from "@/components/ui/card";
+import { CareRecordForm } from "@/components/CareRecordForm";
+import { useAuth } from "@/hooks/useAuth";
+import { checkinService } from "@/services/checkin";
+import { documentService, type CareRecordData } from "@/services/document";
+import { Download, FileSpreadsheet, Calendar, FileText } from "lucide-react";
+import { toast } from "@/lib/toast";
 import dayjs from "dayjs";
 
 export const Route = createFileRoute("/documents")({
@@ -28,10 +33,21 @@ function DocumentsPage() {
 		dayjs().endOf("month").format("YYYY-MM-DD")
 	);
 	const [isExporting, setIsExporting] = useState(false);
+	const [isCareRecordDialogOpen, setIsCareRecordDialogOpen] = useState(false);
 
-	if (!isAuthenticated) {
-		return <Navigate to="/login" />;
-	}
+	// 生成助念记录表 mutation
+	const createCareRecordMutation = useMutation({
+		mutationFn: documentService.createCareRecord,
+		onSuccess: async (result) => {
+			toast.success("助念记录表生成成功！");
+			setIsCareRecordDialogOpen(false);
+			// 自动下载
+			await documentService.downloadCareRecord(result.downloadUrl);
+		},
+		onError: (error: any) => {
+			toast.error(error.message || "生成失败");
+		},
+	});
 
 	if (authLoading) {
 		return (
@@ -42,6 +58,120 @@ function DocumentsPage() {
 			</DashboardLayout>
 		);
 	}
+
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
+	}
+
+	const handleCareRecordSubmit = (data: CareRecordData) => {
+		createCareRecordMutation.mutate(data);
+	};
+
+	// 生成关怀登记表（示例数据）
+	const handleGenerateCareRegistration = async () => {
+		try {
+			setIsExporting(true);
+			const response = await fetch(
+				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/document/care-registration`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify({
+						projectDate: "2025年11月17日",
+						serialNumber: "了缘 生根之床",
+						name: "柯景金",
+						gender: "男",
+						age: 69,
+						religion: "佛",
+						address: "深圳市罗湖区布心路东乐花园4A栋5A",
+						familyStatus: "柯锦燕",
+						familyPhone: "13602504789",
+						illness: "尿毒症",
+						careDate: "参加莲友",
+						patientCondition: "同意义工关怀\n同意助念流程\n家属们助念配合",
+						notes: "身高172cm，体重50斤",
+					}),
+				},
+			);
+
+			if (!response.ok) {
+				throw new Error("生成失败");
+			}
+
+			const result = await response.json();
+			
+			// 下载文件
+			const downloadResponse = await fetch(
+				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}${result.downloadUrl}`,
+			);
+			const blob = await downloadResponse.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = result.fileName;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+
+			alert("关怀登记表生成成功！");
+		} catch (error: any) {
+			alert(error.message || "生成失败");
+		} finally {
+			setIsExporting(false);
+		}
+	};
+
+	// 生成助念邀请承诺书（示例数据）
+	const handleGenerateInvitationLetter = async () => {
+		try {
+			setIsExporting(true);
+			const response = await fetch(
+				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/document/invitation-letter`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify({
+						teamName: "莲花生命关怀团",
+						deceasedName: "柯景金",
+						familyName: "柯锦燕",
+					}),
+				},
+			);
+
+			if (!response.ok) {
+				throw new Error("生成失败");
+			}
+
+			const result = await response.json();
+			
+			// 下载文件
+			const downloadResponse = await fetch(
+				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}${result.downloadUrl}`,
+			);
+			const blob = await downloadResponse.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement("a");
+			a.href = url;
+			a.download = result.fileName;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+
+			alert("助念邀请承诺书生成成功！");
+		} catch (error: any) {
+			alert(error.message || "生成失败");
+		} finally {
+			setIsExporting(false);
+		}
+	};
 
 	const handleExport = async () => {
 		try {
@@ -198,6 +328,61 @@ function DocumentsPage() {
 					</CardContent>
 				</Card>
 
+				{/* LaTeX 表格生成 */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<FileText className="h-5 w-5" />
+							<CardTitle>表格文档生成</CardTitle>
+						</div>
+						<CardDescription>
+							使用 LaTeX 生成专业的 PDF 文档
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-3">
+						<Button
+							onClick={handleGenerateCareRegistration}
+							disabled={isExporting}
+							className="w-full"
+							variant="outline"
+						>
+							<FileText className="h-4 w-4 mr-2" />
+							生成关怀登记表
+						</Button>
+						<Button
+							onClick={handleGenerateInvitationLetter}
+							disabled={isExporting}
+							className="w-full"
+							variant="outline"
+						>
+							<FileText className="h-4 w-4 mr-2" />
+							生成助念邀请承诺书
+						</Button>
+					</CardContent>
+				</Card>
+
+				{/* 助念记录表 */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-2">
+							<FileText className="h-5 w-5" />
+							<CardTitle>助念记录表</CardTitle>
+						</div>
+						<CardDescription>
+							生成深圳莲花关怀团助念记录表（Excel格式）
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button
+							onClick={() => setIsCareRecordDialogOpen(true)}
+							className="w-full md:w-auto"
+						>
+							<FileText className="h-4 w-4 mr-2" />
+							创建助念记录表
+						</Button>
+					</CardContent>
+				</Card>
+
 				{/* 导出说明 */}
 				<Card>
 					<CardHeader>
@@ -212,6 +397,19 @@ function DocumentsPage() {
 					</CardContent>
 				</Card>
 			</div>
+
+			{/* 助念记录表对话框 */}
+			<Dialog
+				open={isCareRecordDialogOpen}
+				onClose={() => setIsCareRecordDialogOpen(false)}
+				title="创建助念记录表"
+				maxWidth="4xl"
+			>
+				<CareRecordForm
+					onSubmit={handleCareRecordSubmit}
+					onCancel={() => setIsCareRecordDialogOpen(false)}
+				/>
+			</Dialog>
 		</DashboardLayout>
 	);
 }

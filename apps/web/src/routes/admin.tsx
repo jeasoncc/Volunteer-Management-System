@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { Button } from "../components/ui/button";
-import { Dialog } from "../components/ui/dialog";
-import { AdminForm } from "../components/AdminForm";
-import { AdminTable } from "../components/AdminTable";
-import { useAuth } from "../hooks/useAuth";
-import { adminService } from "../services/admin";
-import type { User } from "../types";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { AdminForm } from "@/components/AdminForm";
+import { AdminTable } from "@/components/AdminTable";
+import { useAuth } from "@/hooks/useAuth";
+import { adminService } from "@/services/admin";
+import type { User } from "@/types";
+import { toast } from "@/lib/toast";
 
 interface AdminData {
 	id: number;
@@ -41,10 +42,10 @@ function AdminPage() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["admins"] });
 			setIsDialogOpen(false);
-			alert("创建成功！");
+			toast.success("创建成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "创建失败");
+			toast.error(error.message || "创建失败");
 		},
 	});
 
@@ -54,10 +55,10 @@ function AdminPage() {
 			queryClient.invalidateQueries({ queryKey: ["admins"] });
 			setIsDialogOpen(false);
 			setEditingAdmin(undefined);
-			alert("更新成功！");
+			toast.success("更新成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "更新失败");
+			toast.error(error.message || "更新失败");
 		},
 	});
 
@@ -65,18 +66,22 @@ function AdminPage() {
 		mutationFn: adminService.delete,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["admins"] });
-			alert("删除成功！");
+			toast.success("删除成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "删除失败");
+			toast.error(error.message || "删除失败");
 		},
 	});
 
 	if (authLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "管理员管理" }]}>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-muted-foreground">加载中...</div>
+				<div className="space-y-6">
+					<div className="flex justify-between items-center">
+						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
+						<div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
+					</div>
+					<div className="h-96 bg-muted rounded-lg animate-pulse" />
 				</div>
 			</DashboardLayout>
 		);

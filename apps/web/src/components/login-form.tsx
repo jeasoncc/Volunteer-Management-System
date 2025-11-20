@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "../hooks/useAuth";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export function LoginForm({
 	className,
@@ -18,6 +19,13 @@ export function LoginForm({
 	const [password, setPassword] = useState("");
 	const [rememberMe, setRememberMe] = useState(false);
 	const [error, setError] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
+	const [isShaking, setIsShaking] = useState(false);
+	const accountInputRef = useRef<HTMLInputElement>(null);
+	const passwordInputRef = useRef<HTMLInputElement>(null);
+
+	// 判断是否为开发环境
+	const isDevelopment = import.meta.env.DEV;
 
 	// 从 localStorage 加载保存的账号密码
 	useEffect(() => {
@@ -32,6 +40,11 @@ export function LoginForm({
 				setPassword(savedPassword);
 			}
 		}
+
+		// 自动聚焦到账号输入框
+		setTimeout(() => {
+			accountInputRef.current?.focus();
+		}, 100);
 	}, []);
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +91,17 @@ export function LoginForm({
 			}
 			// Clear password field on error
 			setPassword("");
+			// 触发震动动画
+			setIsShaking(true);
+			setTimeout(() => setIsShaking(false), 500);
+		}
+	};
+
+	// 处理 Enter 键切换输入框
+	const handleAccountKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter" && account) {
+			e.preventDefault();
+			passwordInputRef.current?.focus();
 		}
 	};
 
@@ -88,9 +112,6 @@ export function LoginForm({
 			{...props}
 		>
 			<div className="flex flex-col items-center gap-2 text-center">
-				<div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-					<span className="text-2xl font-bold text-white">莲</span>
-				</div>
 				<h1 className="text-2xl font-bold">莲花斋义工管理系统</h1>
 				<p className="text-balance text-sm text-muted-foreground">
 					请使用管理员账号登录系统
@@ -100,26 +121,47 @@ export function LoginForm({
 				<div className="grid gap-2">
 					<Label htmlFor="account">账号</Label>
 					<Input
+						ref={accountInputRef}
 						id="account"
 						type="text"
 						placeholder="请输入账号"
 						value={account}
 						onChange={(e) => setAccount(e.target.value)}
+						onKeyDown={handleAccountKeyDown}
 						disabled={isLoggingIn}
 						required
+						autoComplete="username"
 					/>
 				</div>
 				<div className="grid gap-2">
 					<Label htmlFor="password">密码</Label>
-					<Input
-						id="password"
-						type="password"
-						placeholder="请输入密码"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						disabled={isLoggingIn}
-						required
-					/>
+					<div className="relative">
+						<Input
+							ref={passwordInputRef}
+							id="password"
+							type={showPassword ? "text" : "password"}
+							placeholder="请输入密码"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							disabled={isLoggingIn}
+							required
+							autoComplete="current-password"
+							className="pr-10"
+						/>
+						<button
+							type="button"
+							onClick={() => setShowPassword(!showPassword)}
+							disabled={isLoggingIn}
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+							aria-label={showPassword ? "隐藏密码" : "显示密码"}
+						>
+							{showPassword ? (
+								<EyeOff className="h-4 w-4" />
+							) : (
+								<Eye className="h-4 w-4" />
+							)}
+						</button>
+					</div>
 				</div>
 				<div className="flex items-center space-x-2">
 					<Checkbox
@@ -136,18 +178,33 @@ export function LoginForm({
 					</Label>
 				</div>
 				{error && (
-					<Alert variant="destructive">
+					<Alert 
+						variant="destructive"
+						className={cn(
+							"transition-all",
+							isShaking && "animate-shake"
+						)}
+					>
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				)}
 				<Button type="submit" className="w-full" disabled={isLoggingIn}>
-					{isLoggingIn ? "登录中..." : "登录"}
+					{isLoggingIn ? (
+						<>
+							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							登录中...
+						</>
+					) : (
+						"登录"
+					)}
 				</Button>
 			</div>
-			<div className="text-center text-sm text-muted-foreground">
-				默认账号：<span className="font-medium">admin</span> / 密码：
-				<span className="font-medium">admin123</span>
-			</div>
+			{isDevelopment && (
+				<div className="text-center text-sm text-muted-foreground">
+					默认账号：<span className="font-medium">admin</span> / 密码：
+					<span className="font-medium">admin123</span>
+				</div>
+			)}
 		</form>
 	);
 }

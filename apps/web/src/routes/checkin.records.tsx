@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { CheckinRecordsTable } from "../components/CheckinRecordsTable";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { useAuth } from "../hooks/useAuth";
-import { checkinService } from "../services/checkin";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { CheckinRecordsTable } from "@/components/CheckinRecordsTable";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { checkinService } from "@/services/checkin";
 import { ArrowLeft } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -35,10 +35,6 @@ function CheckinRecordsPage() {
 		enabled: isAuthenticated,
 	});
 
-	if (!isAuthenticated) {
-		return <Navigate to="/login" />;
-	}
-
 	if (authLoading) {
 		return (
 			<DashboardLayout
@@ -53,6 +49,10 @@ function CheckinRecordsPage() {
 				</div>
 			</DashboardLayout>
 		);
+	}
+
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
 	}
 
 	const records = data?.data || [];

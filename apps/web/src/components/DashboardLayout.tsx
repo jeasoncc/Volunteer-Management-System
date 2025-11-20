@@ -1,7 +1,8 @@
 import { type ReactNode } from "react";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "./ui/sidebar";
-import { AppSidebar } from "./app-sidebar";
-import { Separator } from "./ui/separator";
+import { Link } from "@tanstack/react-router";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Separator } from "@/components/ui/separator";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -9,7 +10,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "./ui/breadcrumb";
+} from "@/components/ui/breadcrumb";
 
 interface DashboardLayoutProps {
 	children: ReactNode;
@@ -34,8 +35,8 @@ export function DashboardLayout({
 									<>
 										<BreadcrumbItem key={crumb.label}>
 											{crumb.href ? (
-												<BreadcrumbLink href={crumb.href}>
-													{crumb.label}
+												<BreadcrumbLink asChild>
+													<Link to={crumb.href}>{crumb.label}</Link>
 												</BreadcrumbLink>
 											) : (
 												<BreadcrumbPage>{crumb.label}</BreadcrumbPage>

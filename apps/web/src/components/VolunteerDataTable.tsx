@@ -1,9 +1,9 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import type { Volunteer } from "../types";
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
-import { Badge } from "./ui/badge";
-import { DataTable } from "./DataTable";
+import type { Volunteer } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/DataTable";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Pencil, Trash2, UserCircle, CheckCircle, XCircle } from "lucide-react";
 
 interface VolunteerDataTableProps {

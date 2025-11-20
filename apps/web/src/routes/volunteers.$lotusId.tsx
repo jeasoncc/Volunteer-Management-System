@@ -1,13 +1,13 @@
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../hooks/useAuth";
-import { volunteerService } from "../services/volunteer";
-import { checkinService } from "../services/checkin";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { Separator } from "../components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { volunteerService } from "@/services/volunteer";
+import { checkinService } from "@/services/checkin";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { User, Phone, Mail, MapPin, Calendar, Clock, Award } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -49,10 +49,6 @@ function VolunteerDetailPage() {
 		},
 	});
 
-	if (!isAuthenticated) {
-		return <Navigate to="/login" />;
-	}
-
 	if (authLoading || isLoading) {
 		return (
 			<DashboardLayout
@@ -67,6 +63,10 @@ function VolunteerDetailPage() {
 				</div>
 			</DashboardLayout>
 		);
+	}
+
+	if (!isAuthenticated) {
+		return <Navigate to="/login" />;
 	}
 
 	const volunteer = volunteerData?.data;

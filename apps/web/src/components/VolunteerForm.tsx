@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
-import type { Volunteer } from "../types";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import type { Volunteer } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface VolunteerFormProps {
 	volunteer?: Volunteer;

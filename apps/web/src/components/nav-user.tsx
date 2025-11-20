@@ -1,7 +1,8 @@
-import { LogOutIcon, MoreVerticalIcon, User2 } from "lucide-react";
+import { LogOutIcon, MoreVerticalIcon, User2, Settings, KeyRound, Moon, Sun } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import * as React from "react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,7 +17,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 export function NavUser({
 	user,
@@ -43,6 +44,25 @@ export function NavUser({
 		}
 	};
 
+	const handleSettings = () => {
+		navigate({ to: "/settings" });
+	};
+
+	const [theme, setTheme] = React.useState<"light" | "dark">(
+		() => (localStorage.getItem("theme") as "light" | "dark") || "light"
+	);
+
+	const toggleTheme = () => {
+		const newTheme = theme === "light" ? "dark" : "light";
+		setTheme(newTheme);
+		localStorage.setItem("theme", newTheme);
+		document.documentElement.classList.toggle("dark", newTheme === "dark");
+	};
+
+	React.useEffect(() => {
+		document.documentElement.classList.toggle("dark", theme === "dark");
+	}, []);
+
 	// 获取用户名首字母作为头像
 	const getInitials = (name: string) => {
 		return name.charAt(0).toUpperCase();
@@ -61,7 +81,7 @@ export function NavUser({
 								{user.avatar ? (
 									<AvatarImage src={user.avatar} alt={user.name} />
 								) : (
-									<AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+									<AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
 										{getInitials(user.name)}
 									</AvatarFallback>
 								)}
@@ -69,7 +89,7 @@ export function NavUser({
 							<div className="grid flex-1 text-left text-sm leading-tight">
 								<span className="truncate font-medium">{user.name}</span>
 								<span className="truncate text-xs text-muted-foreground">
-									{user.email}
+									管理员
 								</span>
 							</div>
 							<MoreVerticalIcon className="ml-auto size-4" />
@@ -87,7 +107,7 @@ export function NavUser({
 									{user.avatar ? (
 										<AvatarImage src={user.avatar} alt={user.name} />
 									) : (
-										<AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+										<AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
 											{getInitials(user.name)}
 										</AvatarFallback>
 									)}
@@ -95,11 +115,24 @@ export function NavUser({
 								<div className="grid flex-1 text-left text-sm leading-tight">
 									<span className="truncate font-medium">{user.name}</span>
 									<span className="truncate text-xs text-muted-foreground">
-										{user.email}
+										管理员
 									</span>
 								</div>
 							</div>
 						</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={handleSettings}>
+							<Settings />
+							个人设置
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleSettings}>
+							<KeyRound />
+							修改密码
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={toggleTheme}>
+							{theme === "light" ? <Moon /> : <Sun />}
+							{theme === "light" ? "暗色模式" : "亮色模式"}
+						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={handleLogout}>
 							<LogOutIcon />

@@ -2,24 +2,25 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import dayjs from "dayjs";
 import { useState } from "react";
-import { CheckinTable } from "../components/CheckinTable";
-import { CheckinRecordsTable } from "../components/CheckinRecordsTable";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { Button } from "../components/ui/button";
+import { CheckinTable } from "@/components/CheckinTable";
+import { CheckinRecordsTable } from "@/components/CheckinRecordsTable";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Dialog } from "../components/ui/dialog";
-import { useAuth } from "../hooks/useAuth";
-import { checkinService } from "../services/checkin";
-import { documentService } from "../services/document";
-import type { CheckInSummary } from "../types";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Dialog } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { checkinService } from "@/services/checkin";
+import { documentService } from "@/services/document";
+import type { CheckInSummary } from "@/types";
 import { Download, FileDown, List } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/checkin")({
 	component: CheckinPage,
@@ -57,10 +58,10 @@ function CheckinPage() {
 		mutationFn: checkinService.delete,
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["checkin", "records"] });
-			alert("删除成功！");
+			toast.success("删除成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "删除失败");
+			toast.error(error.message || "删除失败");
 		},
 	});
 
@@ -71,18 +72,23 @@ function CheckinPage() {
 			queryClient.invalidateQueries({ queryKey: ["checkin", "records"] });
 			setIsEditDialogOpen(false);
 			setEditingRecord(null);
-			alert("更新成功！");
+			toast.success("更新成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "更新失败");
+			toast.error(error.message || "更新失败");
 		},
 	});
 
 	if (authLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "考勤管理" }]}>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-muted-foreground">加载中...</div>
+				<div className="space-y-6">
+					<div className="flex justify-between items-center">
+						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
+						<div className="h-10 bg-muted rounded-md w-32 animate-pulse" />
+					</div>
+					<div className="h-64 bg-muted rounded-lg animate-pulse" />
+					<div className="h-96 bg-muted rounded-lg animate-pulse" />
 				</div>
 			</DashboardLayout>
 		);
@@ -113,8 +119,9 @@ function CheckinPage() {
 			a.click();
 			window.URL.revokeObjectURL(url);
 			document.body.removeChild(a);
+			toast.success("导出成功！");
 		} catch (error: any) {
-			alert(error.message || "导出失败");
+			toast.error(error.message || "导出失败");
 		}
 	};
 

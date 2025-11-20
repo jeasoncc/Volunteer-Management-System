@@ -10,10 +10,10 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { useState, useEffect } from "react";
-import type { Volunteer } from "../types";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Checkbox } from "./ui/checkbox";
+import type { Volunteer } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface VolunteerTableProps {
 	data: Volunteer[];

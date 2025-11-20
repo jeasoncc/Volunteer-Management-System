@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "../components/DashboardLayout";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { Dialog } from "../components/ui/dialog";
-import { Textarea } from "../components/ui/textarea";
-import { Label } from "../components/ui/label";
-import { useAuth } from "../hooks/useAuth";
-import { approvalService } from "../services/approval";
-import type { Volunteer } from "../types";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dialog } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import { approvalService } from "@/services/approval";
+import type { Volunteer } from "@/types";
 import { CheckCircle, XCircle, Clock, User, Phone, Calendar } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/approval")({
 	component: ApprovalPage,
@@ -45,10 +46,10 @@ function ApprovalPage() {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
 			setApprovalDialog({ open: false });
 			setNotes("");
-			alert("审批成功！");
+			toast.success("审批成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "审批失败");
+			toast.error(error.message || "审批失败");
 		},
 	});
 
@@ -62,18 +63,32 @@ function ApprovalPage() {
 			setApprovalDialog({ open: false });
 			setSelectedVolunteers([]);
 			setNotes("");
-			alert("批量审批成功！");
+			toast.success("批量审批成功！");
 		},
 		onError: (error: any) => {
-			alert(error.message || "批量审批失败");
+			toast.error(error.message || "批量审批失败");
 		},
 	});
 
 	if (authLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工审批" }]}>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-muted-foreground">加载中...</div>
+				<div className="space-y-6">
+					{/* Skeleton 加载状态 */}
+					<div className="space-y-2">
+						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
+						<div className="h-6 bg-muted rounded-md w-1/4 animate-pulse" />
+					</div>
+					<div className="grid gap-4 md:grid-cols-3">
+						{[1, 2, 3].map((i) => (
+							<div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
+						))}
+					</div>
+					<div className="space-y-4">
+						{[1, 2, 3].map((i) => (
+							<div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
+						))}
+					</div>
 				</div>
 			</DashboardLayout>
 		);
@@ -106,7 +121,7 @@ function ApprovalPage() {
 
 	const handleBatchApprove = () => {
 		if (selectedVolunteers.length === 0) {
-			alert("请选择要审批的义工");
+			toast.warning("请选择要审批的义工");
 			return;
 		}
 		setApprovalDialog({
@@ -118,7 +133,7 @@ function ApprovalPage() {
 
 	const handleBatchReject = () => {
 		if (selectedVolunteers.length === 0) {
-			alert("请选择要审批的义工");
+			toast.warning("请选择要审批的义工");
 			return;
 		}
 		setApprovalDialog({
