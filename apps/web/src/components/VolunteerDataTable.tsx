@@ -12,7 +12,9 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Pencil, Trash2, UserCircle, CheckCircle, XCircle } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { exportToExcel, exportToCSV, formatDateTime, type ExportColumn } from "@/lib/export";
+import { toast } from "@/lib/toast";
 
 interface VolunteerDataTableProps {
 	data: Volunteer[];
@@ -246,6 +248,71 @@ export function VolunteerDataTable({
 		},
 	];
 
+	// 列名映射
+	const columnLabels: Record<string, string> = {
+		lotusId: "莲花斋ID",
+		name: "姓名",
+		gender: "性别",
+		phone: "手机号",
+		volunteerStatus: "状态",
+		lotusRole: "角色",
+		createdAt: "创建时间",
+	};
+
+	// 导出处理
+	const handleExport = (format: "excel" | "csv") => {
+		const exportColumns: ExportColumn[] = [
+			{ key: "lotusId", label: "莲花斋ID" },
+			{ key: "name", label: "姓名" },
+			{
+				key: "gender",
+				label: "性别",
+				format: (v) => (v === "male" ? "男" : v === "female" ? "女" : "其他"),
+			},
+			{ key: "phone", label: "手机号" },
+			{ key: "email", label: "邮箱" },
+			{
+				key: "volunteerStatus",
+				label: "状态",
+				format: (v) => {
+					const map: Record<string, string> = {
+						registered: "已注册",
+						trainee: "培训中",
+						applicant: "申请中",
+						inactive: "未激活",
+						suspended: "已暂停",
+					};
+					return map[v] || v;
+				},
+			},
+			{
+				key: "lotusRole",
+				label: "角色",
+				format: (v) => (v === "admin" ? "管理员" : "义工"),
+			},
+			{ key: "createdAt", label: "创建时间", format: formatDateTime },
+		];
+
+		const filename = showApprovalActions ? "待审批义工" : "义工列表";
+
+		if (format === "excel") {
+			exportToExcel({
+				filename,
+				sheetName: filename,
+				columns: exportColumns,
+				data,
+			});
+		} else {
+			exportToCSV({
+				filename,
+				columns: exportColumns,
+				data,
+			});
+		}
+
+		toast.success(`已导出 ${data.length} 条记录`);
+	};
+
 	return (
 		<DataTable
 			columns={columns}
@@ -253,7 +320,13 @@ export function VolunteerDataTable({
 			isLoading={isLoading}
 			searchPlaceholder="搜索姓名、ID、手机号..."
 			enableExport={true}
-			exportFilename="volunteers"
+			columnLabels={columnLabels}
+			onExport={handleExport}
+			onSelectionChange={(rows) => {
+				if (onSelectionChange) {
+					onSelectionChange(rows.map((r) => r.lotusId));
+				}
+			}}
 		/>
 	);
 }

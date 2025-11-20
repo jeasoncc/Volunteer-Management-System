@@ -10,7 +10,7 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -36,6 +36,11 @@ import {
 	Search,
 	SlidersHorizontal,
 	X,
+	ArrowUpDown,
+	ArrowUp,
+	ArrowDown,
+	FileSpreadsheet,
+	FileText,
 } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
@@ -44,7 +49,9 @@ interface DataTableProps<TData, TValue> {
 	isLoading?: boolean;
 	searchPlaceholder?: string;
 	enableExport?: boolean;
-	exportFilename?: string;
+	onExport?: (format: "excel" | "csv") => void;
+	columnLabels?: Record<string, string>;
+	onSelectionChange?: (selectedRows: TData[]) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -53,16 +60,27 @@ export function DataTable<TData, TValue>({
 	isLoading = false,
 	searchPlaceholder = "搜索...",
 	enableExport = true,
-	exportFilename = "data",
+	onExport,
+	columnLabels = {},
+	onSelectionChange,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = useState({});
 	const [globalFilter, setGlobalFilter] = useState("");
+	const [debouncedGlobalFilter, setDebouncedGlobalFilter] = useState("");
 	const [density, setDensity] = useState<"compact" | "normal" | "comfortable">(
 		"normal",
 	);
+
+	// 搜索防抖
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedGlobalFilter(globalFilter);
+		}, 300);
+		return () => clearTimeout(timer);
+	}, [globalFilter]);
 
 	const table = useReactTable({
 		data,
@@ -75,44 +93,32 @@ export function DataTable<TData, TValue>({
 		onColumnFiltersChange: setColumnFilters,
 		onColumnVisibilityChange: setColumnVisibility,
 		onRowSelectionChange: setRowSelection,
-		onGlobalFilterChange: setGlobalFilter,
+		onGlobalFilterChange: setDebouncedGlobalFilter,
 		state: {
 			sorting,
 			columnFilters,
 			columnVisibility,
 			rowSelection,
-			globalFilter,
+			globalFilter: debouncedGlobalFilter,
 		},
 	});
 
-	// 导出为 CSV
-	const exportToCSV = () => {
-		const headers = table
-			.getAllColumns()
-			.filter((col) => col.getIsVisible() && col.id !== "select" && col.id !== "actions")
-			.map((col) => col.id);
+	// 选择变化回调
+	useEffect(() => {
+		if (onSelectionChange) {
+			const selectedRows = table
+				.getFilteredSelectedRowModel()
+				.rows.map((row) => row.original);
+			onSelectionChange(selectedRows);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [rowSelection]);
 
-		const rows = table.getFilteredRowModel().rows.map((row) => {
-			return headers.map((header) => {
-				const cell = row.getValue(header);
-				return typeof cell === "string" || typeof cell === "number"
-					? cell
-					: JSON.stringify(cell);
-			});
-		});
-
-		const csvContent = [
-			headers.join(","),
-			...rows.map((row) => row.join(",")),
-		].join("\n");
-
-		const blob = new Blob(["\ufeff" + csvContent], {
-			type: "text/csv;charset=utf-8;",
-		});
-		const link = document.createElement("a");
-		link.href = URL.createObjectURL(blob);
-		link.download = `${exportFilename}_${new Date().toISOString().split("T")[0]}.csv`;
-		link.click();
+	// 导出处理
+	const handleExport = (format: "excel" | "csv") => {
+		if (onExport) {
+			onExport(format);
+		}
 	};
 
 	const densityClasses = {
@@ -121,10 +127,31 @@ export function DataTable<TData, TValue>({
 		comfortable: "py-3",
 	};
 
+	// 骨架屏加载状态
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="text-muted-foreground">加载中...</div>
+			<div className="space-y-4">
+				{/* 工具栏骨架 */}
+				<div className="flex items-center justify-between gap-4">
+					<div className="h-10 bg-muted rounded-md w-64 animate-pulse" />
+					<div className="flex gap-2">
+						<div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
+						<div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
+						<div className="h-10 bg-muted rounded-md w-20 animate-pulse" />
+					</div>
+				</div>
+				{/* 表格骨架 */}
+				<div className="rounded-md border">
+					<div className="p-4 space-y-3">
+						{[...Array(5)].map((_, i) => (
+							<div
+								key={i}
+								className="h-12 bg-muted rounded animate-pulse"
+								style={{ animationDelay: `${i * 100}ms` }}
+							/>
+						))}
+					</div>
+				</div>
 			</div>
 		);
 	}
@@ -237,7 +264,7 @@ export function DataTable<TData, TValue>({
 												column.toggleVisibility(!!value)
 											}
 										>
-											{column.id}
+											{columnLabels[column.id] || column.id}
 										</DropdownMenuCheckboxItem>
 									);
 								})}
@@ -277,11 +304,30 @@ export function DataTable<TData, TValue>({
 					</DropdownMenu>
 
 					{/* 导出 */}
-					{enableExport && (
-						<Button variant="outline" size="sm" onClick={exportToCSV}>
-							<Download className="h-4 w-4 mr-2" />
-							导出
-						</Button>
+					{enableExport && onExport && (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline" size="sm">
+									<Download className="h-4 w-4 mr-2" />
+									导出
+									<ChevronDown className="h-4 w-4 ml-1" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuLabel>导出格式</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								<DropdownMenuCheckboxItem
+									onSelect={() => handleExport("excel")}
+								>
+									<FileSpreadsheet className="h-4 w-4 mr-2" />
+									Excel (.xlsx)
+								</DropdownMenuCheckboxItem>
+								<DropdownMenuCheckboxItem onSelect={() => handleExport("csv")}>
+									<FileText className="h-4 w-4 mr-2" />
+									CSV (.csv)
+								</DropdownMenuCheckboxItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					)}
 				</div>
 			</div>
@@ -313,7 +359,7 @@ export function DataTable<TData, TValue>({
 											<div
 												className={
 													header.column.getCanSort()
-														? "cursor-pointer select-none flex items-center gap-2"
+														? "cursor-pointer select-none flex items-center gap-1.5 hover:text-foreground transition-colors"
 														: ""
 												}
 												onClick={header.column.getToggleSortingHandler()}
@@ -322,10 +368,17 @@ export function DataTable<TData, TValue>({
 													header.column.columnDef.header,
 													header.getContext(),
 												)}
-												{{
-													asc: " 🔼",
-													desc: " 🔽",
-												}[header.column.getIsSorted() as string] ?? null}
+												{header.column.getCanSort() && (
+													<span className="ml-auto">
+														{header.column.getIsSorted() === "asc" ? (
+															<ArrowUp className="h-3.5 w-3.5" />
+														) : header.column.getIsSorted() === "desc" ? (
+															<ArrowDown className="h-3.5 w-3.5" />
+														) : (
+															<ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+														)}
+													</span>
+												)}
 											</div>
 										)}
 									</TableHead>

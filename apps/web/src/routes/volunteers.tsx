@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -9,12 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { VolunteerForm } from "@/components/VolunteerForm";
 import { VolunteerDataTable } from "@/components/VolunteerDataTable";
+import { AdvancedFilter, type ActiveFilter } from "@/components/AdvancedFilter";
+import { BatchActionBar } from "@/components/BatchActionBar";
 import { useAuth } from "@/hooks/useAuth";
 import { volunteerService } from "@/services/volunteer";
 import { approvalService } from "@/services/approval";
 import type { Volunteer } from "@/types";
-import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Trash2, Download } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { exportToExcel, formatDateTime, type ExportColumn } from "@/lib/export";
 
 export const Route = createFileRoute("/volunteers")({
 	component: VolunteersPage,
@@ -35,6 +38,7 @@ function VolunteersPage() {
 		action?: "approve" | "reject";
 	}>({ open: false });
 	const [approvalNotes, setApprovalNotes] = useState("");
+	const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
 
 	// 获取所有义工
 	const { data, isLoading } = useQuery({
@@ -115,7 +119,7 @@ function VolunteersPage() {
 			action: "approve" | "reject";
 			notes?: string;
 		}) => approvalService.approve(lotusId, { action, notes }),
-		onSuccess: (result, variables) => {
+		onSuccess: (_result, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["approval", "pending"] });
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
 			queryClient.invalidateQueries({ queryKey: ["approval", "pending", "count"] });
@@ -143,7 +147,7 @@ function VolunteersPage() {
 			action: "approve" | "reject";
 			notes?: string;
 		}) => approvalService.batchApprove({ lotusIds, action, notes }),
-		onSuccess: (result, variables) => {
+		onSuccess: (_result, variables) => {
 			queryClient.invalidateQueries({ queryKey: ["approval", "pending"] });
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
 			queryClient.invalidateQueries({ queryKey: ["approval", "pending", "count"] });
@@ -161,6 +165,71 @@ function VolunteersPage() {
 		},
 	});
 
+	// 准备数据（在条件渲染之前）
+	const volunteers = Array.isArray(data?.data) ? data.data : [];
+	const pendingVolunteers = Array.isArray(pendingData?.data)
+		? pendingData.data
+		: [];
+	const pendingCount = pendingData?.data?.total || 0;
+
+	// 筛选配置
+	const filterOptions = [
+		{
+			id: "volunteerStatus",
+			label: "状态",
+			options: [
+				{ value: "registered", label: "已注册" },
+				{ value: "trainee", label: "培训中" },
+				{ value: "applicant", label: "申请中" },
+				{ value: "inactive", label: "未激活" },
+				{ value: "suspended", label: "已暂停" },
+			],
+		},
+		{
+			id: "lotusRole",
+			label: "角色",
+			options: [
+				{ value: "admin", label: "管理员" },
+				{ value: "volunteer", label: "义工" },
+			],
+		},
+		{
+			id: "gender",
+			label: "性别",
+			options: [
+				{ value: "male", label: "男" },
+				{ value: "female", label: "女" },
+				{ value: "other", label: "其他" },
+			],
+		},
+	];
+
+	// 应用筛选（useMemo 必须在条件渲染之前）
+	const filteredVolunteers = useMemo(() => {
+		if (activeFilters.length === 0) return volunteers;
+
+		return volunteers.filter((volunteer) => {
+			return activeFilters.every((filter) => {
+				if (filter.values.length === 0) return true;
+				const value = volunteer[filter.id as keyof Volunteer];
+				return filter.values.includes(String(value));
+			});
+		});
+	}, [volunteers, activeFilters]);
+
+	const filteredPendingVolunteers = useMemo(() => {
+		if (activeFilters.length === 0) return pendingVolunteers;
+
+		return pendingVolunteers.filter((volunteer) => {
+			return activeFilters.every((filter) => {
+				if (filter.values.length === 0) return true;
+				const value = volunteer[filter.id as keyof Volunteer];
+				return filter.values.includes(String(value));
+			});
+		});
+	}, [pendingVolunteers, activeFilters]);
+
+	// 条件渲染必须在所有 hooks 之后
 	if (authLoading) {
 		return (
 			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
@@ -179,12 +248,6 @@ function VolunteersPage() {
 	if (!isAuthenticated) {
 		return <Navigate to="/login" />;
 	}
-
-	const volunteers = Array.isArray(data?.data) ? data.data : [];
-	const pendingVolunteers = Array.isArray(pendingData?.data)
-		? pendingData.data
-		: [];
-	const pendingCount = pendingData?.data?.total || 0;
 
 	const handleView = (volunteer: Volunteer) => {
 		alert(
@@ -242,6 +305,47 @@ ID: ${volunteer.lotusId}
 
 	const handleSelectionChange = (lotusIds: string[]) => {
 		setSelectedVolunteers(lotusIds);
+	};
+
+	const handleFilterChange = (filterId: string, values: string[]) => {
+		setActiveFilters((prev) => {
+			const existing = prev.find((f) => f.id === filterId);
+			if (values.length === 0) {
+				return prev.filter((f) => f.id !== filterId);
+			}
+
+			const filter = filterOptions.find((f) => f.id === filterId);
+			if (!filter) return prev;
+
+			const valueLabels = values.map(
+				(v) => filter.options.find((o) => o.value === v)?.label || v,
+			);
+
+			const newFilter: ActiveFilter = {
+				id: filterId,
+				label: filter.label,
+				values,
+				valueLabels,
+			};
+
+			if (existing) {
+				return prev.map((f) => (f.id === filterId ? newFilter : f));
+			}
+			return [...prev, newFilter];
+		});
+	};
+
+	const handleClearAllFilters = () => {
+		setActiveFilters([]);
+	};
+
+	const handleSelectAll = () => {
+		const currentData = activeTab === "all" ? filteredVolunteers : filteredPendingVolunteers;
+		setSelectedVolunteers(currentData.map((v) => v.lotusId));
+	};
+
+	const handleClearSelection = () => {
+		setSelectedVolunteers([]);
 	};
 
 	// 审批相关处理函数
@@ -321,13 +425,21 @@ ID: ${volunteer.lotusId}
 					</div>
 				</div>
 
+				{/* 高级筛选 */}
+				<AdvancedFilter
+					filters={filterOptions}
+					activeFilters={activeFilters}
+					onFilterChange={handleFilterChange}
+					onClearAll={handleClearAllFilters}
+				/>
+
 				{/* 标签页 */}
 				<Tabs value={activeTab} onValueChange={setActiveTab}>
 					<TabsList>
 						<TabsTrigger value="all">
 							全部义工
 							<Badge variant="secondary" className="ml-2">
-								{volunteers.length}
+								{filteredVolunteers.length}
 							</Badge>
 						</TabsTrigger>
 						<TabsTrigger value="pending">
@@ -344,25 +456,19 @@ ID: ${volunteer.lotusId}
 					<TabsContent value="all" className="space-y-4">
 						<div className="flex justify-between items-center">
 							<div className="text-sm text-muted-foreground">
-								共 {volunteers.length} 个义工
+								{activeFilters.length > 0 ? (
+									<>
+										筛选结果：{filteredVolunteers.length} / {volunteers.length} 个义工
+									</>
+								) : (
+									<>共 {volunteers.length} 个义工</>
+								)}
 							</div>
-							{selectedVolunteers.length > 0 && (
-								<Button
-									variant="destructive"
-									size="sm"
-									onClick={handleBatchDelete}
-									disabled={batchDeleteMutation.isPending}
-								>
-									{batchDeleteMutation.isPending
-										? "删除中..."
-										: `批量删除 (${selectedVolunteers.length})`}
-								</Button>
-							)}
 						</div>
 
 						<div className="bg-card rounded-lg border p-6">
 							<VolunteerDataTable
-								data={volunteers}
+								data={filteredVolunteers}
 								isLoading={isLoading}
 								onView={handleView}
 								onEdit={handleEdit}
@@ -371,6 +477,72 @@ ID: ${volunteer.lotusId}
 								onSelectionChange={handleSelectionChange}
 							/>
 						</div>
+
+						{/* 批量操作栏 */}
+						<BatchActionBar
+							selectedCount={selectedVolunteers.length}
+							totalCount={filteredVolunteers.length}
+							onClearSelection={handleClearSelection}
+							onSelectAll={handleSelectAll}
+							actions={[
+								{
+									label: "导出选中",
+									icon: <Download className="h-4 w-4 mr-1" />,
+									variant: "secondary",
+									onClick: () => {
+										const selectedData = filteredVolunteers.filter((v) =>
+											selectedVolunteers.includes(v.lotusId),
+										);
+										const columns: ExportColumn[] = [
+											{ key: "lotusId", label: "莲花斋ID" },
+											{ key: "name", label: "姓名" },
+											{
+												key: "gender",
+												label: "性别",
+												format: (v) =>
+													v === "male" ? "男" : v === "female" ? "女" : "其他",
+											},
+											{ key: "phone", label: "手机号" },
+											{ key: "email", label: "邮箱" },
+											{
+												key: "volunteerStatus",
+												label: "状态",
+												format: (v) => {
+													const map: Record<string, string> = {
+														registered: "已注册",
+														trainee: "培训中",
+														applicant: "申请中",
+														inactive: "未激活",
+														suspended: "已暂停",
+													};
+													return map[v] || v;
+												},
+											},
+											{
+												key: "lotusRole",
+												label: "角色",
+												format: (v) => (v === "admin" ? "管理员" : "义工"),
+											},
+											{ key: "createdAt", label: "创建时间", format: formatDateTime },
+										];
+										exportToExcel({
+											filename: "选中义工",
+											sheetName: "义工列表",
+											columns,
+											data: selectedData,
+										});
+										toast.success(`已导出 ${selectedData.length} 条记录`);
+									},
+								},
+								{
+									label: "批量删除",
+									icon: <Trash2 className="h-4 w-4 mr-1" />,
+									variant: "destructive",
+									onClick: handleBatchDelete,
+									disabled: batchDeleteMutation.isPending,
+								},
+							]}
+						/>
 					</TabsContent>
 
 					{/* 待审批标签页 */}
@@ -379,36 +551,20 @@ ID: ${volunteer.lotusId}
 							<div className="flex items-center gap-2">
 								<AlertCircle className="h-5 w-5 text-orange-500" />
 								<span className="text-sm text-muted-foreground">
-									共 {pendingCount} 个待审批申请
+									{activeFilters.length > 0 ? (
+										<>
+											筛选结果：{filteredPendingVolunteers.length} / {pendingCount} 个待审批申请
+										</>
+									) : (
+										<>共 {pendingCount} 个待审批申请</>
+									)}
 								</span>
 							</div>
-							{selectedVolunteers.length > 0 && (
-								<div className="flex gap-2">
-									<Button
-										variant="default"
-										size="sm"
-										onClick={handleBatchApprove}
-										disabled={batchApproveMutation.isPending}
-									>
-										<CheckCircle className="h-4 w-4 mr-2" />
-										批量通过 ({selectedVolunteers.length})
-									</Button>
-									<Button
-										variant="destructive"
-										size="sm"
-										onClick={handleBatchReject}
-										disabled={batchApproveMutation.isPending}
-									>
-										<XCircle className="h-4 w-4 mr-2" />
-										批量拒绝 ({selectedVolunteers.length})
-									</Button>
-								</div>
-							)}
 						</div>
 
 						<div className="bg-card rounded-lg border p-6">
 							<VolunteerDataTable
-								data={pendingVolunteers}
+								data={filteredPendingVolunteers}
 								isLoading={pendingLoading}
 								onView={handleView}
 								onApprove={handleApprove}
@@ -418,6 +574,60 @@ ID: ${volunteer.lotusId}
 								showApprovalActions={true}
 							/>
 						</div>
+
+						{/* 批量操作栏 */}
+						<BatchActionBar
+							selectedCount={selectedVolunteers.length}
+							totalCount={filteredPendingVolunteers.length}
+							onClearSelection={handleClearSelection}
+							onSelectAll={handleSelectAll}
+							actions={[
+								{
+									label: "批量通过",
+									icon: <CheckCircle className="h-4 w-4 mr-1" />,
+									variant: "default",
+									onClick: handleBatchApprove,
+									disabled: batchApproveMutation.isPending,
+								},
+								{
+									label: "批量拒绝",
+									icon: <XCircle className="h-4 w-4 mr-1" />,
+									variant: "destructive",
+									onClick: handleBatchReject,
+									disabled: batchApproveMutation.isPending,
+								},
+								{
+									label: "导出选中",
+									icon: <Download className="h-4 w-4 mr-1" />,
+									variant: "secondary",
+									onClick: () => {
+										const selectedData = filteredPendingVolunteers.filter((v) =>
+											selectedVolunteers.includes(v.lotusId),
+										);
+										const columns: ExportColumn[] = [
+											{ key: "lotusId", label: "莲花斋ID" },
+											{ key: "name", label: "姓名" },
+											{
+												key: "gender",
+												label: "性别",
+												format: (v) =>
+													v === "male" ? "男" : v === "female" ? "女" : "其他",
+											},
+											{ key: "phone", label: "手机号" },
+											{ key: "email", label: "邮箱" },
+											{ key: "createdAt", label: "申请时间", format: formatDateTime },
+										];
+										exportToExcel({
+											filename: "待审批义工",
+											sheetName: "待审批",
+											columns,
+											data: selectedData,
+										});
+										toast.success(`已导出 ${selectedData.length} 条记录`);
+									},
+								},
+							]}
+						/>
 					</TabsContent>
 				</Tabs>
 
