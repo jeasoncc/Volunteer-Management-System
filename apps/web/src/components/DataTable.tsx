@@ -52,6 +52,8 @@ interface DataTableProps<TData, TValue> {
 	onExport?: (format: "excel" | "csv") => void;
 	columnLabels?: Record<string, string>;
 	onSelectionChange?: (selectedRows: TData[]) => void;
+	emptyState?: React.ReactNode;
+	noResultsState?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -63,6 +65,8 @@ export function DataTable<TData, TValue>({
 	onExport,
 	columnLabels = {},
 	onSelectionChange,
+	emptyState,
+	noResultsState,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -392,6 +396,7 @@ export function DataTable<TData, TValue>({
 								<TableRow
 									key={row.id}
 									data-state={row.getIsSelected() && "selected"}
+									className="hover:bg-muted/50 transition-colors"
 								>
 									{row.getVisibleCells().map((cell) => (
 										<TableCell key={cell.id} className={densityClasses[density]}>
@@ -407,9 +412,16 @@ export function DataTable<TData, TValue>({
 							<TableRow>
 								<TableCell
 									colSpan={columns.length}
-									className="h-24 text-center"
+									className="h-24 text-center p-0"
 								>
-									暂无数据
+									{/* 显示自定义空状态或默认文本 */}
+									{data.length === 0 && emptyState ? (
+										emptyState
+									) : data.length > 0 && table.getRowModel().rows.length === 0 && noResultsState ? (
+										noResultsState
+									) : (
+										<div className="py-8 text-muted-foreground">暂无数据</div>
+									)}
 								</TableCell>
 							</TableRow>
 						)}

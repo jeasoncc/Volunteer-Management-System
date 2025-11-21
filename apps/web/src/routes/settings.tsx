@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { volunteerService } from "@/services/volunteer";
 import { User, Lock, Bell } from "lucide-react";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/settings")({
 	component: SettingsPage,
@@ -21,7 +22,6 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
 	const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-	const queryClient = useQueryClient();
 	const [oldPassword, setOldPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,13 +30,13 @@ function SettingsPage() {
 		mutationFn: () =>
 			volunteerService.changePassword(user?.lotusId || "", oldPassword, newPassword),
 		onSuccess: () => {
-			alert("密码修改成功！请重新登录");
+			toast.success("密码修改成功！请重新登录");
 			setOldPassword("");
 			setNewPassword("");
 			setConfirmPassword("");
 		},
 		onError: (error: any) => {
-			alert(error.message || "密码修改失败");
+			toast.error(error.message || "密码修改失败");
 		},
 	});
 
@@ -58,12 +58,12 @@ function SettingsPage() {
 		e.preventDefault();
 
 		if (newPassword !== confirmPassword) {
-			alert("两次输入的新密码不一致");
+			toast.error("两次输入的新密码不一致");
 			return;
 		}
 
 		if (newPassword.length < 6) {
-			alert("新密码长度至少6位");
+			toast.error("新密码长度至少6位");
 			return;
 		}
 

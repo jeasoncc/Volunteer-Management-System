@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, Phone, Mail, MapPin, Calendar, Clock, Award } from "lucide-react";
 import dayjs from "dayjs";
+import { toast } from "@/lib/toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useState } from "react";
 
 export const Route = createFileRoute("/volunteers/$lotusId")({
 	component: VolunteerDetailPage,
@@ -19,6 +22,7 @@ function VolunteerDetailPage() {
 	const { lotusId } = Route.useParams();
 	const { isAuthenticated, isLoading: authLoading } = useAuth();
 	const queryClient = useQueryClient();
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
 	const { data: volunteerData, isLoading } = useQuery({
 		queryKey: ["volunteer", lotusId],
@@ -39,13 +43,12 @@ function VolunteerDetailPage() {
 	const deleteMutation = useMutation({
 		mutationFn: (lotusId: string) => volunteerService.delete(lotusId),
 		onSuccess: () => {
-			// Invalidate and refetch
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
-			// Navigate back to volunteers list
+			toast.success("删除成功！");
 			window.location.hash = "#/volunteers";
 		},
 		onError: (error: any) => {
-			alert(error.message || "删除失败");
+			toast.error(error.message || "删除失败");
 		},
 	});
 
@@ -114,9 +117,12 @@ function VolunteerDetailPage() {
 	};
 
 	const handleDelete = () => {
-		if (confirm(`确定要删除义工 ${volunteer.name} 吗？此操作不可恢复。`)) {
-			deleteMutation.mutate(lotusId);
-		}
+		setDeleteDialogOpen(true);
+	};
+
+	const confirmDelete = () => {
+		deleteMutation.mutate(lotusId);
+		setDeleteDialogOpen(false);
 	};
 
 	return (
@@ -390,6 +396,18 @@ function VolunteerDetailPage() {
 						</div>
 					</CardContent>
 				</Card>
+
+				{/* 删除确认对话框 */}
+				<ConfirmDialog
+					open={deleteDialogOpen}
+					onClose={() => setDeleteDialogOpen(false)}
+					onConfirm={confirmDelete}
+					title="删除义工"
+					description={`确定要删除义工"${volunteer.name}"吗？此操作不可恢复。`}
+					variant="destructive"
+					items={[volunteer.name]}
+					isLoading={deleteMutation.isPending}
+				/>
 			</div>
 		</DashboardLayout>
 	);

@@ -8,14 +8,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { VolunteerForm } from "@/components/VolunteerForm";
+import { BatchAddVolunteers } from "@/components/BatchAddVolunteers";
 import { VolunteerDataTable } from "@/components/VolunteerDataTable";
 import { AdvancedFilter, type ActiveFilter } from "@/components/AdvancedFilter";
+import { FilterTags } from "@/components/FilterTags";
 import { BatchActionBar } from "@/components/BatchActionBar";
+import { EmptyState } from "@/components/EmptyState";
+import { StatsCards } from "@/components/StatsCards";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { BatchImportDialog } from "@/components/BatchImportDialog";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { useAuth } from "@/hooks/useAuth";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { volunteerService } from "@/services/volunteer";
 import { approvalService } from "@/services/approval";
 import type { Volunteer } from "@/types";
-import { CheckCircle, XCircle, AlertCircle, Trash2, Download } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Trash2, Download, Plus, Users } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "@/lib/toast";
 import { exportToExcel, formatDateTime, type ExportColumn } from "@/lib/export";
 
@@ -28,9 +37,12 @@ function VolunteersPage() {
 	const queryClient = useQueryClient();
 	const [activeTab, setActiveTab] = useState("all");
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [isBatchAddDialogOpen, setIsBatchAddDialogOpen] = useState(false);
 	const [editingVolunteer, setEditingVolunteer] = useState<
 		Volunteer | undefined
 	>();
+	const [page, setPage] = useState(1);
+	const [pageSize, setPageSize] = useState(20);
 	const [selectedVolunteers, setSelectedVolunteers] = useState<string[]>([]);
 	const [approvalDialog, setApprovalDialog] = useState<{
 		open: boolean;
@@ -39,18 +51,38 @@ function VolunteersPage() {
 	}>({ open: false });
 	const [approvalNotes, setApprovalNotes] = useState("");
 	const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
+	const [confirmDialog, setConfirmDialog] = useState<{
+		open: boolean;
+		title: string;
+		description: string;
+		onConfirm: () => void;
+		variant?: "default" | "destructive" | "warning";
+		items?: string[];
+	}>({
+		open: false,
+		title: "",
+		description: "",
+		onConfirm: () => {},
+	});
+	const [importDialogOpen, setImportDialogOpen] = useState(false);
+	const [dateRange, setDateRange] = useState<{
+		start: string | null;
+		end: string | null;
+	}>({ start: null, end: null });
 
 	// 获取所有义工
 	const { data, isLoading } = useQuery({
-		queryKey: ["volunteers"],
-		queryFn: () => volunteerService.getList({ page: 1, pageSize: 100 }), // 后端限制最大 100
+		queryKey: ["volunteers", page, pageSize],
+		queryFn: () => volunteerService.getList({ page, pageSize }),
 		enabled: isAuthenticated,
 	});
 
 	// 获取待审批义工
+	const [pendingPage, setPendingPage] = useState(1);
+	const [pendingPageSize, setPendingPageSize] = useState(20);
 	const { data: pendingData, isLoading: pendingLoading } = useQuery({
-		queryKey: ["approval", "pending"],
-		queryFn: () => approvalService.getPendingList({ page: 1, pageSize: 100 }),
+		queryKey: ["approval", "pending", pendingPage, pendingPageSize],
+		queryFn: () => approvalService.getPendingList({ page: pendingPage, pageSize: pendingPageSize }),
 		enabled: isAuthenticated,
 	});
 
@@ -105,6 +137,45 @@ function VolunteersPage() {
 		},
 		onError: (error: any) => {
 			toast.error(error.message || "批量删除失败");
+		},
+	});
+
+	const batchImportMutation = useMutation({
+		mutationFn: volunteerService.batchImport,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			setImportDialogOpen(false);
+			toast.success("批量导入成功！");
+		},
+		onError: (error: any) => {
+			toast.error(error.message || "批量导入失败");
+		},
+	});
+
+	const batchCreateMutation = useMutation({
+		mutationFn: async (data: Partial<Volunteer>[]) => {
+			// 逐个创建义工
+			const results = await Promise.allSettled(
+				data.map((volunteer) => volunteerService.create(volunteer as any))
+			);
+			
+			const successful = results.filter((r) => r.status === "fulfilled").length;
+			const failed = results.filter((r) => r.status === "rejected").length;
+			
+			return { successful, failed, total: data.length };
+		},
+		onSuccess: (result) => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			setIsBatchAddDialogOpen(false);
+			
+			if (result.failed === 0) {
+				toast.success(`成功创建 ${result.successful} 个义工！`);
+			} else {
+				toast.warning(`成功创建 ${result.successful} 个，失败 ${result.failed} 个`);
+			}
+		},
+		onError: (error: any) => {
+			toast.error(error.message || "批量创建失败");
 		},
 	});
 
@@ -205,29 +276,141 @@ function VolunteersPage() {
 	];
 
 	// 应用筛选（useMemo 必须在条件渲染之前）
-	const filteredVolunteers = useMemo(() => {
-		if (activeFilters.length === 0) return volunteers;
+	const filteredVolunteers = useMemo((): Volunteer[] => {
+		let result: Volunteer[] = volunteers;
 
-		return volunteers.filter((volunteer) => {
-			return activeFilters.every((filter) => {
-				if (filter.values.length === 0) return true;
-				const value = volunteer[filter.id as keyof Volunteer];
-				return filter.values.includes(String(value));
+		// 应用筛选条件
+		if (activeFilters.length > 0) {
+			result = result.filter((volunteer) => {
+				return activeFilters.every((filter) => {
+					if (filter.values.length === 0) return true;
+					const value = volunteer[filter.id as keyof Volunteer];
+					return filter.values.includes(String(value));
+				});
 			});
-		});
-	}, [volunteers, activeFilters]);
+		}
 
-	const filteredPendingVolunteers = useMemo(() => {
-		if (activeFilters.length === 0) return pendingVolunteers;
+		// 应用日期范围筛选
+		if (dateRange.start || dateRange.end) {
+			result = result.filter((volunteer) => {
+				if (!volunteer.createdAt) return false;
+				const createdDate = new Date(volunteer.createdAt);
+				const start = dateRange.start ? new Date(dateRange.start) : null;
+				const end = dateRange.end ? new Date(dateRange.end) : null;
 
-		return pendingVolunteers.filter((volunteer) => {
-			return activeFilters.every((filter) => {
-				if (filter.values.length === 0) return true;
-				const value = volunteer[filter.id as keyof Volunteer];
-				return filter.values.includes(String(value));
+				if (start && createdDate < start) return false;
+				if (end && createdDate > end) return false;
+				return true;
 			});
-		});
-	}, [pendingVolunteers, activeFilters]);
+		}
+
+		return result;
+	}, [volunteers, activeFilters, dateRange]);
+
+	const filteredPendingVolunteers = useMemo((): Volunteer[] => {
+		let result: Volunteer[] = pendingVolunteers;
+
+		// 应用筛选条件
+		if (activeFilters.length > 0) {
+			result = result.filter((volunteer) => {
+				return activeFilters.every((filter) => {
+					if (filter.values.length === 0) return true;
+					const value = volunteer[filter.id as keyof Volunteer];
+					return filter.values.includes(String(value));
+				});
+			});
+		}
+
+		// 应用日期范围筛选
+		if (dateRange.start || dateRange.end) {
+			result = result.filter((volunteer) => {
+				if (!volunteer.createdAt) return false;
+				const createdDate = new Date(volunteer.createdAt);
+				const start = dateRange.start ? new Date(dateRange.start) : null;
+				const end = dateRange.end ? new Date(dateRange.end) : null;
+
+				if (start && createdDate < start) return false;
+				if (end && createdDate > end) return false;
+				return true;
+			});
+		}
+
+		return result;
+	}, [pendingVolunteers, activeFilters, dateRange]);
+
+	// 计算统计数据（必须在条件渲染之前）
+	const stats = useMemo(() => {
+		const now = new Date();
+		const thisMonth = now.getMonth();
+		const thisYear = now.getFullYear();
+
+		const newThisMonth = volunteers.filter((v) => {
+			if (!v.createdAt) return false;
+			const createdDate = new Date(v.createdAt);
+			return (
+				createdDate.getMonth() === thisMonth &&
+				createdDate.getFullYear() === thisYear
+			);
+		}).length;
+
+		const activeVolunteers = volunteers.filter(
+			(v) => v.volunteerStatus === "registered",
+		).length;
+
+		return {
+			totalVolunteers: volunteers.length,
+			newThisMonth,
+			pendingApproval: pendingCount,
+			activeVolunteers,
+		};
+	}, [volunteers, pendingCount]);
+
+	// 快捷键支持（必须在条件渲染之前）
+	useKeyboardShortcuts([
+		{
+			key: "a",
+			ctrl: true,
+			callback: () => {
+				if (activeTab === "all") {
+					const currentData = activeFilters.length === 0 ? volunteers : filteredVolunteers;
+					setSelectedVolunteers(currentData.map((v) => v.lotusId));
+				}
+			},
+			description: "全选",
+		},
+		{
+			key: "Escape",
+			callback: () => {
+				if (selectedVolunteers.length > 0) {
+					setSelectedVolunteers([]);
+				}
+			},
+			description: "取消选择",
+		},
+		{
+			key: "Delete",
+			callback: () => {
+				if (selectedVolunteers.length > 0 && activeTab === "all") {
+					const selectedNames = filteredVolunteers
+						.filter((v) => selectedVolunteers.includes(v.lotusId))
+						.map((v) => v.name);
+
+					setConfirmDialog({
+						open: true,
+						title: "批量删除义工",
+						description: `确定要删除选中的 ${selectedVolunteers.length} 个义工吗？此操作不可恢复。`,
+						variant: "destructive",
+						items: selectedNames,
+						onConfirm: () => {
+							batchDeleteMutation.mutate(selectedVolunteers);
+							setConfirmDialog((prev) => ({ ...prev, open: false }));
+						},
+					});
+				}
+			},
+			description: "删除选中项",
+		},
+	]);
 
 	// 条件渲染必须在所有 hooks 之后
 	if (authLoading) {
@@ -266,9 +449,17 @@ ID: ${volunteer.lotusId}
 	};
 
 	const handleDelete = (volunteer: Volunteer) => {
-		if (confirm(`确定要删除义工 ${volunteer.name} 吗？此操作不可恢复。`)) {
-			deleteMutation.mutate(volunteer.lotusId);
-		}
+		setConfirmDialog({
+			open: true,
+			title: "删除义工",
+			description: `确定要删除义工"${volunteer.name}"吗？此操作不可恢复。`,
+			variant: "destructive",
+			items: [volunteer.name],
+			onConfirm: () => {
+				deleteMutation.mutate(volunteer.lotusId);
+				setConfirmDialog((prev) => ({ ...prev, open: false }));
+			},
+		});
 	};
 
 	const handleAdd = () => {
@@ -294,13 +485,25 @@ ID: ${volunteer.lotusId}
 
 	const handleBatchDelete = () => {
 		if (selectedVolunteers.length === 0) {
-			alert("请选择要删除的义工");
+			toast.error("请选择要删除的义工");
 			return;
 		}
 
-		if (confirm(`确定要删除选中的 ${selectedVolunteers.length} 个义工吗？此操作不可恢复。`)) {
-			batchDeleteMutation.mutate(selectedVolunteers);
-		}
+		const selectedNames = filteredVolunteers
+			.filter((v) => selectedVolunteers.includes(v.lotusId))
+			.map((v) => v.name);
+
+		setConfirmDialog({
+			open: true,
+			title: "批量删除义工",
+			description: `确定要删除选中的 ${selectedVolunteers.length} 个义工吗？此操作不可恢复。`,
+			variant: "destructive",
+			items: selectedNames,
+			onConfirm: () => {
+				batchDeleteMutation.mutate(selectedVolunteers);
+				setConfirmDialog((prev) => ({ ...prev, open: false }));
+			},
+		});
 	};
 
 	const handleSelectionChange = (lotusIds: string[]) => {
@@ -348,6 +551,26 @@ ID: ${volunteer.lotusId}
 		setSelectedVolunteers([]);
 	};
 
+	const handleRemoveFilter = (filterId: string) => {
+		setActiveFilters((prev) => prev.filter((f) => f.id !== filterId));
+	};
+
+	const handleDateRangeChange = (start: string | null, end: string | null) => {
+		setDateRange({ start, end });
+	};
+
+	const handleBatchImport = async (data: any[]) => {
+		await batchImportMutation.mutateAsync(data);
+	};
+
+	const handleBatchAdd = () => {
+		setIsBatchAddDialogOpen(true);
+	};
+
+	const handleBatchCreate = async (data: Partial<Volunteer>[]) => {
+		await batchCreateMutation.mutateAsync(data);
+	};
+
 	// 审批相关处理函数
 	const handleApprove = (volunteer: Volunteer) => {
 		setApprovalDialog({
@@ -377,40 +600,56 @@ ID: ${volunteer.lotusId}
 
 	const handleBatchApprove = () => {
 		if (selectedVolunteers.length === 0) {
-			alert("请选择要审批的义工");
+			toast.error("请选择要审批的义工");
 			return;
 		}
 
-		if (
-			confirm(
-				`确定要批量通过选中的 ${selectedVolunteers.length} 个义工申请吗？`,
-			)
-		) {
-			batchApproveMutation.mutate({
-				lotusIds: selectedVolunteers,
-				action: "approve",
-				notes: approvalNotes,
-			});
-		}
+		const selectedNames = filteredPendingVolunteers
+			.filter((v) => selectedVolunteers.includes(v.lotusId))
+			.map((v) => v.name);
+
+		setConfirmDialog({
+			open: true,
+			title: "批量通过审批",
+			description: `确定要批量通过选中的 ${selectedVolunteers.length} 个义工申请吗？`,
+			variant: "default",
+			items: selectedNames,
+			onConfirm: () => {
+				batchApproveMutation.mutate({
+					lotusIds: selectedVolunteers,
+					action: "approve",
+					notes: approvalNotes,
+				});
+				setConfirmDialog((prev) => ({ ...prev, open: false }));
+			},
+		});
 	};
 
 	const handleBatchReject = () => {
 		if (selectedVolunteers.length === 0) {
-			alert("请选择要审批的义工");
+			toast.error("请选择要审批的义工");
 			return;
 		}
 
-		if (
-			confirm(
-				`确定要批量拒绝选中的 ${selectedVolunteers.length} 个义工申请吗？`,
-			)
-		) {
-			batchApproveMutation.mutate({
-				lotusIds: selectedVolunteers,
-				action: "reject",
-				notes: approvalNotes,
-			});
-		}
+		const selectedNames = filteredPendingVolunteers
+			.filter((v) => selectedVolunteers.includes(v.lotusId))
+			.map((v) => v.name);
+
+		setConfirmDialog({
+			open: true,
+			title: "批量拒绝审批",
+			description: `确定要批量拒绝选中的 ${selectedVolunteers.length} 个义工申请吗？`,
+			variant: "warning",
+			items: selectedNames,
+			onConfirm: () => {
+				batchApproveMutation.mutate({
+					lotusIds: selectedVolunteers,
+					action: "reject",
+					notes: approvalNotes,
+				});
+				setConfirmDialog((prev) => ({ ...prev, open: false }));
+			},
+		});
 	};
 
 	return (
@@ -421,17 +660,55 @@ ID: ${volunteer.lotusId}
 				<div className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold">义工管理</h1>
 					<div className="flex gap-2">
-						<Button onClick={handleAdd}>添加义工</Button>
+						<Button
+							variant="outline"
+							onClick={() => setImportDialogOpen(true)}
+						>
+							<Download className="h-4 w-4 mr-2" />
+							Excel导入
+						</Button>
+						<Button
+							variant="outline"
+							onClick={handleBatchAdd}
+						>
+							<Users className="h-4 w-4 mr-2" />
+							批量添加
+						</Button>
+						<Button onClick={handleAdd}>
+							<Plus className="h-4 w-4 mr-2" />
+							添加义工
+						</Button>
 					</div>
 				</div>
 
-				{/* 高级筛选 */}
-				<AdvancedFilter
-					filters={filterOptions}
-					activeFilters={activeFilters}
-					onFilterChange={handleFilterChange}
-					onClearAll={handleClearAllFilters}
+				{/* 统计卡片 */}
+				<StatsCards
+					totalVolunteers={stats.totalVolunteers}
+					newThisMonth={stats.newThisMonth}
+					pendingApproval={stats.pendingApproval}
+					activeVolunteers={stats.activeVolunteers}
 				/>
+
+				{/* 高级筛选 */}
+				<div className="space-y-2">
+					<div className="flex items-center gap-2 flex-wrap">
+						<AdvancedFilter
+							filters={filterOptions}
+							activeFilters={activeFilters}
+							onFilterChange={handleFilterChange}
+							onClearAll={handleClearAllFilters}
+						/>
+						<DateRangeFilter
+							onApply={handleDateRangeChange}
+							label="创建时间"
+						/>
+					</div>
+					<FilterTags
+						activeFilters={activeFilters}
+						onRemoveFilter={handleRemoveFilter}
+						onClearAll={handleClearAllFilters}
+					/>
+				</div>
 
 				{/* 标签页 */}
 				<Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -466,16 +743,48 @@ ID: ${volunteer.lotusId}
 							</div>
 						</div>
 
-						<div className="bg-card rounded-lg border p-6">
-							<VolunteerDataTable
-								data={filteredVolunteers}
-								isLoading={isLoading}
-								onView={handleView}
-								onEdit={handleEdit}
-								onDelete={handleDelete}
-								enableSelection={true}
-								onSelectionChange={handleSelectionChange}
-							/>
+						<div className="bg-card rounded-lg border">
+							<div className="p-6">
+								<VolunteerDataTable
+									data={filteredVolunteers}
+									isLoading={isLoading}
+									onView={handleView}
+									onEdit={handleEdit}
+									onDelete={handleDelete}
+									enableSelection={true}
+									onSelectionChange={handleSelectionChange}
+									emptyState={
+										<EmptyState
+											type="no-data"
+											onAction={handleAdd}
+											actionLabel="添加第一个义工"
+										/>
+									}
+									noResultsState={
+										<EmptyState
+											type="no-results"
+											onAction={handleClearAllFilters}
+										/>
+									}
+								/>
+							</div>
+							{volunteers.length > 0 && (
+								<Pagination
+									currentPage={page}
+									totalPages={Math.ceil((data?.data?.total || 0) / pageSize)}
+									pageSize={pageSize}
+									totalItems={data?.data?.total || 0}
+									onPageChange={(newPage) => {
+										setPage(newPage);
+										setSelectedVolunteers([]);
+									}}
+									onPageSizeChange={(newPageSize) => {
+										setPageSize(newPageSize);
+										setPage(1);
+										setSelectedVolunteers([]);
+									}}
+								/>
+							)}
 						</div>
 
 						{/* 批量操作栏 */}
@@ -562,17 +871,49 @@ ID: ${volunteer.lotusId}
 							</div>
 						</div>
 
-						<div className="bg-card rounded-lg border p-6">
-							<VolunteerDataTable
-								data={filteredPendingVolunteers}
-								isLoading={pendingLoading}
-								onView={handleView}
-								onApprove={handleApprove}
-								onReject={handleReject}
-								enableSelection={true}
-								onSelectionChange={handleSelectionChange}
-								showApprovalActions={true}
-							/>
+						<div className="bg-card rounded-lg border">
+							<div className="p-6">
+								<VolunteerDataTable
+									data={filteredPendingVolunteers}
+									isLoading={pendingLoading}
+									onView={handleView}
+									onApprove={handleApprove}
+									onReject={handleReject}
+									enableSelection={true}
+									onSelectionChange={handleSelectionChange}
+									showApprovalActions={true}
+									emptyState={
+										<EmptyState
+											type="no-data"
+											onAction={undefined}
+											actionLabel=""
+										/>
+									}
+									noResultsState={
+										<EmptyState
+											type="no-results"
+											onAction={handleClearAllFilters}
+										/>
+									}
+								/>
+							</div>
+							{pendingVolunteers.length > 0 && (
+								<Pagination
+									currentPage={pendingPage}
+									totalPages={Math.ceil((pendingData?.data?.total || 0) / pendingPageSize)}
+									pageSize={pendingPageSize}
+									totalItems={pendingData?.data?.total || 0}
+									onPageChange={(newPage) => {
+										setPendingPage(newPage);
+										setSelectedVolunteers([]);
+									}}
+									onPageSizeChange={(newPageSize) => {
+										setPendingPageSize(newPageSize);
+										setPendingPage(1);
+										setSelectedVolunteers([]);
+									}}
+								/>
+							)}
 						</div>
 
 						{/* 批量操作栏 */}
@@ -713,6 +1054,44 @@ ID: ${volunteer.lotusId}
 							</Button>
 						</div>
 					</div>
+				</Dialog>
+
+				{/* 确认对话框 */}
+				<ConfirmDialog
+					open={confirmDialog.open}
+					onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+					onConfirm={confirmDialog.onConfirm}
+					title={confirmDialog.title}
+					description={confirmDialog.description}
+					variant={confirmDialog.variant}
+					items={confirmDialog.items}
+					isLoading={
+						deleteMutation.isPending ||
+						batchDeleteMutation.isPending ||
+						batchApproveMutation.isPending
+					}
+				/>
+
+				{/* 批量导入对话框 */}
+				<BatchImportDialog
+					open={importDialogOpen}
+					onClose={() => setImportDialogOpen(false)}
+					onImport={handleBatchImport}
+					isLoading={batchImportMutation.isPending}
+				/>
+
+				{/* 批量添加对话框 */}
+				<Dialog
+					open={isBatchAddDialogOpen}
+					onClose={() => setIsBatchAddDialogOpen(false)}
+					title="批量添加义工"
+					maxWidth="xl"
+				>
+					<BatchAddVolunteers
+						onSubmit={handleBatchCreate}
+						onCancel={() => setIsBatchAddDialogOpen(false)}
+						isLoading={batchCreateMutation.isPending}
+					/>
 				</Dialog>
 			</div>
 		</DashboardLayout>

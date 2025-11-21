@@ -166,3 +166,38 @@ body {
     color: var(--foreground);
   }
 }
+
+
+/* 主题变量 */
+
+/* 海洋蓝主题 */
+.blue {
+  --color-primary: oklch(0.541 0.15 240);
+  --color-primary-foreground: oklch(0.969 0.016 240);
+  --color-accent: oklch(0.9 0.05 240);
+  --color-accent-foreground: oklch(0.21 0.006 240);
+}
+
+/* 森林绿主题 */
+.green {
+  --color-primary: oklch(0.541 0.15 145);
+  --color-primary-foreground: oklch(0.969 0.016 145);
+  --color-accent: oklch(0.9 0.05 145);
+  --color-accent-foreground: oklch(0.21 0.006 145);
+}
+
+/* 优雅紫主题 */
+.purple {
+  --color-primary: oklch(0.541 0.2 293);
+  --color-primary-foreground: oklch(0.969 0.016 293);
+  --color-accent: oklch(0.9 0.05 293);
+  --color-accent-foreground: oklch(0.21 0.006 293);
+}
+
+/* 活力橙主题 */
+.orange {
+  --color-primary: oklch(0.641 0.2 45);
+  --color-primary-foreground: oklch(0.969 0.016 45);
+  --color-accent: oklch(0.9 0.05 45);
+  --color-accent-foreground: oklch(0.21 0.006 45);
+}

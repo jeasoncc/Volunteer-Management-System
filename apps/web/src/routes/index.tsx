@@ -20,12 +20,12 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { checkinService } from "@/services/checkin";
 import { volunteerService } from "@/services/volunteer";
 import { approvalService } from "@/services/approval";
-import { Users, Clock, Calendar, AlertCircle, TrendingUp, RefreshCw, AlertTriangle } from "lucide-react";
+import { Users, Clock, Calendar, AlertCircle, RefreshCw, AlertTriangle } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Label } from "recharts";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
-} as any);
+});
 
 function HomePage() {
 	const { isAuthenticated, isLoading, user } = useAuth();
@@ -406,6 +406,48 @@ function HomePage() {
 							<Link to="/volunteers">
 								<Button className="w-full">进入义工管理 →</Button>
 							</Link>
+						</CardContent>
+					</Card>
+
+					<Card className="hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<svg className="h-5 w-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+									<path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+								</svg>
+								往生者管理
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm text-muted-foreground mb-4">
+								管理往生者信息、安排助念事宜、查看助念记录
+							</p>
+							<a href="/#/deceased">
+								<Button className="w-full bg-purple-500 hover:bg-purple-600">
+									进入往生者管理 →
+								</Button>
+							</a>
+						</CardContent>
+					</Card>
+
+					<Card className="hover:shadow-md transition-shadow border-l-4 border-l-indigo-500">
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<svg className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+								</svg>
+								助念排班
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<p className="text-sm text-muted-foreground mb-4">
+								安排助念时间、分配义工任务、查看排班记录
+							</p>
+							<a href="/#/chanting">
+								<Button className="w-full bg-indigo-500 hover:bg-indigo-600">
+									进入助念排班 →
+								</Button>
+							</a>
 						</CardContent>
 					</Card>
 

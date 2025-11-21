@@ -15,6 +15,8 @@ import dotenv from 'dotenv'
 import dotenvExpand from 'dotenv-expand'
 import { documentModule } from './modules/document'
 import { uploadModule } from './modules/upload'
+import { deceasedModule } from './modules/deceased'
+import { chantingModule } from './modules/chanting'
 import { startCronJobs } from './cron'
 
 dotenvExpand.expand(dotenv.config())
@@ -37,6 +39,8 @@ const app = new Elysia()
   .use(adminModule)
   .use(checkinModule)
   .use(documentModule)
+  .use(deceasedModule)
+  .use(chantingModule)
   .use(wsModule)
   .listen(3001)
 

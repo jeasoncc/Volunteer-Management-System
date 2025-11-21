@@ -5,6 +5,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/DataTable";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -27,6 +33,8 @@ interface VolunteerDataTableProps {
 	enableSelection?: boolean;
 	onSelectionChange?: (lotusIds: string[]) => void;
 	showApprovalActions?: boolean;
+	emptyState?: React.ReactNode;
+	noResultsState?: React.ReactNode;
 }
 
 export function VolunteerDataTable({
@@ -40,6 +48,8 @@ export function VolunteerDataTable({
 	enableSelection = false,
 	onSelectionChange,
 	showApprovalActions = false,
+	emptyState,
+	noResultsState,
 }: VolunteerDataTableProps) {
 	const columns: ColumnDef<Volunteer>[] = [
 		// 选择框列
@@ -102,13 +112,18 @@ export function VolunteerDataTable({
 			},
 		},
 		{
-			accessorKey: "phone",
-			header: "手机号",
-			cell: ({ row }) => (
-				<div className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-mono text-muted-foreground">
-					{row.getValue("phone")}
-				</div>
-			),
+			accessorKey: "volunteerId",
+			header: "义工号",
+			cell: ({ row }) => {
+				const volunteerId = row.getValue("volunteerId") as string | undefined;
+				return volunteerId ? (
+					<div className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono font-medium text-primary">
+						{volunteerId}
+					</div>
+				) : (
+					<span className="text-xs text-muted-foreground">-</span>
+				);
+			},
 		},
 		{
 			accessorKey: "volunteerStatus",
@@ -180,56 +195,91 @@ export function VolunteerDataTable({
 					return (
 						<div className="flex gap-2">
 							{onApprove && (
-								<Button
-									variant="default"
-									size="sm"
-									onClick={() => onApprove(volunteer)}
-								>
-									<CheckCircle className="h-4 w-4 mr-1" />
-									通过
-								</Button>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="default"
+												size="sm"
+												onClick={() => onApprove(volunteer)}
+											>
+												<CheckCircle className="h-4 w-4 mr-1" />
+												通过
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>批准此义工申请</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
 							)}
 							{onReject && (
-								<Button
-									variant="destructive"
-									size="sm"
-									onClick={() => onReject(volunteer)}
-								>
-									<XCircle className="h-4 w-4 mr-1" />
-									拒绝
-								</Button>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="destructive"
+												size="sm"
+												onClick={() => onReject(volunteer)}
+											>
+												<XCircle className="h-4 w-4 mr-1" />
+												拒绝
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>拒绝此义工申请</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
 							)}
 						</div>
 					);
 				}
 				
-				// 否则显示下拉菜单
+				// 常规操作：直接显示常用按钮
 				return (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" className="h-8 w-8 p-0">
-								<span className="sr-only">打开菜单</span>
-								<MoreHorizontal className="h-4 w-4" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>操作</DropdownMenuLabel>
-							<DropdownMenuSeparator />
+					<div className="flex items-center gap-1">
+						<TooltipProvider>
 							{onView && (
-								<DropdownMenuItem onClick={() => onView(volunteer)}>
-									<Eye className="mr-2 h-4 w-4" />
-									查看详情
-								</DropdownMenuItem>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 w-8 p-0"
+											onClick={() => onView(volunteer)}
+										>
+											<Eye className="h-4 w-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>查看详情</TooltipContent>
+								</Tooltip>
 							)}
 							{onEdit && (
-								<DropdownMenuItem onClick={() => onEdit(volunteer)}>
-									<Pencil className="mr-2 h-4 w-4" />
-									编辑
-								</DropdownMenuItem>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-8 w-8 p-0"
+											onClick={() => onEdit(volunteer)}
+										>
+											<Pencil className="h-4 w-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>编辑</TooltipContent>
+								</Tooltip>
 							)}
-							{onDelete && (
-								<>
-									<DropdownMenuSeparator />
+						</TooltipProvider>
+						
+						{/* 更多操作菜单 */}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" className="h-8 w-8 p-0">
+									<span className="sr-only">更多操作</span>
+									<MoreHorizontal className="h-4 w-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuLabel>更多操作</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								{onDelete && (
 									<DropdownMenuItem
 										onClick={() => onDelete(volunteer)}
 										className="text-destructive focus:text-destructive"
@@ -237,10 +287,10 @@ export function VolunteerDataTable({
 										<Trash2 className="mr-2 h-4 w-4" />
 										删除
 									</DropdownMenuItem>
-								</>
-							)}
-						</DropdownMenuContent>
-					</DropdownMenu>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
 				);
 			},
 			enableSorting: false,
@@ -253,7 +303,7 @@ export function VolunteerDataTable({
 		lotusId: "莲花斋ID",
 		name: "姓名",
 		gender: "性别",
-		phone: "手机号",
+		volunteerId: "义工号",
 		volunteerStatus: "状态",
 		lotusRole: "角色",
 		createdAt: "创建时间",
@@ -327,6 +377,8 @@ export function VolunteerDataTable({
 					onSelectionChange(rows.map((r) => r.lotusId));
 				}
 			}}
+			emptyState={emptyState}
+			noResultsState={noResultsState}
 		/>
 	);
 }

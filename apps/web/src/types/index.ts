@@ -123,3 +123,55 @@ export interface ApiResponse<T = any> {
 	data?: T;
 	code?: string;
 }
+
+// 往生者类型
+export interface Deceased {
+	id: number;
+	name: string;
+	title: string;
+	chantNumber?: string;
+	chantPosition?: "room-one" | "room-two" | "room-three" | "room-four" | "unknow";
+	gender: "male" | "female" | "other";
+	deathDate: string;
+	deathTime?: string;
+	age?: number;
+	visitTime?: string;
+	visitationTeam?: string[];
+	birthDate?: string;
+	religion?: string;
+	isOrdained?: boolean;
+	address: string;
+	causeOfDeath?: string;
+	familyContact?: string;
+	familyRelationship?: string;
+	familyPhone: string;
+	specialNotes?: string;
+	funeralArrangements?: string;
+	createdAt?: string;
+}
+
+// 助念排班类型
+export interface ChantingSchedule {
+	id: number;
+	location: "fuhuiyuan" | "waiqin";
+	date: string;
+	timeSlot: string;
+	bellVolunteerId?: number;
+	bellVolunteerName?: string;
+	teachingVolunteerId?: number;
+	teachingVolunteerName?: string;
+	backupVolunteerId?: number;
+	backupVolunteerName?: string;
+	deceasedId: number;
+	deceasedName?: string;
+	status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+	actualStartTime?: string;
+	actualEndTime?: string;
+	feedback?: string;
+	expectedParticipants?: number;
+	specialRequirements?: string;
+	createdBy?: number;
+	createdByName?: string;
+	createdAt?: string;
+	updatedAt?: string;
+}

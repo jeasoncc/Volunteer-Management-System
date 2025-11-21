@@ -21,6 +21,7 @@ import { documentService } from "@/services/document";
 import type { CheckInSummary } from "@/types";
 import { Download, FileDown, List } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/checkin")({
 	component: CheckinPage,
@@ -134,11 +135,19 @@ function CheckinPage() {
 		setIsEditDialogOpen(true);
 	};
 
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [deletingRecord, setDeletingRecord] = useState<CheckInSummary | null>(null);
+
 	const handleDelete = (record: CheckInSummary) => {
-		if (
-			confirm(`确定要删除 ${record.name} 在 ${record.date} 的考勤记录吗？`)
-		) {
-			deleteMutation.mutate(record.id);
+		setDeletingRecord(record);
+		setDeleteDialogOpen(true);
+	};
+
+	const confirmDelete = () => {
+		if (deletingRecord) {
+			deleteMutation.mutate(deletingRecord.id);
+			setDeleteDialogOpen(false);
+			setDeletingRecord(null);
 		}
 	};
 
@@ -405,6 +414,25 @@ function CheckinPage() {
 						</form>
 					)}
 				</Dialog>
+
+				{/* 删除确认对话框 */}
+				<ConfirmDialog
+					open={deleteDialogOpen}
+					onClose={() => {
+						setDeleteDialogOpen(false);
+						setDeletingRecord(null);
+					}}
+					onConfirm={confirmDelete}
+					title="删除考勤记录"
+					description={
+						deletingRecord
+							? `确定要删除 ${deletingRecord.name} 在 ${deletingRecord.date} 的考勤记录吗？`
+							: ""
+					}
+					variant="destructive"
+					items={deletingRecord ? [`${deletingRecord.name} - ${deletingRecord.date}`] : []}
+					isLoading={deleteMutation.isPending}
+				/>
 			</div>
 		</DashboardLayout>
 	);

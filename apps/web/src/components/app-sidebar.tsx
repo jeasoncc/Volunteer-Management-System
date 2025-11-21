@@ -109,6 +109,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			badge: "pending", // 待审批徽章显示在义工管理上
 		},
 		{
+			title: "往生者管理",
+			url: "/deceased",
+			icon: Flower2,
+		},
+		{
+			title: "助念排班",
+			url: "/chanting",
+			icon: ClipboardCheck,
+		},
+		{
 			title: "考勤管理",
 			url: "/checkin",
 			icon: ClipboardCheck,
