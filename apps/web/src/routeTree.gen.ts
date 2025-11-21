@@ -13,13 +13,15 @@ import { Route as VolunteersRouteImport } from './routes/volunteers'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DocumentsRouteImport } from './routes/documents'
+import { Route as DeceasedRouteImport } from './routes/deceased'
 import { Route as CheckinRouteImport } from './routes/checkin'
+import { Route as ChantingRouteImport } from './routes/chanting'
 import { Route as ApprovalRouteImport } from './routes/approval'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
 import { Route as CheckinRecordsRouteImport } from './routes/checkin.records'
-import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$lotusId/edit'
+import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$lotusId.edit'
 
 const VolunteersRoute = VolunteersRouteImport.update({
   id: '/volunteers',
@@ -41,9 +43,19 @@ const DocumentsRoute = DocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeceasedRoute = DeceasedRouteImport.update({
+  id: '/deceased',
+  path: '/deceased',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckinRoute = CheckinRouteImport.update({
   id: '/checkin',
   path: '/checkin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChantingRoute = ChantingRouteImport.update({
+  id: '/chanting',
+  path: '/chanting',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalRoute = ApprovalRouteImport.update({
@@ -81,7 +93,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/approval': typeof ApprovalRoute
+  '/chanting': typeof ChantingRoute
   '/checkin': typeof CheckinRouteWithChildren
+  '/deceased': typeof DeceasedRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -94,7 +108,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/approval': typeof ApprovalRoute
+  '/chanting': typeof ChantingRoute
   '/checkin': typeof CheckinRouteWithChildren
+  '/deceased': typeof DeceasedRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -108,7 +124,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/approval': typeof ApprovalRoute
+  '/chanting': typeof ChantingRoute
   '/checkin': typeof CheckinRouteWithChildren
+  '/deceased': typeof DeceasedRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
@@ -123,7 +141,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/approval'
+    | '/chanting'
     | '/checkin'
+    | '/deceased'
     | '/documents'
     | '/login'
     | '/settings'
@@ -136,7 +156,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/approval'
+    | '/chanting'
     | '/checkin'
+    | '/deceased'
     | '/documents'
     | '/login'
     | '/settings'
@@ -149,7 +171,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/approval'
+    | '/chanting'
     | '/checkin'
+    | '/deceased'
     | '/documents'
     | '/login'
     | '/settings'
@@ -163,7 +187,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   ApprovalRoute: typeof ApprovalRoute
+  ChantingRoute: typeof ChantingRoute
   CheckinRoute: typeof CheckinRouteWithChildren
+  DeceasedRoute: typeof DeceasedRoute
   DocumentsRoute: typeof DocumentsRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
@@ -200,11 +226,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deceased': {
+      id: '/deceased'
+      path: '/deceased'
+      fullPath: '/deceased'
+      preLoaderRoute: typeof DeceasedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkin': {
       id: '/checkin'
       path: '/checkin'
       fullPath: '/checkin'
       preLoaderRoute: typeof CheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chanting': {
+      id: '/chanting'
+      path: '/chanting'
+      fullPath: '/chanting'
+      preLoaderRoute: typeof ChantingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approval': {
@@ -290,7 +330,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   ApprovalRoute: ApprovalRoute,
+  ChantingRoute: ChantingRoute,
   CheckinRoute: CheckinRouteWithChildren,
+  DeceasedRoute: DeceasedRoute,
   DocumentsRoute: DocumentsRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,

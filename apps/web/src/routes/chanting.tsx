@@ -26,7 +26,7 @@ import {
 
 export const Route = createFileRoute("/chanting")({
 	component: ChantingPage,
-} as any);
+});
 
 function ChantingPage() {
 	const { isAuthenticated, isLoading: authLoading } = useAuth();
