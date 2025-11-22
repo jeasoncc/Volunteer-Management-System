@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -42,11 +41,11 @@ function SettingsPage() {
 
 	if (authLoading) {
 		return (
-			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "设置" }]}>
+			
 				<div className="flex items-center justify-center h-64">
 					<div className="text-muted-foreground">加载中...</div>
 				</div>
-			</DashboardLayout>
+			
 		);
 	}
 
@@ -71,7 +70,7 @@ function SettingsPage() {
 	};
 
 	return (
-		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "设置" }]}>
+		
 			<div className="space-y-6 max-w-4xl">
 				<div>
 					<h1 className="text-3xl font-bold">设置</h1>
@@ -246,6 +245,6 @@ function SettingsPage() {
 					</CardContent>
 				</Card>
 			</div>
-		</DashboardLayout>
+		
 	);
 }

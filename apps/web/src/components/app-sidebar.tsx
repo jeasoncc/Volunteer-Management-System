@@ -12,7 +12,6 @@ import {
 	Plus,
 } from "lucide-react";
 
-import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +22,9 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarGroup,
+	SidebarGroupLabel,
+	SidebarGroupContent
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { approvalService } from "@/services/approval";
@@ -129,6 +131,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			icon: FileText,
 		},
 		{
+			title: "设备与同步",
+			url: "/devices",
+			icon: ClipboardCheck,
+		},
+		{
 			title: "管理员管理",
 			url: "/admin",
 			icon: Shield,
@@ -140,15 +147,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		},
 	];
 
-	// 根据当前路由匹配导航项标题
-	const currentNavItem = navMain.find((item) => {
-		if (item.url === "/") {
-			return location.pathname === "/";
-		}
-		return location.pathname.startsWith(item.url);
-	});
-	const currentPageTitle = currentNavItem?.title || "首页";
-
 	const userData = {
 		name: user?.name || "管理员",
 		email: user?.account || "",
@@ -156,35 +154,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	};
 
 	return (
-		<Sidebar collapsible="icon" {...props}>
+		<Sidebar collapsible="icon" {...props} className="border-r-0 shadow-xl bg-card/50 backdrop-blur-xl">
 			<SidebarHeader>
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:!p-2"
+							className="data-[slot=sidebar-menu-button]:!p-2 hover:bg-transparent active:bg-transparent"
 						>
 							<Link to="/">
-								<div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-primary">
-									<Flower2 className="h-5 w-5 text-primary" />
+								<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
+									<Flower2 className="h-5 w-5" />
 								</div>
-								<div className="flex flex-col">
-									<span className="text-lg font-bold">莲花斋</span>
-									<span className="text-xs text-muted-foreground">v1.0.0</span>
+								<div className="flex flex-col gap-0.5 leading-none">
+									<span className="text-lg font-bold tracking-tight">莲花斋</span>
+									<span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">v1.0.0</span>
 								</div>
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
-				{/* 当前页面标签 */}
-				<div className="px-4 pt-2 pb-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-					<span>当前页面：</span>
-					<span className="font-medium text-foreground">{currentPageTitle}</span>
-				</div>
 				{/* 快捷操作按钮 */}
 				<div className="px-2 py-2">
 					<Button 
-						className="w-full group-data-[collapsible=icon]:hidden" 
+						className="w-full shadow-sm group-data-[collapsible=icon]:hidden bg-primary/90 hover:bg-primary" 
 						size="sm"
 						asChild
 					>
@@ -196,22 +189,65 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</div>
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain items={navMain} pendingCount={pendingCount} />
+				<SidebarGroup>
+					<SidebarGroupLabel>平台功能</SidebarGroupLabel>
+					<SidebarGroupContent>
+						<SidebarMenu>
+							{navMain.map((item) => {
+								const isActive = item.url === "/" 
+									? location.pathname === "/" 
+									: location.pathname.startsWith(item.url);
+								
+								return (
+									<SidebarMenuItem key={item.title}>
+										<SidebarMenuButton
+											asChild
+											isActive={isActive}
+											tooltip={item.title}
+											className={`
+												relative overflow-hidden transition-all duration-200
+												${isActive 
+													? "bg-primary/10 text-primary font-medium shadow-sm" 
+													: "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+												}
+											`}
+										>
+											<Link to={item.url}>
+												{/* 左侧激活指示器 */}
+												{isActive && (
+													<div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-primary rounded-r-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+												)}
+												
+												<item.icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-primary" : ""}`} />
+												<span>{item.title}</span>
+												
+												{/* 待审批徽章 */}
+												{item.badge === "pending" && pendingCount > 0 && (
+													<span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white shadow-sm">
+														{pendingCount > 99 ? "99+" : pendingCount}
+													</span>
+												)}
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								);
+							})}
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
 			</SidebarContent>
 			<SidebarFooter>
 				{/* 统计信息 */}
-				<div className="px-4 py-2 text-xs text-muted-foreground border-t group-data-[collapsible=icon]:hidden">
-					<div className="flex justify-between mb-1">
-						<span>义工总数</span>
-						<span className="font-medium text-foreground">{totalVolunteers}</span>
-					</div>
-					<div className="flex justify-between mb-1">
-						<span>待审批</span>
-						<span className="font-medium text-orange-500">{pendingCount}</span>
-					</div>
-					<div className="flex justify-between">
-						<span>本月总工时</span>
-						<span className="font-medium text-foreground">{totalServiceHours.toFixed(1)}</span>
+				<div className="mx-2 mb-2 p-3 rounded-xl bg-muted/30 border border-border/50 group-data-[collapsible=icon]:hidden">
+					<div className="space-y-2">
+						<div className="flex justify-between items-center text-xs">
+							<span className="text-muted-foreground">义工总数</span>
+							<span className="font-semibold text-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">{totalVolunteers}</span>
+						</div>
+						<div className="flex justify-between items-center text-xs">
+							<span className="text-muted-foreground">本月工时</span>
+							<span className="font-semibold text-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">{totalServiceHours.toFixed(0)}</span>
+						</div>
 					</div>
 				</div>
 				

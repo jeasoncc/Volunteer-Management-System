@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { volunteerService } from "@/services/volunteer";
 import { checkinService } from "@/services/checkin";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,17 +53,9 @@ function VolunteerDetailPage() {
 
 	if (authLoading || isLoading) {
 		return (
-			<DashboardLayout
-				breadcrumbs={[
-					{ label: "首页", href: "/" },
-					{ label: "义工管理", href: "/volunteers" },
-					{ label: "详情" },
-				]}
-			>
-				<div className="flex items-center justify-center h-64">
-					<div className="text-muted-foreground">加载中...</div>
-				</div>
-			</DashboardLayout>
+			<div className="flex items-center justify-center h-64">
+				<div className="text-muted-foreground">加载中...</div>
+			</div>
 		);
 	}
 
@@ -76,20 +67,12 @@ function VolunteerDetailPage() {
 
 	if (!volunteer) {
 		return (
-			<DashboardLayout
-				breadcrumbs={[
-					{ label: "首页", href: "/" },
-					{ label: "义工管理", href: "/volunteers" },
-					{ label: "详情" },
-				]}
-			>
-				<div className="text-center py-12">
-					<p className="text-muted-foreground">义工不存在</p>
-					<Link to="/volunteers">
-						<Button className="mt-4">返回列表</Button>
-					</Link>
-				</div>
-			</DashboardLayout>
+			<div className="text-center py-12">
+				<p className="text-muted-foreground">义工不存在</p>
+				<Link to="/volunteers">
+					<Button className="mt-4">返回列表</Button>
+				</Link>
+			</div>
 		);
 	}
 
@@ -126,14 +109,7 @@ function VolunteerDetailPage() {
 	};
 
 	return (
-		<DashboardLayout
-			breadcrumbs={[
-				{ label: "首页", href: "/" },
-				{ label: "义工管理", href: "/volunteers" },
-				{ label: volunteer.name },
-			]}
-		>
-			<div className="space-y-6">
+		<div className="space-y-6">
 				{/* 头部 */}
 				<div className="flex items-start justify-between">
 					<div className="flex items-center gap-4">
@@ -405,10 +381,9 @@ function VolunteerDetailPage() {
 					title="删除义工"
 					description={`确定要删除义工"${volunteer.name}"吗？此操作不可恢复。`}
 					variant="destructive"
-					items={[volunteer.name]}
-					isLoading={deleteMutation.isPending}
-				/>
-			</div>
-		</DashboardLayout>
+				items={[volunteer.name]}
+				isLoading={deleteMutation.isPending}
+			/>
+		</div>
 	);
 }

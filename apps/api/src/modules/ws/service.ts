@@ -62,21 +62,28 @@ export class WebSocketService {
    * 添加所有用户到考勤设备
    */
   static async addAllUsers() {
-    // 获取所有有头像的用户（考勤机需要人脸照片）
-    const users = await db.select().from(volunteer)
+    // 只同步状态为 active 的义工
+    const users = await db
+      .select()
+      .from(volunteer)
+      .where(eq(volunteer.status, 'active'))
 
-    console.log(`📊 共查询到 ${users.length} 个用户`)
+    console.log(`📊 共查询到 ${users.length} 个激活义工用于同步考勤机`)
 
     let successCount = 0
     let failCount = 0
     let skippedCount = 0
 
+    const failedUsers: { lotusId: string | null; name: string }[] = []
+    const skippedUsers: { lotusId: string | null; name: string; reason: string }[] = []
+
     // 批量发送命令
     for (const user of users) {
-      // 跳过没有头像的用户
+      // 跳过没有头像的用户（考勤机需要人脸照片）
       if (!user.avatar) {
         console.log(`⏭️  跳过 ${user.name}(${user.lotusId}): 无头像`)
         skippedCount++
+        skippedUsers.push({ lotusId: user.lotusId || null, name: user.name, reason: 'no_avatar' })
         continue
       }
 
@@ -95,6 +102,7 @@ export class WebSocketService {
         console.log(`✅ 添加成功: ${user.name}(${user.lotusId})`)
       } else {
         failCount++
+        failedUsers.push({ lotusId: user.lotusId || null, name: user.name })
         console.log(`❌ 添加失败: ${user.name}(${user.lotusId})`)
       }
     }
@@ -105,10 +113,12 @@ export class WebSocketService {
       success: true,
       message: `批量添加完成`,
       data:    {
-        total: users.length,
+        total:        users.length,
         successCount,
         failCount,
         skippedCount,
+        failedUsers,
+        skippedUsers,
       },
     }
   }

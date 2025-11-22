@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { AdminForm } from "@/components/AdminForm";
@@ -30,6 +29,7 @@ function AdminPage() {
 	const queryClient = useQueryClient();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [editingAdmin, setEditingAdmin] = useState<AdminData | undefined>(undefined);
+	const [viewingAdmin, setViewingAdmin] = useState<AdminData | undefined>(undefined);
 
 	const { data, isLoading } = useQuery({
 		queryKey: ["admins"],
@@ -75,7 +75,7 @@ function AdminPage() {
 
 	if (authLoading) {
 		return (
-			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "管理员管理" }]}>
+			
 				<div className="space-y-6">
 					<div className="flex justify-between items-center">
 						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
@@ -83,7 +83,7 @@ function AdminPage() {
 					</div>
 					<div className="h-96 bg-muted rounded-lg animate-pulse" />
 				</div>
-			</DashboardLayout>
+			
 		);
 	}
 
@@ -91,8 +91,11 @@ function AdminPage() {
 		return <Navigate to="/login" />;
 	}
 
-	// Transform User[] to AdminData[]
-	const admins: AdminData[] = (data?.data || []).map((user: User) => ({
+	// Transform paginated User list to AdminData[]
+	const adminUsers: User[] = Array.isArray((data as any)?.data?.data)
+		? ((data as any).data.data as User[])
+		: [];
+	const admins: AdminData[] = adminUsers.map((user) => ({
 		id: user.id,
 		lotusId: user.lotusId,
 		name: user.name,
@@ -103,13 +106,7 @@ function AdminPage() {
 	}));
 
 	const handleView = (admin: AdminData) => {
-		alert(
-			`查看管理员详情功能待实现
-
-姓名: ${admin.name}
-ID: ${admin.lotusId}
-角色: ${admin.role}`,
-		);
+		setViewingAdmin(admin);
 	};
 
 	const handleEdit = (admin: AdminData) => {
@@ -145,7 +142,7 @@ ID: ${admin.lotusId}
 	};
 
 	return (
-		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "管理员管理" }]}>
+		
 			<div className="space-y-6">
 				<div className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold">管理员管理</h1>
@@ -176,7 +173,57 @@ ID: ${admin.lotusId}
 						onCancel={handleDialogClose}
 					/>
 				</Dialog>
+
+				{/* 详情对话框 */}
+				<Dialog
+					open={!!viewingAdmin}
+					onClose={() => setViewingAdmin(undefined)}
+					title={viewingAdmin ? `管理员详情 - ${viewingAdmin.name}` : "管理员详情"}
+					maxWidth="lg"
+				>
+					{viewingAdmin && (
+						<div className="space-y-4 text-sm">
+							<div className="grid gap-4 md:grid-cols-2">
+								<div className="space-y-1 text-muted-foreground">
+									<p>
+										<span className="font-medium text-foreground">姓名：</span>
+										{viewingAdmin.name}
+									</p>
+									<p>
+										<span className="font-medium text-foreground">莲花斋ID：</span>
+										{viewingAdmin.lotusId}
+									</p>
+									<p>
+										<span className="font-medium text-foreground">手机号：</span>
+										{viewingAdmin.phone}
+									</p>
+									<p>
+										<span className="font-medium text-foreground">邮箱：</span>
+										{viewingAdmin.email || "-"}
+									</p>
+								</div>
+								<div className="space-y-1 text-muted-foreground">
+									<p>
+										<span className="font-medium text-foreground">角色：</span>
+										{viewingAdmin.role === "super"
+											? "超级管理员"
+											: viewingAdmin.role === "admin"
+												? "管理员"
+												: "操作员"}
+									</p>
+									<p>
+										<span className="font-medium text-foreground">部门：</span>
+										{viewingAdmin.department || "-"}
+									</p>
+									<p className="text-xs">
+										角色与部门信息后续可扩展为权限管理界面（角色-权限矩阵）。
+									</p>
+								</div>
+							</div>
+						</div>
+					)}
+				</Dialog>
 			</div>
-		</DashboardLayout>
+		
 	);
 }

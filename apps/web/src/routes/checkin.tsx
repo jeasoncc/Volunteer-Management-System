@@ -4,7 +4,6 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { CheckinTable } from "@/components/CheckinTable";
 import { CheckinRecordsTable } from "@/components/CheckinRecordsTable";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -82,7 +81,7 @@ function CheckinPage() {
 
 	if (authLoading) {
 		return (
-			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "考勤管理" }]}>
+			
 				<div className="space-y-6">
 					<div className="flex justify-between items-center">
 						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
@@ -91,7 +90,7 @@ function CheckinPage() {
 					<div className="h-64 bg-muted rounded-lg animate-pulse" />
 					<div className="h-96 bg-muted rounded-lg animate-pulse" />
 				</div>
-			</DashboardLayout>
+			
 		);
 	}
 
@@ -175,7 +174,7 @@ function CheckinPage() {
 	};
 
 	return (
-		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "考勤管理" }]}>
+		
 			<div className="space-y-6">
 				<div className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold">考勤管理</h1>
@@ -186,6 +185,13 @@ function CheckinPage() {
 						>
 							<List className="h-4 w-4 mr-2" />
 							原始记录
+						</Button>
+						<Button
+							variant="outline"
+							onClick={() => window.location.hash = '#/checkin/strangers'}
+						>
+							<List className="h-4 w-4 mr-2" />
+							陌生人记录
 						</Button>
 						<Button
 							variant={viewMode === "summary" ? "default" : "outline"}
@@ -434,6 +440,6 @@ function CheckinPage() {
 					isLoading={deleteMutation.isPending}
 				/>
 			</div>
-		</DashboardLayout>
+		
 	);
 }

@@ -37,6 +37,26 @@ export const checkinModule = new Elysia({ prefix: '/api/v1' })
     CheckInConfig.strangerRecord,
   )
 
+  // 陌生人记录列表（后台查询）
+  .get(
+    '/stranger-records',
+    async ({ query }) => {
+      const { startDate, endDate, deviceSn, page = 1, pageSize = 50 } = query as any
+
+      const filters: any = {
+        page:     parseInt(page as any, 10) || 1,
+        pageSize: parseInt(pageSize as any, 10) || 50,
+      }
+
+      if (startDate) filters.startDate = startDate
+      if (endDate) filters.endDate = endDate
+      if (deviceSn) filters.deviceSn = deviceSn
+
+      const result = await CheckInService.getStrangerList(filters)
+      return result
+    },
+  )
+
   // 人脸识别签到
   .post(
     '/record/face',

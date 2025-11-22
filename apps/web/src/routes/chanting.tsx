@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { ChantingScheduleForm } from "@/components/ChantingScheduleForm";
 import { Pagination } from "@/components/Pagination";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { ChantingScheduleCalendar } from "@/components/ChantingScheduleCalendar";
 import { useAuth } from "@/hooks/useAuth";
 import { chantingService } from "@/services/chanting";
 import type { ChantingSchedule } from "@/types";
@@ -37,11 +37,23 @@ function ChantingPage() {
 	const [editingSchedule, setEditingSchedule] = useState<ChantingSchedule | undefined>();
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [deletingSchedule, setDeletingSchedule] = useState<ChantingSchedule | null>(null);
+	const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+	const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+	const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1);
 
 	const { data, isLoading } = useQuery({
-		queryKey: ["chanting", page, pageSize],
+		queryKey: ["chanting", "list", page, pageSize],
 		queryFn: () => chantingService.getList({ page, pageSize }),
-		enabled: isAuthenticated,
+		enabled: isAuthenticated && viewMode === "list",
+	});
+
+	const {
+		data: calendarData,
+		isLoading: calendarLoading,
+	} = useQuery({
+		queryKey: ["chanting", "calendar", calendarYear, calendarMonth],
+		queryFn: () => chantingService.getCalendar(calendarYear, calendarMonth),
+		enabled: isAuthenticated && viewMode === "calendar",
 	});
 
 	const createMutation = useMutation({
@@ -83,9 +95,7 @@ function ChantingPage() {
 
 	if (authLoading) {
 		return (
-			<DashboardLayout
-				breadcrumbs={[{ label: "首页", href: "/" }, { label: "助念排班" }]}
-			>
+			
 				<div className="space-y-6">
 					<div className="flex justify-between items-center">
 						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
@@ -93,7 +103,7 @@ function ChantingPage() {
 					</div>
 					<div className="h-96 bg-muted rounded-lg animate-pulse" />
 				</div>
-			</DashboardLayout>
+			
 		);
 	}
 
@@ -161,21 +171,37 @@ function ChantingPage() {
 	const completedSchedules = scheduleList.filter((s) => s.status === "completed").length;
 
 	return (
-		<DashboardLayout
-			breadcrumbs={[{ label: "首页", href: "/" }, { label: "助念排班" }]}
-		>
+		
 			<div className="space-y-6">
-				<div className="flex justify-between items-center">
+				<div className="flex justify-between items-center gap-4">
 					<div>
 						<h1 className="text-3xl font-bold">助念排班</h1>
 						<p className="text-muted-foreground mt-1">
 							管理助念排班，分配义工任务
 						</p>
 					</div>
-					<Button onClick={handleAdd}>
-						<Plus className="h-4 w-4 mr-2" />
-						创建排班
-					</Button>
+					<div className="flex items-center gap-2">
+						<div className="inline-flex rounded-md border bg-background p-1 text-xs">
+							<button
+								type="button"
+								className={`px-2 py-1 rounded-sm ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+								onClick={() => setViewMode("list")}
+							>
+								列表视图
+							</button>
+							<button
+								type="button"
+								className={`px-2 py-1 rounded-sm ${viewMode === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+								onClick={() => setViewMode("calendar")}
+							>
+								日历视图
+							</button>
+						</div>
+						<Button onClick={handleAdd}>
+							<Plus className="h-4 w-4 mr-2" />
+							创建排班
+						</Button>
+					</div>
 				</div>
 
 				{/* 统计卡片 */}
@@ -234,110 +260,123 @@ function ChantingPage() {
 					</Card>
 				</div>
 
-				{/* 排班列表 */}
-				<Card>
-					<div className="p-6">
-						{isLoading ? (
-							<div className="text-center py-12 text-muted-foreground">
-								加载中...
-							</div>
-						) : scheduleList.length === 0 ? (
-							<EmptyState
-								type="no-data"
-								onAction={handleAdd}
-								actionLabel="创建第一个排班"
-							/>
-						) : (
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>日期</TableHead>
-										<TableHead>时间段</TableHead>
-										<TableHead>地点</TableHead>
-										<TableHead>往生者</TableHead>
-										<TableHead>敲钟义工</TableHead>
-										<TableHead>领诵义工</TableHead>
-										<TableHead>备用义工</TableHead>
-										<TableHead>状态</TableHead>
-										<TableHead className="text-right">操作</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{scheduleList.map((schedule) => (
-										<TableRow key={schedule.id}>
-											<TableCell className="font-medium">
-												{schedule.date}
-											</TableCell>
-											<TableCell>
-												<div className="flex items-center gap-1">
-													<Clock className="h-4 w-4 text-muted-foreground" />
-													{schedule.timeSlot}
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="flex items-center gap-1">
-													<MapPin className="h-4 w-4 text-muted-foreground" />
-													{locationMap[schedule.location as keyof typeof locationMap]}
-												</div>
-											</TableCell>
-											<TableCell>{schedule.deceasedName || "-"}</TableCell>
-											<TableCell>{schedule.bellVolunteerName || "-"}</TableCell>
-											<TableCell>
-												{schedule.teachingVolunteerName || "-"}
-											</TableCell>
-											<TableCell>{schedule.backupVolunteerName || "-"}</TableCell>
-											<TableCell>
-												<Badge
-													variant={
-														statusMap[schedule.status as keyof typeof statusMap]
-															?.variant
-													}
-												>
-													{
-														statusMap[schedule.status as keyof typeof statusMap]
-															?.label
-													}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													<Button
-														variant="ghost"
-														size="sm"
-														onClick={() => handleEdit(schedule)}
-													>
-														<Edit className="h-4 w-4" />
-													</Button>
-													<Button
-														variant="ghost"
-														size="sm"
-														onClick={() => handleDelete(schedule)}
-													>
-														<Trash2 className="h-4 w-4 text-destructive" />
-													</Button>
-												</div>
-											</TableCell>
+				{/* 排班列表 / 日历 */}
+				{viewMode === "list" ? (
+					<Card>
+						<div className="p-6">
+							{isLoading ? (
+								<div className="text-center py-12 text-muted-foreground">
+									加载中...
+								</div>
+							) : scheduleList.length === 0 ? (
+								<EmptyState
+									type="no-data"
+									onAction={handleAdd}
+									actionLabel="创建第一个排班"
+								/>
+							) : (
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>日期</TableHead>
+											<TableHead>时间段</TableHead>
+											<TableHead>地点</TableHead>
+											<TableHead>往生者</TableHead>
+											<TableHead>敲钟义工</TableHead>
+											<TableHead>领诵义工</TableHead>
+											<TableHead>备用义工</TableHead>
+											<TableHead>状态</TableHead>
+											<TableHead className="text-right">操作</TableHead>
 										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						)}
-					</div>
+									</TableHeader>
+									<TableBody>
+										{scheduleList.map((schedule) => (
+											<TableRow key={schedule.id}>
+												<TableCell className="font-medium">
+													{schedule.date}
+												</TableCell>
+												<TableCell>
+													<div className="flex items-center gap-1">
+														<Clock className="h-4 w-4 text-muted-foreground" />
+														{schedule.timeSlot}
+													</div>
+												</TableCell>
+												<TableCell>
+													<div className="flex items-center gap-1">
+														<MapPin className="h-4 w-4 text-muted-foreground" />
+														{locationMap[schedule.location as keyof typeof locationMap]}
+													</div>
+												</TableCell>
+												<TableCell>{schedule.deceasedName || "-"}</TableCell>
+												<TableCell>{schedule.bellVolunteerName || "-"}</TableCell>
+												<TableCell>
+													{schedule.teachingVolunteerName || "-"}
+												</TableCell>
+												<TableCell>{schedule.backupVolunteerName || "-"}</TableCell>
+												<TableCell>
+													<Badge
+														variant={
+															statusMap[schedule.status as keyof typeof statusMap]
+																?.variant
+														}
+													>
+														{
+															statusMap[schedule.status as keyof typeof statusMap]
+																?.label
+														}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-right">
+													<div className="flex justify-end gap-2">
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() => handleEdit(schedule)}
+														>
+															<Edit className="h-4 w-4" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() => handleDelete(schedule)}
+														>
+															<Trash2 className="h-4 w-4 text-destructive" />
+														</Button>
+													</div>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							)}
+						</div>
 
-					{scheduleList.length > 0 && (
-						<Pagination
-							currentPage={page}
-							totalPages={Math.ceil(total / pageSize)}
-							pageSize={pageSize}
-							totalItems={total}
-							onPageChange={(newPage) => setPage(newPage)}
-							onPageSizeChange={(newPageSize) => {
-								setPageSize(newPageSize);
-								setPage(1);
-							}}
-						/>
-					)}
-				</Card>
+						{scheduleList.length > 0 && (
+							<Pagination
+								currentPage={page}
+								totalPages={Math.ceil(total / pageSize)}
+								pageSize={pageSize}
+								totalItems={total}
+								onPageChange={(newPage) => setPage(newPage)}
+								onPageSizeChange={(newPageSize) => {
+									setPageSize(newPageSize);
+									setPage(1);
+								}}
+							/>
+						)}
+					</Card>
+				) : (
+					<ChantingScheduleCalendar
+						data={Array.isArray(calendarData?.data) ? calendarData!.data : []}
+						isLoading={calendarLoading}
+						year={calendarYear}
+						month={calendarMonth}
+						onMonthChange={(y: number, m: number) => {
+							setCalendarYear(y);
+							setCalendarMonth(m);
+						}}
+					/>
+				)}
 
 				{/* 添加/编辑对话框 */}
 				<Dialog
@@ -377,6 +416,6 @@ function ChantingPage() {
 					isLoading={deleteMutation.isPending}
 				/>
 			</div>
-		</DashboardLayout>
+		
 	);
 }

@@ -13,6 +13,7 @@ import { Route as VolunteersRouteImport } from './routes/volunteers'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DocumentsRouteImport } from './routes/documents'
+import { Route as DevicesRouteImport } from './routes/devices'
 import { Route as DeceasedRouteImport } from './routes/deceased'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as ChantingRouteImport } from './routes/chanting'
@@ -20,6 +21,7 @@ import { Route as ApprovalRouteImport } from './routes/approval'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
+import { Route as CheckinStrangersRouteImport } from './routes/checkin.strangers'
 import { Route as CheckinRecordsRouteImport } from './routes/checkin.records'
 import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$lotusId.edit'
 
@@ -41,6 +43,11 @@ const LoginRoute = LoginRouteImport.update({
 const DocumentsRoute = DocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeceasedRoute = DeceasedRouteImport.update({
@@ -78,6 +85,11 @@ const VolunteersLotusIdRoute = VolunteersLotusIdRouteImport.update({
   path: '/$lotusId',
   getParentRoute: () => VolunteersRoute,
 } as any)
+const CheckinStrangersRoute = CheckinStrangersRouteImport.update({
+  id: '/strangers',
+  path: '/strangers',
+  getParentRoute: () => CheckinRoute,
+} as any)
 const CheckinRecordsRoute = CheckinRecordsRouteImport.update({
   id: '/records',
   path: '/records',
@@ -96,11 +108,13 @@ export interface FileRoutesByFullPath {
   '/chanting': typeof ChantingRoute
   '/checkin': typeof CheckinRouteWithChildren
   '/deceased': typeof DeceasedRoute
+  '/devices': typeof DevicesRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/records': typeof CheckinRecordsRoute
+  '/checkin/strangers': typeof CheckinStrangersRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
@@ -111,11 +125,13 @@ export interface FileRoutesByTo {
   '/chanting': typeof ChantingRoute
   '/checkin': typeof CheckinRouteWithChildren
   '/deceased': typeof DeceasedRoute
+  '/devices': typeof DevicesRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/records': typeof CheckinRecordsRoute
+  '/checkin/strangers': typeof CheckinStrangersRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
@@ -127,11 +143,13 @@ export interface FileRoutesById {
   '/chanting': typeof ChantingRoute
   '/checkin': typeof CheckinRouteWithChildren
   '/deceased': typeof DeceasedRoute
+  '/devices': typeof DevicesRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/records': typeof CheckinRecordsRoute
+  '/checkin/strangers': typeof CheckinStrangersRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
 }
@@ -144,11 +162,13 @@ export interface FileRouteTypes {
     | '/chanting'
     | '/checkin'
     | '/deceased'
+    | '/devices'
     | '/documents'
     | '/login'
     | '/settings'
     | '/volunteers'
     | '/checkin/records'
+    | '/checkin/strangers'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -159,11 +179,13 @@ export interface FileRouteTypes {
     | '/chanting'
     | '/checkin'
     | '/deceased'
+    | '/devices'
     | '/documents'
     | '/login'
     | '/settings'
     | '/volunteers'
     | '/checkin/records'
+    | '/checkin/strangers'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
   id:
@@ -174,11 +196,13 @@ export interface FileRouteTypes {
     | '/chanting'
     | '/checkin'
     | '/deceased'
+    | '/devices'
     | '/documents'
     | '/login'
     | '/settings'
     | '/volunteers'
     | '/checkin/records'
+    | '/checkin/strangers'
     | '/volunteers/$lotusId'
     | '/volunteers/$lotusId/edit'
   fileRoutesById: FileRoutesById
@@ -190,6 +214,7 @@ export interface RootRouteChildren {
   ChantingRoute: typeof ChantingRoute
   CheckinRoute: typeof CheckinRouteWithChildren
   DeceasedRoute: typeof DeceasedRoute
+  DevicesRoute: typeof DevicesRoute
   DocumentsRoute: typeof DocumentsRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
@@ -224,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/documents'
       fullPath: '/documents'
       preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deceased': {
@@ -275,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VolunteersLotusIdRouteImport
       parentRoute: typeof VolunteersRoute
     }
+    '/checkin/strangers': {
+      id: '/checkin/strangers'
+      path: '/strangers'
+      fullPath: '/checkin/strangers'
+      preLoaderRoute: typeof CheckinStrangersRouteImport
+      parentRoute: typeof CheckinRoute
+    }
     '/checkin/records': {
       id: '/checkin/records'
       path: '/records'
@@ -294,10 +333,12 @@ declare module '@tanstack/react-router' {
 
 interface CheckinRouteChildren {
   CheckinRecordsRoute: typeof CheckinRecordsRoute
+  CheckinStrangersRoute: typeof CheckinStrangersRoute
 }
 
 const CheckinRouteChildren: CheckinRouteChildren = {
   CheckinRecordsRoute: CheckinRecordsRoute,
+  CheckinStrangersRoute: CheckinStrangersRoute,
 }
 
 const CheckinRouteWithChildren =
@@ -333,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChantingRoute: ChantingRoute,
   CheckinRoute: CheckinRouteWithChildren,
   DeceasedRoute: DeceasedRoute,
+  DevicesRoute: DevicesRoute,
   DocumentsRoute: DocumentsRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/DataTable";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
 	Tooltip,
 	TooltipContent,
@@ -18,7 +19,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle, XCircle, Shield, User } from "lucide-react";
 import { exportToExcel, exportToCSV, formatDateTime, type ExportColumn } from "@/lib/export";
 import { toast } from "@/lib/toast";
 
@@ -36,6 +37,23 @@ interface VolunteerDataTableProps {
 	emptyState?: React.ReactNode;
 	noResultsState?: React.ReactNode;
 }
+
+// 辅助函数：根据名字生成头像颜色
+const getAvatarColor = (name: string) => {
+	if (!name) return "bg-gray-500";
+	const colors = [
+		"bg-red-500", "bg-orange-500", "bg-amber-500", "bg-yellow-500", 
+		"bg-lime-500", "bg-green-500", "bg-emerald-500", "bg-teal-500",
+		"bg-cyan-500", "bg-sky-500", "bg-blue-500", "bg-indigo-500", 
+		"bg-violet-500", "bg-purple-500", "bg-fuchsia-500", "bg-pink-500", "bg-rose-500"
+	];
+	let hash = 0;
+	for (let i = 0; i < name.length; i++) {
+		hash = name.charCodeAt(i) + ((hash << 5) - hash);
+	}
+	const index = Math.abs(hash) % colors.length;
+	return colors[index];
+};
 
 export function VolunteerDataTable({
 	data,
@@ -64,6 +82,7 @@ export function VolunteerDataTable({
 									table.toggleAllPageRowsSelected(!!value)
 								}
 								aria-label="选择全部"
+								className="translate-y-[2px]"
 							/>
 						),
 						cell: ({ row }: any) => (
@@ -71,6 +90,7 @@ export function VolunteerDataTable({
 								checked={row.getIsSelected()}
 								onCheckedChange={(value) => row.toggleSelected(!!value)}
 								aria-label="选择行"
+								className="translate-y-[2px]"
 							/>
 						),
 						enableSorting: false,
@@ -79,51 +99,21 @@ export function VolunteerDataTable({
 			  ]
 			: []),
 		{
-			accessorKey: "lotusId",
-			header: "莲花斋ID",
-			cell: ({ row }) => (
-				<div className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-mono font-medium text-muted-foreground">
-					{row.getValue("lotusId")}
-				</div>
-			),
-		},
-		{
 			accessorKey: "name",
-			header: "姓名",
+			header: "义工信息",
 			cell: ({ row }) => (
-				<div className="flex flex-col leading-tight">
-					<span className="font-medium text-sm">{row.getValue("name")}</span>
-					<span className="text-[11px] text-muted-foreground">
-						{row.original.account || row.original.email || ""}
-					</span>
+				<div className="flex items-center gap-3 py-1">
+					<Avatar className="h-9 w-9 border border-background shadow-sm">
+						<AvatarFallback className={`${getAvatarColor(row.original.name)} text-white text-xs font-medium`}>
+							{row.original.name.slice(0, 1)}
+						</AvatarFallback>
+					</Avatar>
+					<div className="flex flex-col">
+						<span className="font-medium text-sm text-foreground">{row.original.name}</span>
+						<span className="text-[10px] text-muted-foreground font-mono">ID: {row.original.lotusId}</span>
+					</div>
 				</div>
 			),
-		},
-		{
-			accessorKey: "gender",
-			header: "性别",
-			cell: ({ row }) => {
-				const gender = row.getValue("gender") as string;
-				return (
-					<Badge variant="outline">
-						{gender === "male" ? "男" : gender === "female" ? "女" : "其他"}
-					</Badge>
-				);
-			},
-		},
-		{
-			accessorKey: "volunteerId",
-			header: "义工号",
-			cell: ({ row }) => {
-				const volunteerId = row.getValue("volunteerId") as string | undefined;
-				return volunteerId ? (
-					<div className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-mono font-medium text-primary">
-						{volunteerId}
-					</div>
-				) : (
-					<span className="text-xs text-muted-foreground">-</span>
-				);
-			},
 		},
 		{
 			accessorKey: "volunteerStatus",
@@ -132,19 +122,19 @@ export function VolunteerDataTable({
 				const status = row.getValue("volunteerStatus") as string;
 				const statusConfig: Record<
 					string,
-					{ label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+					{ label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }
 				> = {
-					registered: { label: "已注册", variant: "default" },
-					trainee: { label: "培训中", variant: "secondary" },
-					applicant: { label: "申请中", variant: "outline" },
-					inactive: { label: "未激活", variant: "secondary" },
-					suspended: { label: "已暂停", variant: "destructive" },
+					registered: { label: "已注册", variant: "outline", className: "bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800" },
+					trainee: { label: "培训中", variant: "outline", className: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:text-blue-800" },
+					applicant: { label: "申请中", variant: "outline", className: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:text-orange-800" },
+					inactive: { label: "未激活", variant: "secondary", className: "bg-gray-100 text-gray-600" },
+					suspended: { label: "已暂停", variant: "destructive", className: "" },
 				};
 				const config = statusConfig[status] || {
 					label: status,
 					variant: "outline" as const,
 				};
-				return <Badge variant={config.variant}>{config.label}</Badge>;
+				return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
 			},
 			filterFn: (row, id, value) => {
 				return value.includes(row.getValue(id));
@@ -155,31 +145,51 @@ export function VolunteerDataTable({
 			header: "角色",
 			cell: ({ row }) => {
 				const role = row.getValue("lotusRole") as string;
+				if (role === "admin") {
+					return (
+						<div className="flex items-center gap-1.5 text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full w-fit border border-purple-100">
+							<Shield className="h-3 w-3" />
+							管理员
+						</div>
+					);
+				}
 				return (
-					<Badge variant={role === "admin" ? "default" : "secondary"}>
-						{role === "admin" ? "管理员" : "义工"}
-					</Badge>
+					<div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2 py-0.5">
+						<User className="h-3 w-3" />
+						义工
+					</div>
 				);
 			},
 		},
 		{
+			accessorKey: "gender",
+			header: "性别",
+			cell: ({ row }) => {
+				const gender = row.getValue("gender") as string;
+				return (
+					<span className="text-sm text-muted-foreground">
+						{gender === "male" ? "男" : gender === "female" ? "女" : "其他"}
+					</span>
+				);
+			},
+		},
+		{
+			accessorKey: "phone",
+			header: "手机号",
+			cell: ({ row }) => (
+				<span className="text-sm text-muted-foreground font-mono tracking-tight">
+					{row.original.phone || "-"}
+				</span>
+			),
+		},
+		{
 			accessorKey: "createdAt",
-			header: "创建时间",
+			header: "加入时间",
 			cell: ({ row }) => {
 				const date = row.getValue("createdAt") as string;
 				return (
-					<div className="flex flex-col text-xs text-muted-foreground">
-						<span>
-							{date ? new Date(date).toLocaleDateString("zh-CN") : "-"}
-						</span>
-						{date && (
-							<span className="text-[11px] opacity-80">
-								{new Date(date).toLocaleTimeString("zh-CN", {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</span>
-						)}
+					<div className="text-xs text-muted-foreground">
+						{date ? new Date(date).toLocaleDateString("zh-CN") : "-"}
 					</div>
 				);
 			},
@@ -190,59 +200,41 @@ export function VolunteerDataTable({
 			cell: ({ row }) => {
 				const volunteer = row.original;
 				
-				// 如果显示审批操作，使用简化的按钮组
 				if (showApprovalActions) {
 					return (
 						<div className="flex gap-2">
-							{onApprove && (
-								<TooltipProvider>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="default"
-												size="sm"
-												onClick={() => onApprove(volunteer)}
-											>
-												<CheckCircle className="h-4 w-4 mr-1" />
-												通过
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>批准此义工申请</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
-							)}
-							{onReject && (
-								<TooltipProvider>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="destructive"
-												size="sm"
-												onClick={() => onReject(volunteer)}
-											>
-												<XCircle className="h-4 w-4 mr-1" />
-												拒绝
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>拒绝此义工申请</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
-							)}
+							<Button
+								variant="default"
+								size="sm"
+								className="h-7 px-2 bg-green-600 hover:bg-green-700"
+								onClick={() => onApprove?.(volunteer)}
+							>
+								<CheckCircle className="h-3.5 w-3.5 mr-1" />
+								通过
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="h-7 px-2"
+								onClick={() => onReject?.(volunteer)}
+							>
+								<XCircle className="h-3.5 w-3.5 mr-1" />
+								拒绝
+							</Button>
 						</div>
 					);
 				}
 				
-				// 常规操作：直接显示常用按钮
 				return (
-					<div className="flex items-center gap-1">
+					<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 						<TooltipProvider>
 							{onView && (
 								<Tooltip>
 									<TooltipTrigger asChild>
 										<Button
 											variant="ghost"
-											size="sm"
-											className="h-8 w-8 p-0"
+											size="icon"
+											className="h-8 w-8 text-muted-foreground hover:text-primary"
 											onClick={() => onView(volunteer)}
 										>
 											<Eye className="h-4 w-4" />
@@ -256,8 +248,8 @@ export function VolunteerDataTable({
 									<TooltipTrigger asChild>
 										<Button
 											variant="ghost"
-											size="sm"
-											className="h-8 w-8 p-0"
+											size="icon"
+											className="h-8 w-8 text-muted-foreground hover:text-blue-600"
 											onClick={() => onEdit(volunteer)}
 										>
 											<Pencil className="h-4 w-4" />
@@ -266,30 +258,22 @@ export function VolunteerDataTable({
 									<TooltipContent>编辑</TooltipContent>
 								</Tooltip>
 							)}
+							{onDelete && (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-8 w-8 text-muted-foreground hover:text-destructive"
+											onClick={() => onDelete(volunteer)}
+										>
+											<Trash2 className="h-4 w-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>删除</TooltipContent>
+								</Tooltip>
+							)}
 						</TooltipProvider>
-						
-						{/* 更多操作菜单 */}
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="ghost" className="h-8 w-8 p-0">
-									<span className="sr-only">更多操作</span>
-									<MoreHorizontal className="h-4 w-4" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuLabel>更多操作</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								{onDelete && (
-									<DropdownMenuItem
-										onClick={() => onDelete(volunteer)}
-										className="text-destructive focus:text-destructive"
-									>
-										<Trash2 className="mr-2 h-4 w-4" />
-										删除
-									</DropdownMenuItem>
-								)}
-							</DropdownMenuContent>
-						</DropdownMenu>
 					</div>
 				);
 			},

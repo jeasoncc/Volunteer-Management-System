@@ -1,36 +1,70 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { createRootRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { queryClient } from "../lib/query-client";
 import { NotFound } from "../components/NotFound";
 import { Toaster } from "../components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DashboardLayout } from "@/components/DashboardLayout";
+
+function RootComponent() {
+	const location = useLocation();
+	const isLoginPage = location.pathname === "/login";
+
+	// 简单的面包屑生成逻辑
+	const pathSegments = location.pathname.split("/").filter(Boolean);
+	const breadcrumbs = [
+		{ label: "首页", href: "/" },
+		...pathSegments.map((segment, index) => {
+			const labelMap: Record<string, string> = {
+				volunteers: "志愿者管理",
+				checkin: "签到管理",
+				chanting: "念佛共修",
+				deceased: "往生关怀",
+				approval: "审批中心",
+				devices: "设备管理",
+				admin: "系统管理",
+				settings: "设置",
+				documents: "文档管理"
+			};
+			
+			return {
+				label: labelMap[segment] || segment,
+				href: "/" + pathSegments.slice(0, index + 1).join("/"),
+			};
+		}),
+	];
+
+	return (
+		<ErrorBoundary>
+			<ThemeProvider>
+				{isLoginPage ? (
+					<Outlet />
+				) : (
+					<DashboardLayout breadcrumbs={breadcrumbs}>
+						<Outlet />
+					</DashboardLayout>
+				)}
+				<Toaster />
+				<ReactQueryDevtools buttonPosition="bottom-left" />
+				<TanStackDevtools
+					config={{
+						position: "bottom-right",
+					}}
+					plugins={[
+						{
+							name: "Tanstack Router",
+							render: <TanStackRouterDevtoolsPanel />,
+						},
+					]}
+				/>
+			</ThemeProvider>
+		</ErrorBoundary>
+	);
+}
 
 export const Route = createRootRoute({
-	component: () => (
-		<ErrorBoundary>
-			<QueryClientProvider client={queryClient}>
-				<ThemeProvider>
-					<Outlet />
-					<Toaster />
-					<ReactQueryDevtools buttonPosition="bottom-left" />
-					<TanStackDevtools
-						config={{
-							position: "bottom-right",
-						}}
-						plugins={[
-							{
-								name: "Tanstack Router",
-								render: <TanStackRouterDevtoolsPanel />,
-							},
-						]}
-					/>
-				</ThemeProvider>
-			</QueryClientProvider>
-		</ErrorBoundary>
-	),
+	component: RootComponent,
 	notFoundComponent: NotFound,
 });

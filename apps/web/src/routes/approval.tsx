@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +71,7 @@ function ApprovalPage() {
 
 	if (authLoading) {
 		return (
-			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工审批" }]}>
+			
 				<div className="space-y-6">
 					{/* Skeleton 加载状态 */}
 					<div className="space-y-2">
@@ -90,7 +89,7 @@ function ApprovalPage() {
 						))}
 					</div>
 				</div>
-			</DashboardLayout>
+			
 		);
 	}
 
@@ -176,7 +175,7 @@ function ApprovalPage() {
 	};
 
 	return (
-		<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工审批" }]}>
+		
 			<div className="space-y-6">
 				{/* 头部 */}
 				<div className="flex justify-between items-center">
@@ -414,6 +413,6 @@ function ApprovalPage() {
 					</div>
 				</Dialog>
 			</div>
-		</DashboardLayout>
+		
 	);
 }

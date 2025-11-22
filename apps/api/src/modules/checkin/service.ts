@@ -1,6 +1,6 @@
 import { db } from '../../db'
-import { volunteer, volunteerCheckIn } from '../../db/schema'
-import { and, eq } from 'drizzle-orm'
+import { strangerCheckIn, volunteer, volunteerCheckIn } from '../../db/schema'
+import { and, eq, gte, lte } from 'drizzle-orm'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -178,21 +178,49 @@ export class CheckInService {
 
     logger.warn(`⚠️  陌生人记录: ${record.user_name || '未知'}(${record.user_id}) - ${record.recog_time}`)
 
-    // TODO: 保存陌生人记录到专门的表
-    // TODO: 发送警报通知管理员
-    // TODO: 记录陌生人照片
+    try {
+      const date = recogTime.toDate()
 
-    return {
-      success: true,
-      Result: 0,
-      Msg: '陌生人记录已保存',
-      reason: 'STRANGER_RECORDED',
-      data: {
-        user_id: record.user_id,
-        user_name: record.user_name,
-        recog_time: record.recog_time,
-        recog_type: record.recog_type,
-      },
+      await db.insert(strangerCheckIn).values({
+        deviceSn:        data?.location?.code || null,
+        date,
+        time:            recogTime.format('HH:mm:ss') as any,
+        userId:          record.user_id,
+        userName:        record.user_name || null,
+        gender:          record.gender,
+        bodyTemperature: record.body_temperature || null,
+        confidence:      record.confidence || null,
+        photo:           record.photo || null,
+        location:        record.location || null,
+        originTime:      record.recog_time,
+        recordType:      record.recog_type,
+      })
+
+      return {
+        success: true,
+        Result: 0,
+        Msg: '陌生人记录已保存',
+        reason: 'STRANGER_RECORDED',
+        data: {
+          user_id: record.user_id,
+          user_name: record.user_name,
+          recog_time: record.recog_time,
+          recog_type: record.recog_type,
+        },
+      }
+    } catch (error) {
+      logger.error(`❌ 陌生人记录保存失败: ${record.user_id} - ${record.recog_time}`, error)
+
+      return {
+        success: false,
+        Result: 0,
+        Msg: '陌生人记录保存失败',
+        reason: 'DATABASE_ERROR',
+        data: {
+          user_id: record.user_id,
+          error: error instanceof Error ? error.message : '未知错误',
+        },
+      }
     }
   }
 
@@ -281,15 +309,19 @@ export class CheckInService {
   }) {
     const { lotusId, startDate, endDate, limit = 50, offset = 0 } = params
 
-    const conditions = []
+    const conditions = [] as any[]
 
     if (lotusId) {
       conditions.push(eq(volunteerCheckIn.lotusId, lotusId))
     }
 
-    // 可以添加日期范围查询
-    // if (startDate) { ... }
-    // if (endDate) { ... }
+    if (startDate) {
+      conditions.push(gte(volunteerCheckIn.date, startDate))
+    }
+
+    if (endDate) {
+      conditions.push(lte(volunteerCheckIn.date, endDate))
+    }
 
     const records = await db
       .select()
@@ -305,6 +337,52 @@ export class CheckInService {
       pagination: {
         limit,
         offset,
+        total: records.length,
+      },
+    }
+  }
+
+
+  static async getStrangerList(params: {
+    startDate?: string
+    endDate?: string
+    deviceSn?: string
+    page?: number
+    pageSize?: number
+  }) {
+    const { startDate, endDate, deviceSn, page = 1, pageSize = 50 } = params
+
+    const conditions = [] as any[]
+
+    if (startDate) {
+      conditions.push(gte(strangerCheckIn.date, new Date(startDate)))
+    }
+
+    if (endDate) {
+      conditions.push(lte(strangerCheckIn.date, new Date(endDate)))
+    }
+
+    if (deviceSn) {
+      conditions.push(eq(strangerCheckIn.deviceSn, deviceSn))
+    }
+
+    const limit = pageSize
+    const offset = (page - 1) * pageSize
+
+    const records = await db
+      .select()
+      .from(strangerCheckIn)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(strangerCheckIn.createdAt)
+
+    return {
+      success: true,
+      data: records,
+      pagination: {
+        page,
+        pageSize,
         total: records.length,
       },
     }

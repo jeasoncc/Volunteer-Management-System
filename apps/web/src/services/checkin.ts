@@ -16,6 +16,12 @@ export interface CheckInListParams extends PaginationParams {
 	endDate?: string;
 }
 
+export interface StrangerListParams extends PaginationParams {
+	startDate?: string;
+	endDate?: string;
+	deviceSn?: string;
+}
+
 export interface MonthlyReportParams {
 	year: number;
 	month: number;
@@ -131,5 +137,11 @@ export const checkinService = {
 			responseType: "blob",
 		});
 		return response as unknown as Blob;
+	},
+
+	getStrangerRecords: async (
+		params: StrangerListParams,
+	): Promise<ApiResponse<any>> => {
+		return api.get("/api/v1/stranger-records", { params });
 	},
 };

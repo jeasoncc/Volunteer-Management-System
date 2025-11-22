@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { VolunteerForm } from "@/components/VolunteerForm";
 import { BatchAddVolunteers } from "@/components/BatchAddVolunteers";
 import { VolunteerDataTable } from "@/components/VolunteerDataTable";
@@ -14,7 +14,6 @@ import { AdvancedFilter, type ActiveFilter } from "@/components/AdvancedFilter";
 import { FilterTags } from "@/components/FilterTags";
 import { BatchActionBar } from "@/components/BatchActionBar";
 import { EmptyState } from "@/components/EmptyState";
-import { StatsCards } from "@/components/StatsCards";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { BatchImportDialog } from "@/components/BatchImportDialog";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -23,7 +22,19 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { volunteerService } from "@/services/volunteer";
 import { approvalService } from "@/services/approval";
 import type { Volunteer } from "@/types";
-import { CheckCircle, XCircle, AlertCircle, Trash2, Download, Plus, Users } from "lucide-react";
+import { 
+	CheckCircle, 
+	XCircle, 
+	AlertCircle, 
+	Trash2, 
+	Download, 
+	Plus, 
+	Users,
+	UserPlus,
+	FileUp,
+	UserCheck,
+	Clock
+} from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "@/lib/toast";
 import { exportToExcel, formatDateTime, type ExportColumn } from "@/lib/export";
@@ -415,16 +426,14 @@ function VolunteersPage() {
 	// 条件渲染必须在所有 hooks 之后
 	if (authLoading) {
 		return (
-			<DashboardLayout breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}>
-				<div className="space-y-6">
-					{/* Skeleton 加载状态 */}
-					<div className="flex justify-between items-center">
-						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
-						<div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
-					</div>
-					<div className="h-96 bg-muted rounded-lg animate-pulse" />
+			<div className="space-y-6">
+				{/* Skeleton 加载状态 */}
+				<div className="flex justify-between items-center">
+					<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
+					<div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
 				</div>
-			</DashboardLayout>
+				<div className="h-96 bg-muted rounded-lg animate-pulse" />
+			</div>
 		);
 	}
 
@@ -434,11 +443,7 @@ function VolunteersPage() {
 
 	const handleView = (volunteer: Volunteer) => {
 		alert(
-			`查看义工详情功能待实现
-
-姓名: ${volunteer.name}
-ID: ${volunteer.lotusId}
-手机: ${volunteer.phone}`,
+			`查看义工详情功能待实现\n\n姓名: ${volunteer.name}\nID: ${volunteer.lotusId}\n手机: ${volunteer.phone}`,
 		);
 		// TODO: 导航到详情页面
 	};
@@ -653,122 +658,148 @@ ID: ${volunteer.lotusId}
 	};
 
 	return (
-		<DashboardLayout
-			breadcrumbs={[{ label: "首页", href: "/" }, { label: "义工管理" }]}
-		>
-			<div className="space-y-6">
-				<div className="flex justify-between items-center">
-					<h1 className="text-3xl font-bold">义工管理</h1>
-					<div className="flex gap-2">
-						<Button
-							variant="outline"
-							onClick={() => setImportDialogOpen(true)}
-						>
-							<Download className="h-4 w-4 mr-2" />
-							Excel导入
-						</Button>
-						<Button
-							variant="outline"
-							onClick={handleBatchAdd}
-						>
-							<Users className="h-4 w-4 mr-2" />
-							批量添加
-						</Button>
-						<Button onClick={handleAdd}>
-							<Plus className="h-4 w-4 mr-2" />
-							添加义工
-						</Button>
-					</div>
+		<div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+			{/* 顶部标题与主要操作 */}
+			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+				<div>
+					<h1 className="text-3xl font-bold tracking-tight">义工管理</h1>
+					<p className="text-muted-foreground mt-1">
+						管理义工档案、审批新申请及记录考勤
+					</p>
 				</div>
+				<div className="flex gap-2">
+					<Button variant="outline" onClick={() => setImportDialogOpen(true)} className="shadow-sm">
+						<FileUp className="h-4 w-4 mr-2" />
+						导入
+					</Button>
+					<Button variant="outline" onClick={handleBatchAdd} className="shadow-sm">
+						<UserPlus className="h-4 w-4 mr-2" />
+						批量
+					</Button>
+					<Button onClick={handleAdd} className="shadow-sm">
+						<Plus className="h-4 w-4 mr-2" />
+						添加义工
+					</Button>
+				</div>
+			</div>
 
-				{/* 统计卡片 */}
-				<StatsCards
-					totalVolunteers={stats.totalVolunteers}
-					newThisMonth={stats.newThisMonth}
-					pendingApproval={stats.pendingApproval}
-					activeVolunteers={stats.activeVolunteers}
-				/>
+			{/* 统计概览 */}
+			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+				<Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+					<CardContent className="p-6 flex items-center justify-between">
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">义工总数</p>
+							<p className="text-3xl font-bold mt-2 text-blue-600">{stats.totalVolunteers}</p>
+						</div>
+						<div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center">
+							<Users className="h-6 w-6 text-blue-600" />
+						</div>
+					</CardContent>
+				</Card>
+				<Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+					<CardContent className="p-6 flex items-center justify-between">
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">本月新增</p>
+							<p className="text-3xl font-bold mt-2 text-green-600">{stats.newThisMonth}</p>
+						</div>
+						<div className="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center">
+							<UserCheck className="h-6 w-6 text-green-600" />
+						</div>
+					</CardContent>
+				</Card>
+				<Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+					<CardContent className="p-6 flex items-center justify-between">
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">待审批</p>
+							<p className="text-3xl font-bold mt-2 text-orange-600">{stats.pendingApproval}</p>
+						</div>
+						<div className="h-12 w-12 rounded-full bg-orange-50 flex items-center justify-center">
+							<AlertCircle className="h-6 w-6 text-orange-600" />
+						</div>
+					</CardContent>
+				</Card>
+				<Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
+					<CardContent className="p-6 flex items-center justify-between">
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">活跃义工</p>
+							<p className="text-3xl font-bold mt-2 text-purple-600">{stats.activeVolunteers}</p>
+						</div>
+						<div className="h-12 w-12 rounded-full bg-purple-50 flex items-center justify-center">
+							<Clock className="h-6 w-6 text-purple-600" />
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 
-				{/* 高级筛选 */}
-				<div className="space-y-2">
-					<div className="flex items-center gap-2 flex-wrap">
-						<AdvancedFilter
-							filters={filterOptions}
-							activeFilters={activeFilters}
-							onFilterChange={handleFilterChange}
-							onClearAll={handleClearAllFilters}
-						/>
-						<DateRangeFilter
-							onApply={handleDateRangeChange}
-							label="创建时间"
-						/>
-					</div>
-					<FilterTags
+			{/* 高级筛选 */}
+			<div className="space-y-2 bg-muted/20 p-4 rounded-lg border">
+				<div className="flex items-center gap-3 flex-wrap">
+					<AdvancedFilter
+						filters={filterOptions}
 						activeFilters={activeFilters}
-						onRemoveFilter={handleRemoveFilter}
+						onFilterChange={handleFilterChange}
 						onClearAll={handleClearAllFilters}
 					/>
+					<DateRangeFilter
+						onApply={handleDateRangeChange}
+						label="创建时间"
+					/>
 				</div>
+				<FilterTags
+					activeFilters={activeFilters}
+					onRemoveFilter={handleRemoveFilter}
+					onClearAll={handleClearAllFilters}
+				/>
+			</div>
 
-				{/* 标签页 */}
-				<Tabs value={activeTab} onValueChange={setActiveTab}>
-					<TabsList>
-						<TabsTrigger value="all">
-							全部义工
-							<Badge variant="secondary" className="ml-2">
-								{filteredVolunteers.length}
-							</Badge>
-						</TabsTrigger>
-						<TabsTrigger value="pending">
-							<div className="flex items-center gap-2">
-								待审批
-								{pendingCount > 0 && (
-									<Badge variant="destructive">{pendingCount}</Badge>
-								)}
-							</div>
-						</TabsTrigger>
-					</TabsList>
-
-					{/* 全部义工标签页 */}
-					<TabsContent value="all" className="space-y-4">
-						<div className="flex justify-between items-center">
-							<div className="text-sm text-muted-foreground">
-								{activeFilters.length > 0 ? (
-									<>
-										筛选结果：{filteredVolunteers.length} / {volunteers.length} 个义工
-									</>
-								) : (
-									<>共 {volunteers.length} 个义工</>
-								)}
-							</div>
+			{/* 标签页 */}
+			<Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+				<TabsList className="bg-muted/50 p-1">
+					<TabsTrigger value="all" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+						全部义工
+						<Badge variant="secondary" className="ml-2">
+							{filteredVolunteers.length}
+						</Badge>
+					</TabsTrigger>
+					<TabsTrigger value="pending" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+						<div className="flex items-center gap-2">
+							待审批
+							{pendingCount > 0 && (
+								<Badge variant="destructive" className="h-5 px-1.5">{pendingCount}</Badge>
+							)}
 						</div>
+					</TabsTrigger>
+				</TabsList>
 
-						<div className="bg-card rounded-lg border">
-							<div className="p-6">
-								<VolunteerDataTable
-									data={filteredVolunteers}
-									isLoading={isLoading}
-									onView={handleView}
-									onEdit={handleEdit}
-									onDelete={handleDelete}
-									enableSelection={true}
-									onSelectionChange={handleSelectionChange}
-									emptyState={
-										<EmptyState
-											type="no-data"
-											onAction={handleAdd}
-											actionLabel="添加第一个义工"
-										/>
-									}
-									noResultsState={
-										<EmptyState
-											type="no-results"
-											onAction={handleClearAllFilters}
-										/>
-									}
-								/>
-							</div>
-							{volunteers.length > 0 && (
+				{/* 全部义工标签页 */}
+				<TabsContent value="all" className="space-y-4">
+					<Card className="shadow-sm border-t-4 border-t-primary/20">
+						<div className="p-6">
+							<VolunteerDataTable
+								data={filteredVolunteers}
+								isLoading={isLoading}
+								onView={handleView}
+								onEdit={handleEdit}
+								onDelete={handleDelete}
+								enableSelection={true}
+								onSelectionChange={handleSelectionChange}
+								emptyState={
+									<EmptyState
+										type="no-data"
+										onAction={handleAdd}
+										actionLabel="添加第一个义工"
+									/>
+								}
+								noResultsState={
+									<EmptyState
+										type="no-results"
+										onAction={handleClearAllFilters}
+									/>
+								}
+							/>
+						</div>
+						{volunteers.length > 0 && (
+							<div className="border-t p-4 bg-muted/10">
 								<Pagination
 									currentPage={page}
 									totalPages={Math.ceil((data?.data?.total || 0) / pageSize)}
@@ -784,120 +815,107 @@ ID: ${volunteer.lotusId}
 										setSelectedVolunteers([]);
 									}}
 								/>
-							)}
-						</div>
-
-						{/* 批量操作栏 */}
-						<BatchActionBar
-							selectedCount={selectedVolunteers.length}
-							totalCount={filteredVolunteers.length}
-							onClearSelection={handleClearSelection}
-							onSelectAll={handleSelectAll}
-							actions={[
-								{
-									label: "导出选中",
-									icon: <Download className="h-4 w-4 mr-1" />,
-									variant: "secondary",
-									onClick: () => {
-										const selectedData = filteredVolunteers.filter((v) =>
-											selectedVolunteers.includes(v.lotusId),
-										);
-										const columns: ExportColumn[] = [
-											{ key: "lotusId", label: "莲花斋ID" },
-											{ key: "name", label: "姓名" },
-											{
-												key: "gender",
-												label: "性别",
-												format: (v) =>
-													v === "male" ? "男" : v === "female" ? "女" : "其他",
-											},
-											{ key: "phone", label: "手机号" },
-											{ key: "email", label: "邮箱" },
-											{
-												key: "volunteerStatus",
-												label: "状态",
-												format: (v) => {
-													const map: Record<string, string> = {
-														registered: "已注册",
-														trainee: "培训中",
-														applicant: "申请中",
-														inactive: "未激活",
-														suspended: "已暂停",
-													};
-													return map[v] || v;
-												},
-											},
-											{
-												key: "lotusRole",
-												label: "角色",
-												format: (v) => (v === "admin" ? "管理员" : "义工"),
-											},
-											{ key: "createdAt", label: "创建时间", format: formatDateTime },
-										];
-										exportToExcel({
-											filename: "选中义工",
-											sheetName: "义工列表",
-											columns,
-											data: selectedData,
-										});
-										toast.success(`已导出 ${selectedData.length} 条记录`);
-									},
-								},
-								{
-									label: "批量删除",
-									icon: <Trash2 className="h-4 w-4 mr-1" />,
-									variant: "destructive",
-									onClick: handleBatchDelete,
-									disabled: batchDeleteMutation.isPending,
-								},
-							]}
-						/>
-					</TabsContent>
-
-					{/* 待审批标签页 */}
-					<TabsContent value="pending" className="space-y-4">
-						<div className="flex justify-between items-center">
-							<div className="flex items-center gap-2">
-								<AlertCircle className="h-5 w-5 text-orange-500" />
-								<span className="text-sm text-muted-foreground">
-									{activeFilters.length > 0 ? (
-										<>
-											筛选结果：{filteredPendingVolunteers.length} / {pendingCount} 个待审批申请
-										</>
-									) : (
-										<>共 {pendingCount} 个待审批申请</>
-									)}
-								</span>
 							</div>
-						</div>
+						)}
+					</Card>
 
-						<div className="bg-card rounded-lg border">
-							<div className="p-6">
-								<VolunteerDataTable
-									data={filteredPendingVolunteers}
-									isLoading={pendingLoading}
-									onView={handleView}
-									onApprove={handleApprove}
-									onReject={handleReject}
-									enableSelection={true}
-									onSelectionChange={handleSelectionChange}
-									showApprovalActions={true}
-									emptyState={
-										<EmptyState
-											type="no-data"
-											onAction={undefined}
-											actionLabel=""
-										/>
-									}
-									noResultsState={
-										<EmptyState
-											type="no-results"
-											onAction={handleClearAllFilters}
-										/>
-									}
-								/>
-							</div>
-							{pendingVolunteers.length > 0 && (
+					{/* 批量操作栏 */}
+					<BatchActionBar
+						selectedCount={selectedVolunteers.length}
+						totalCount={filteredVolunteers.length}
+						onClearSelection={handleClearSelection}
+						onSelectAll={handleSelectAll}
+						actions={[
+							{
+								label: "导出选中",
+								icon: <Download className="h-4 w-4 mr-1" />,
+								variant: "secondary",
+								onClick: () => {
+									const selectedData = filteredVolunteers.filter((v) =>
+										selectedVolunteers.includes(v.lotusId),
+									);
+									const columns: ExportColumn[] = [
+										{ key: "lotusId", label: "莲花斋ID" },
+										{ key: "name", label: "姓名" },
+										{
+											key: "gender",
+											label: "性别",
+											format: (v) =>
+												v === "male" ? "男" : v === "female" ? "女" : "其他",
+										},
+										{ key: "phone", label: "手机号" },
+										{ key: "email", label: "邮箱" },
+										{
+											key: "volunteerStatus",
+											label: "状态",
+											format: (v) => {
+												const map: Record<string, string> = {
+													registered: "已注册",
+													trainee: "培训中",
+													applicant: "申请中",
+													inactive: "未激活",
+													suspended: "已暂停",
+												};
+												return map[v] || v;
+											},
+										},
+										{
+											key: "lotusRole",
+											label: "角色",
+											format: (v) => (v === "admin" ? "管理员" : "义工"),
+										},
+										{ key: "createdAt", label: "创建时间", format: formatDateTime },
+									];
+									exportToExcel({
+										filename: "选中义工",
+										sheetName: "义工列表",
+										columns,
+										data: selectedData,
+									});
+									toast.success(`已导出 ${selectedData.length} 条记录`);
+								},
+							},
+							{
+								label: "批量删除",
+								icon: <Trash2 className="h-4 w-4 mr-1" />,
+								variant: "destructive",
+								onClick: handleBatchDelete,
+								disabled: batchDeleteMutation.isPending,
+							},
+						]}
+					/>
+				</TabsContent>
+
+				{/* 待审批标签页 */}
+				<TabsContent value="pending" className="space-y-4">
+					<Card className="shadow-sm border-t-4 border-t-orange-500/20">
+						<div className="p-6">
+							<VolunteerDataTable
+								data={filteredPendingVolunteers}
+								isLoading={pendingLoading}
+								onView={handleView}
+								onApprove={handleApprove}
+								onReject={handleReject}
+								enableSelection={true}
+								onSelectionChange={handleSelectionChange}
+								showApprovalActions={true}
+								emptyState={
+									<EmptyState
+										type="no-data"
+										onAction={undefined}
+										actionLabel=""
+									/>
+								}
+								noResultsState={
+									<EmptyState
+										type="no-results"
+										onAction={handleClearAllFilters}
+									/>
+								}
+							/>
+						</div>
+						{pendingVolunteers.length > 0 && (
+							<div className="border-t p-4 bg-muted/10">
 								<Pagination
 									currentPage={pendingPage}
 									totalPages={Math.ceil((pendingData?.data?.total || 0) / pendingPageSize)}
@@ -913,187 +931,187 @@ ID: ${volunteer.lotusId}
 										setSelectedVolunteers([]);
 									}}
 								/>
-							)}
-						</div>
-
-						{/* 批量操作栏 */}
-						<BatchActionBar
-							selectedCount={selectedVolunteers.length}
-							totalCount={filteredPendingVolunteers.length}
-							onClearSelection={handleClearSelection}
-							onSelectAll={handleSelectAll}
-							actions={[
-								{
-									label: "批量通过",
-									icon: <CheckCircle className="h-4 w-4 mr-1" />,
-									variant: "default",
-									onClick: handleBatchApprove,
-									disabled: batchApproveMutation.isPending,
-								},
-								{
-									label: "批量拒绝",
-									icon: <XCircle className="h-4 w-4 mr-1" />,
-									variant: "destructive",
-									onClick: handleBatchReject,
-									disabled: batchApproveMutation.isPending,
-								},
-								{
-									label: "导出选中",
-									icon: <Download className="h-4 w-4 mr-1" />,
-									variant: "secondary",
-									onClick: () => {
-										const selectedData = filteredPendingVolunteers.filter((v) =>
-											selectedVolunteers.includes(v.lotusId),
-										);
-										const columns: ExportColumn[] = [
-											{ key: "lotusId", label: "莲花斋ID" },
-											{ key: "name", label: "姓名" },
-											{
-												key: "gender",
-												label: "性别",
-												format: (v) =>
-													v === "male" ? "男" : v === "female" ? "女" : "其他",
-											},
-											{ key: "phone", label: "手机号" },
-											{ key: "email", label: "邮箱" },
-											{ key: "createdAt", label: "申请时间", format: formatDateTime },
-										];
-										exportToExcel({
-											filename: "待审批义工",
-											sheetName: "待审批",
-											columns,
-											data: selectedData,
-										});
-										toast.success(`已导出 ${selectedData.length} 条记录`);
-									},
-								},
-							]}
-						/>
-					</TabsContent>
-				</Tabs>
-
-				{/* 添加/编辑对话框 */}
-				<Dialog
-					open={isDialogOpen}
-					onClose={handleDialogClose}
-					title={editingVolunteer ? "编辑义工" : "添加义工"}
-					maxWidth="lg"
-				>
-					<VolunteerForm
-						volunteer={editingVolunteer}
-						onSubmit={handleFormSubmit}
-						onCancel={handleDialogClose}
-					/>
-				</Dialog>
-
-				{/* 审批对话框 */}
-				<Dialog
-					open={approvalDialog.open}
-					onClose={() => {
-						setApprovalDialog({ open: false });
-						setApprovalNotes("");
-					}}
-					title={
-						approvalDialog.action === "approve" ? "审批通过" : "审批拒绝"
-					}
-					maxWidth="md"
-				>
-					<div className="space-y-4">
-						<div className="space-y-2">
-							<p className="text-sm text-muted-foreground">
-								义工信息：
-							</p>
-							<div className="bg-muted p-4 rounded-lg space-y-1">
-								<p>
-									<span className="font-medium">姓名：</span>
-									{approvalDialog.volunteer?.name}
-								</p>
-								<p>
-									<span className="font-medium">ID：</span>
-									{approvalDialog.volunteer?.lotusId}
-								</p>
-								<p>
-									<span className="font-medium">手机：</span>
-									{approvalDialog.volunteer?.phone}
-								</p>
 							</div>
-						</div>
+						)}
+					</Card>
 
-						<div className="space-y-2">
-							<label className="text-sm font-medium">备注（可选）</label>
-							<Textarea
-								value={approvalNotes}
-								onChange={(e) => setApprovalNotes(e.target.value)}
-								placeholder="请输入审批备注..."
-								rows={4}
-							/>
-						</div>
+					{/* 批量操作栏 */}
+					<BatchActionBar
+						selectedCount={selectedVolunteers.length}
+						totalCount={filteredPendingVolunteers.length}
+						onClearSelection={handleClearSelection}
+						onSelectAll={handleSelectAll}
+						actions={[
+							{
+								label: "批量通过",
+								icon: <CheckCircle className="h-4 w-4 mr-1" />,
+								variant: "default",
+								onClick: handleBatchApprove,
+								disabled: batchApproveMutation.isPending,
+							},
+							{
+								label: "批量拒绝",
+								icon: <XCircle className="h-4 w-4 mr-1" />,
+								variant: "destructive",
+								onClick: handleBatchReject,
+								disabled: batchApproveMutation.isPending,
+							},
+							{
+								label: "导出选中",
+								icon: <Download className="h-4 w-4 mr-1" />,
+								variant: "secondary",
+								onClick: () => {
+									const selectedData = filteredPendingVolunteers.filter((v) =>
+										selectedVolunteers.includes(v.lotusId),
+									);
+									const columns: ExportColumn[] = [
+										{ key: "lotusId", label: "莲花斋ID" },
+										{ key: "name", label: "姓名" },
+										{
+											key: "gender",
+											label: "性别",
+											format: (v) =>
+												v === "male" ? "男" : v === "female" ? "女" : "其他",
+										},
+										{ key: "phone", label: "手机号" },
+										{ key: "email", label: "邮箱" },
+										{ key: "createdAt", label: "申请时间", format: formatDateTime },
+									];
+									exportToExcel({
+										filename: "待审批义工",
+										sheetName: "待审批",
+										columns,
+										data: selectedData,
+									});
+									toast.success(`已导出 ${selectedData.length} 条记录`);
+								},
+							},
+						]}
+					/>
+				</TabsContent>
+			</Tabs>
 
-						<div className="flex justify-end gap-2">
-							<Button
-								variant="outline"
-								onClick={() => {
-									setApprovalDialog({ open: false });
-									setApprovalNotes("");
-								}}
-							>
-								取消
-							</Button>
-							<Button
-								variant={
-									approvalDialog.action === "approve" ? "default" : "destructive"
-								}
-								onClick={handleApprovalSubmit}
-								disabled={approveMutation.isPending}
-							>
-								{approveMutation.isPending
-									? "处理中..."
-									: approvalDialog.action === "approve"
-									? "确认通过"
-									: "确认拒绝"}
-							</Button>
+			{/* 添加/编辑对话框 */}
+			<Dialog
+				open={isDialogOpen}
+				onClose={handleDialogClose}
+				title={editingVolunteer ? "编辑义工" : "添加义工"}
+				maxWidth="lg"
+			>
+				<VolunteerForm
+					volunteer={editingVolunteer}
+					onSubmit={handleFormSubmit}
+					onCancel={handleDialogClose}
+				/>
+			</Dialog>
+
+			{/* 审批对话框 */}
+			<Dialog
+				open={approvalDialog.open}
+				onClose={() => {
+					setApprovalDialog({ open: false });
+					setApprovalNotes("");
+				}}
+				title={
+					approvalDialog.action === "approve" ? "审批通过" : "审批拒绝"
+				}
+				maxWidth="md"
+			>
+				<div className="space-y-4">
+					<div className="space-y-2">
+						<p className="text-sm text-muted-foreground">
+							义工信息：
+						</p>
+						<div className="bg-muted p-4 rounded-lg space-y-1">
+							<p>
+								<span className="font-medium">姓名：</span>
+								{approvalDialog.volunteer?.name}
+							</p>
+							<p>
+								<span className="font-medium">ID：</span>
+								{approvalDialog.volunteer?.lotusId}
+							</p>
+							<p>
+								<span className="font-medium">手机：</span>
+								{approvalDialog.volunteer?.phone}
+							</p>
 						</div>
 					</div>
-				</Dialog>
 
-				{/* 确认对话框 */}
-				<ConfirmDialog
-					open={confirmDialog.open}
-					onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
-					onConfirm={confirmDialog.onConfirm}
-					title={confirmDialog.title}
-					description={confirmDialog.description}
-					variant={confirmDialog.variant}
-					items={confirmDialog.items}
-					isLoading={
-						deleteMutation.isPending ||
-						batchDeleteMutation.isPending ||
-						batchApproveMutation.isPending
-					}
+					<div className="space-y-2">
+						<label className="text-sm font-medium">备注（可选）</label>
+						<Textarea
+							value={approvalNotes}
+							onChange={(e) => setApprovalNotes(e.target.value)}
+							placeholder="请输入审批备注..."
+							rows={4}
+						/>
+					</div>
+
+					<div className="flex justify-end gap-2">
+						<Button
+							variant="outline"
+							onClick={() => {
+								setApprovalDialog({ open: false });
+								setApprovalNotes("");
+							}}
+						>
+							取消
+						</Button>
+						<Button
+							variant={
+								approvalDialog.action === "approve" ? "default" : "destructive"
+							}
+							onClick={handleApprovalSubmit}
+							disabled={approveMutation.isPending}
+						>
+							{approveMutation.isPending
+								? "处理中..."
+								: approvalDialog.action === "approve"
+								? "确认通过"
+								: "确认拒绝"}
+						</Button>
+					</div>
+				</div>
+			</Dialog>
+
+			{/* 确认对话框 */}
+			<ConfirmDialog
+				open={confirmDialog.open}
+				onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+				onConfirm={confirmDialog.onConfirm}
+				title={confirmDialog.title}
+				description={confirmDialog.description}
+				variant={confirmDialog.variant}
+				items={confirmDialog.items}
+				isLoading={
+					deleteMutation.isPending ||
+					batchDeleteMutation.isPending ||
+					batchApproveMutation.isPending
+				}
+			/>
+
+			{/* 批量导入对话框 */}
+			<BatchImportDialog
+				open={importDialogOpen}
+				onClose={() => setImportDialogOpen(false)}
+				onImport={handleBatchImport}
+				isLoading={batchImportMutation.isPending}
+			/>
+
+			{/* 批量添加对话框 */}
+			<Dialog
+				open={isBatchAddDialogOpen}
+				onClose={() => setIsBatchAddDialogOpen(false)}
+				title="批量添加义工"
+				maxWidth="xl"
+			>
+				<BatchAddVolunteers
+					onSubmit={handleBatchCreate}
+					onCancel={() => setIsBatchAddDialogOpen(false)}
+					isLoading={batchCreateMutation.isPending}
 				/>
-
-				{/* 批量导入对话框 */}
-				<BatchImportDialog
-					open={importDialogOpen}
-					onClose={() => setImportDialogOpen(false)}
-					onImport={handleBatchImport}
-					isLoading={batchImportMutation.isPending}
-				/>
-
-				{/* 批量添加对话框 */}
-				<Dialog
-					open={isBatchAddDialogOpen}
-					onClose={() => setIsBatchAddDialogOpen(false)}
-					title="批量添加义工"
-					maxWidth="xl"
-				>
-					<BatchAddVolunteers
-						onSubmit={handleBatchCreate}
-						onCancel={() => setIsBatchAddDialogOpen(false)}
-						isLoading={batchCreateMutation.isPending}
-					/>
-				</Dialog>
-			</div>
-		</DashboardLayout>
+			</Dialog>
+		</div>
 	);
 }

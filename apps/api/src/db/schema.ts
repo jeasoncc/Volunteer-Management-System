@@ -158,6 +158,23 @@ export const volunteerCheckIn = mysqlTable('volunteer_checkin', {
   confidence:      varchar('confidence', { length: 10 }),
 })
 
+export const strangerCheckIn = mysqlTable('stranger_checkin', {
+	id:              bigint('id', { mode: 'number', unsigned: true }).autoincrement().primaryKey(),
+	deviceSn:        varchar('device_sn', { length: 50 }),
+	date:            date('date').notNull(),
+	time:            time('time'),
+	userId:          varchar('user_id', { length: 50 }),
+	userName:        varchar('user_name', { length: 50 }),
+	gender:          int('gender'),
+	bodyTemperature: varchar('body_temperature', { length: 10 }),
+	confidence:      varchar('confidence', { length: 10 }),
+	photo:           text('photo'),
+	location:        json('location'),
+	originTime:      varchar('origin_time', { length: 50 }),
+	recordType:      varchar('record_type', { length: 50 }),
+	createdAt:       timestamp('created_at').defaultNow(),
+})
+
 /**
  * 义工考勤每日汇总表（计算后的工时数据）
  */

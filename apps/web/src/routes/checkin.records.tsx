@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { CheckinRecordsTable } from "@/components/CheckinRecordsTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,17 +36,11 @@ function CheckinRecordsPage() {
 
 	if (authLoading) {
 		return (
-			<DashboardLayout
-				breadcrumbs={[
-					{ label: "首页", href: "/" },
-					{ label: "考勤管理", href: "/checkin" },
-					{ label: "考勤记录" },
-				]}
-			>
+			
 				<div className="flex items-center justify-center h-64">
 					<div className="text-muted-foreground">加载中...</div>
 				</div>
-			</DashboardLayout>
+			
 		);
 	}
 
@@ -59,13 +52,7 @@ function CheckinRecordsPage() {
 	const total = data?.total || 0;
 
 	return (
-		<DashboardLayout
-			breadcrumbs={[
-				{ label: "首页", href: "/" },
-				{ label: "考勤管理", href: "/checkin" },
-				{ label: "考勤记录" },
-			]}
-		>
+		
 			<div className="space-y-6">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
@@ -124,6 +111,6 @@ function CheckinRecordsPage() {
 					<CheckinRecordsTable data={records} isLoading={isLoading} />
 				</div>
 			</div>
-		</DashboardLayout>
+		
 	);
 }
