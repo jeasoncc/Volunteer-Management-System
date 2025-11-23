@@ -18,7 +18,7 @@ export const volunteer = mysqlTable('volunteer', {
   lotusId:              varchar('lotus_id', { length: 50 }).unique(),
   volunteerId:          varchar('volunteer_id', { length: 50 }).unique(),
   idNumber:             varchar('id_number', { length: 18 }).notNull().unique(),
-  lotusRole:            mysqlEnum('lotus_role', ['admin', 'volunteer', 'resident']).default(
+  lotusRole:            mysqlEnum('lotus_role', ['admin', 'volunteer']).default(
     'volunteer',
   ),
   account:              varchar('account', { length: 50 }).notNull().unique(),

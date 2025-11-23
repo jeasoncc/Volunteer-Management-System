@@ -28,10 +28,11 @@ import {
 	AlertTriangle,
 	Shield, 
 	ArrowUpRight,
-	Activity,
-	Flower2
+	Activity
 } from "lucide-react";
+import { LotusLogo } from "@/components/ui/lotus-logo";
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Label, LabelList } from "recharts";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
@@ -50,6 +51,8 @@ function HomePage() {
 		queryFn: () => volunteerService.getList({ page: 1, pageSize: 1 }),
 		enabled: isAuthenticated,
 		staleTime: 5 * 60 * 1000,
+		retry: 2, // 失败后重试2次
+		retryDelay: 1000, // 重试延迟1秒
 	});
 
 	// 获取待审批义工数量
@@ -58,6 +61,8 @@ function HomePage() {
 		queryFn: () => approvalService.getPendingList({ page: 1, pageSize: 1 }),
 		enabled: isAuthenticated,
 		staleTime: 2 * 60 * 1000,
+		retry: 2,
+		retryDelay: 1000,
 	});
 
 	// 获取本月考勤统计
@@ -71,6 +76,8 @@ function HomePage() {
 			}),
 		enabled: isAuthenticated,
 		staleTime: 3 * 60 * 1000,
+		retry: 2,
+		retryDelay: 1000,
 	});
 
 	const handleRefreshAll = async () => {
@@ -80,13 +87,18 @@ function HomePage() {
 			refetchCheckin(),
 		]);
 		setLastUpdate(new Date());
+		toast.success("数据已刷新", {
+			description: "最新统计数据已加载完成",
+		});
 	};
 
 	const isDataLoading = volunteersLoading || pendingLoading || checkinLoading;
-	const hasError = volunteersError || pendingError || checkinError;
+	// 只有当所有请求都失败时才显示错误页面
+	const hasError = volunteersError && pendingError && checkinError;
 
-	const totalVolunteers = volunteersData?.data?.total || 0;
-	const pendingCount = pendingData?.data?.total || 0;
+	// 修正数据路径：后端直接返回 { success, data, total, page, ... }
+	const totalVolunteers = volunteersData?.total || 0;
+	const pendingCount = pendingData?.total || 0;
 	const volunteers = checkinData?.data?.volunteers || [];
 	const totalHours = volunteers.reduce((sum: number, v: any) => sum + (v.totalHours || 0), 0);
 	const totalDays = volunteers.reduce((sum: number, v: any) => sum + (v.totalDays || 0), 0);
@@ -119,19 +131,27 @@ function HomePage() {
 
 	if (isLoading) {
 		return (
-			<div className="space-y-6 animate-pulse">
-				<div className="flex justify-between items-end">
+			<div className="space-y-6 animate-in fade-in duration-300">
+				<div className="flex justify-between items-end animate-pulse">
 					<div className="h-10 bg-muted rounded-md w-1/3" />
 					<div className="h-8 bg-muted rounded-md w-24" />
 				</div>
 				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 					{[1, 2, 3, 4].map((i) => (
-						<div key={i} className="h-32 bg-muted rounded-lg" />
+						<div 
+							key={i} 
+							className="h-32 bg-muted rounded-lg animate-pulse"
+							style={{ animationDelay: `${i * 50}ms` }}
+						/>
 					))}
 				</div>
 				<div className="grid gap-4 md:grid-cols-2">
 					{[1, 2].map((i) => (
-						<div key={i} className="h-64 bg-muted rounded-lg" />
+						<div 
+							key={i} 
+							className="h-64 bg-muted rounded-lg animate-pulse"
+							style={{ animationDelay: `${(i + 4) * 50}ms` }}
+						/>
 					))}
 				</div>
 			</div>
@@ -161,7 +181,7 @@ function HomePage() {
 	}
 
 	return (
-		<div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+		<div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out">
 			{/* 顶部欢迎区域 */}
 			<div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground p-8 shadow-xl">
 				<div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -275,7 +295,7 @@ function HomePage() {
 						</CardHeader>
 						<CardContent className="pl-2">
 							<ChartContainer config={chartConfig} className="h-[240px] w-full">
-								<BarChart data={trendChartData}>
+								<BarChart data={trendChartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
 									<CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/30" />
 									<XAxis
 										dataKey="day"
@@ -294,7 +314,7 @@ function HomePage() {
 										radius={[6, 6, 0, 0]} 
 										barSize={32}
 									>
-										<LabelList position="top" offset={12} className="fill-foreground font-bold" fontSize={12} />
+										<LabelList position="top" offset={10} className="fill-foreground font-bold" fontSize={12} />
 									</Bar>
 								</BarChart>
 							</ChartContainer>
@@ -365,7 +385,7 @@ function HomePage() {
 							<Card className="group hover:border-purple-500/50 transition-colors cursor-pointer">
 								<CardContent className="p-4 flex items-center gap-4">
 									<div className="h-12 w-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-										<Flower2 className="h-6 w-6" />
+										<LotusLogo className="h-6 w-6" />
 									</div>
 									<div>
 										<div className="font-medium">往生者管理</div>

@@ -186,6 +186,10 @@ export const VolunteerStatusUpdateSchema = t.Object({
   ]),
 })
 
+export const VolunteerRoleUpdateSchema = t.Object({
+  role: t.Union([t.Literal('admin'), t.Literal('volunteer')]),
+})
+
 export const VolunteerSearchQuerySchema = t.Object({
   keyword: t.String({ minLength: 1 }),
   limit:   t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
@@ -194,6 +198,7 @@ export const VolunteerSearchQuerySchema = t.Object({
 export const VolunteerListQuerySchema = t.Object({
   page:            t.Optional(t.Numeric({ minimum: 1 })),
   limit:           t.Optional(t.Numeric({ minimum: 1, maximum: 100 })),
+  keyword:         t.Optional(t.String()), // 搜索关键词（姓名、手机号、账号、邮箱）
   name:            t.Optional(t.String()),
   phone:           t.Optional(t.String()),
   status:          t.Optional(t.Union([t.Literal('active'), t.Literal('inactive')])),
@@ -204,6 +209,12 @@ export const VolunteerListQuerySchema = t.Object({
       t.Literal('registered'),
       t.Literal('inactive'),
       t.Literal('suspended'),
+    ]),
+  ),
+  lotusRole:       t.Optional(
+    t.Union([
+      t.Literal('admin'),
+      t.Literal('volunteer'),
     ]),
   ),
   severPosition:   t.Optional(

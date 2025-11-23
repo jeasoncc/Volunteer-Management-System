@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 import { Calendar, Clock, MapPin, Users, Bell, BookOpen, UserPlus } from "lucide-react";
 import { volunteerService } from "@/services/volunteer";
 import { deceasedService } from "@/services/deceased";
@@ -67,7 +68,7 @@ export function ChantingScheduleForm({
 			}}
 			className="space-y-6"
 		>
-			<div className="max-h-[75vh] overflow-y-auto px-1 space-y-6">
+			<div className="px-1 space-y-6">
 				{/* 基本信息 */}
 				<Card className="border-l-4 border-l-primary">
 					<CardHeader className="pb-4 bg-muted/30">
@@ -121,15 +122,12 @@ export function ChantingScheduleForm({
 								>
 									{(field) => (
 										<>
-											<Input
-												id="date"
-												type="date"
+											<DatePicker
 												value={field.state.value}
-												onChange={(e) => field.handleChange(e.target.value)}
-												required
-												className={
-													field.state.meta.errors.length > 0 ? "border-red-500" : ""
-												}
+												onChange={(date) => {
+													field.handleChange(date ? format(date, "yyyy-MM-dd") : "");
+												}}
+												placeholder="请选择日期"
 											/>
 											{field.state.meta.errors.length > 0 && (
 												<p className="text-sm text-red-500 flex items-center gap-1">

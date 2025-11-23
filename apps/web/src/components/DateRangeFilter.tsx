@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Calendar } from "lucide-react";
+import { Calendar } from "./ui/calendar";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 interface DateRangeFilterProps {
 	onApply: (startDate: string | null, endDate: string | null) => void;
@@ -14,23 +14,26 @@ export function DateRangeFilter({
 	onApply,
 	label = "创建时间",
 }: DateRangeFilterProps) {
-	const [startDate, setStartDate] = useState("");
-	const [endDate, setEndDate] = useState("");
+	const [date, setDate] = useState<{ from?: Date; to?: Date } | undefined>();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleApply = () => {
-		onApply(startDate || null, endDate || null);
+		if (date?.from) {
+			const start = format(date.from, "yyyy-MM-dd");
+			onApply(start, date.to ? format(date.to, "yyyy-MM-dd") : null);
+		} else {
+			onApply(null, null);
+		}
 		setIsOpen(false);
 	};
 
 	const handleClear = () => {
-		setStartDate("");
-		setEndDate("");
+		setDate(undefined);
 		onApply(null, null);
 		setIsOpen(false);
 	};
 
-	const hasFilter = startDate || endDate;
+	const hasFilter = date?.from;
 
 	return (
 		<Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -40,48 +43,27 @@ export function DateRangeFilter({
 					size="sm"
 					className="h-8"
 				>
-					<Calendar className="h-3.5 w-3.5 mr-1.5" />
+					<CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
 					{label}
-					{hasFilter && (
+					{date?.from && (
 						<span className="ml-1.5 text-xs">
-							({startDate || "开始"} ~ {endDate || "结束"})
+							({format(date.from, "MM-dd")}
+							{date.to ? ` ~ ${format(date.to, "MM-dd")}` : ""})
 						</span>
 					)}
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent align="start" className="w-80">
-				<div className="space-y-4">
-					<div>
-						<Label className="text-sm font-medium mb-2 block">
-							{label}范围
-						</Label>
-						<div className="grid grid-cols-2 gap-2">
-							<div>
-								<Label className="text-xs text-muted-foreground mb-1 block">
-									开始日期
-								</Label>
-								<Input
-									type="date"
-									value={startDate}
-									onChange={(e) => setStartDate(e.target.value)}
-									className="h-9"
-								/>
-							</div>
-							<div>
-								<Label className="text-xs text-muted-foreground mb-1 block">
-									结束日期
-								</Label>
-								<Input
-									type="date"
-									value={endDate}
-									onChange={(e) => setEndDate(e.target.value)}
-									className="h-9"
-								/>
-							</div>
-						</div>
-					</div>
-
-					<div className="flex justify-between gap-2 pt-2 border-t">
+			<PopoverContent align="start" className="w-auto p-0">
+				<div className="p-0">
+					<Calendar
+						initialFocus
+						mode="range"
+						defaultMonth={date?.from}
+						selected={date}
+						onSelect={setDate}
+						numberOfMonths={1}
+					/>
+					<div className="flex justify-between gap-2 p-3 border-t bg-muted/50">
 						<Button variant="ghost" size="sm" onClick={handleClear}>
 							清除
 						</Button>

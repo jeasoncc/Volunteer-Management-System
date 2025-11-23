@@ -2,6 +2,13 @@
  * 全局类型定义
  */
 
+// 管理员信息
+export interface AdminInfo {
+	role: "super" | "admin" | "operator";
+	permissions?: any;
+	department?: string;
+}
+
 // 用户类型
 export interface User {
 	id: number;
@@ -11,7 +18,8 @@ export interface User {
 	phone: string;
 	email?: string;
 	avatar?: string;
-	lotusRole: "admin" | "volunteer" | "resident";
+	lotusRole: "admin" | "volunteer";
+	adminInfo?: AdminInfo; // 如果是管理员，包含管理员详细信息
 	volunteerStatus?:
 		| "applicant"
 		| "trainee"
@@ -20,13 +28,20 @@ export interface User {
 		| "suspended";
 }
 
-// 义工类型
+// 义工类型 - 与后端数据库 schema 完全对应
 export interface Volunteer {
+	// 主键和标识
 	id: number;
 	lotusId: string;
 	volunteerId?: string;
 	idNumber: string;
+	lotusRole: "admin" | "volunteer";
+
+	// 账号信息
 	account: string;
+	password?: string; // 一般不返回到前端
+
+	// 基本信息
 	name: string;
 	gender: "male" | "female" | "other";
 	birthDate?: string;
@@ -35,31 +50,82 @@ export interface Volunteer {
 	email?: string;
 	address?: string;
 	avatar?: string;
-	nation?: string;
 
 	// 佛教信息
 	dharmaName?: string;
+	education?:
+		| "none"
+		| "elementary"
+		| "middle_school"
+		| "high_school"
+		| "bachelor"
+		| "master"
+		| "phd"
+		| "other";
 	hasBuddhismFaith?: boolean;
 	refugeStatus?: "none" | "took_refuge" | "five_precepts" | "bodhisattva";
-	religiousBackground?: string;
+	healthConditions?:
+		| "healthy"
+		| "has_chronic_disease"
+		| "has_disability"
+		| "has_allergies"
+		| "recovering_from_illness"
+		| "other_conditions";
+	religiousBackground?:
+		| "upasaka"
+		| "upasika"
+		| "sramanera"
+		| "sramanerika"
+		| "bhikkhu"
+		| "bhikkhuni"
+		| "anagarika"
+		| "siladhara"
+		| "novice_monk"
+		| "buddhist_visitor"
+		| "none";
 
-	// 其他信息
-	education?: string;
-	healthConditions?: string;
+	// 义工相关信息
 	joinReason?: string;
 	hobbies?: string;
 	availableTimes?: string;
+	trainingRecords?: string;
+	serviceHours?: number;
+	isCertified?: boolean;
 	emergencyContact?: string;
 	familyConsent?: "approved" | "partial" | "rejected" | "self_decided";
+	notes?: string;
+	reviewer?: string;
 
-	// 状态
+	// 义工状态
 	volunteerStatus:
 		| "applicant"
 		| "trainee"
 		| "registered"
 		| "inactive"
 		| "suspended";
-	lotusRole: "admin" | "volunteer" | "resident";
+	signedCommitment?: boolean;
+	commitmentSignedDate?: string;
+	severPosition?:
+		| "kitchen"
+		| "chanting"
+		| "cleaning"
+		| "reception"
+		| "security"
+		| "office"
+		| "other";
+
+	// 通用状态字段
+	status?:
+		| "active"
+		| "inactive"
+		| "applicant"
+		| "trainee"
+		| "registered"
+		| "suspended";
+
+	// 住宿信息
+	memberStatus?: "volunteer" | "resident";
+	roomId?: number;
 
 	// 系统字段
 	createdAt?: string;
@@ -114,6 +180,11 @@ export interface PaginationResponse<T> {
 	page: number;
 	pageSize: number;
 	totalPages: number;
+	stats?: {
+		total: number;
+		newThisMonth: number;
+		activeVolunteers: number;
+	};
 }
 
 // API 响应

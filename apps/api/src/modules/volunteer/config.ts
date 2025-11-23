@@ -2,6 +2,7 @@ import { t } from 'elysia'
 import {
   VolunteerCreateSchema,
   VolunteerListQuerySchema,
+  VolunteerRoleUpdateSchema,
   VolunteerSearchQuerySchema,
   VolunteerStatusUpdateSchema,
   VolunteerUpdateSchema,
@@ -92,6 +93,35 @@ export const VolunteerConfig = {
                     totalPages: 10,
                   },
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+
+  getAll:          {
+    query:  VolunteerListQuerySchema,
+    detail: {
+      tags:        ['义工管理-查询-批量查询'],
+      summary:     '获取所有义工（不分页）',
+      description: '获取所有义工数据，主要用于导出功能，支持筛选条件',
+      responses:   {
+        200: {
+          description: '查询成功',
+          content:     {
+            'application/json': {
+              example: {
+                success: true,
+                data:    [
+                  {
+                    lotusId: 'LZ-V-1234567',
+                    name:    '刘金艳',
+                    phone:   '13128851618',
+                    status:  'active',
+                  },
+                ],
               },
             },
           },
@@ -298,6 +328,31 @@ export const VolunteerConfig = {
     },
   },
 
+  getStats:        {
+    detail: {
+      tags:        ['义工管理-查询-统计数据'],
+      summary:     '获取义工统计数据',
+      description: '获取义工总数、本月新增、活跃义工等统计信息',
+      responses:   {
+        200: {
+          description: '查询成功',
+          content:     {
+            'application/json': {
+              example: {
+                success: true,
+                data:    {
+                  total:            100,
+                  newThisMonth:     10,
+                  activeVolunteers: 80,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+
   // ==================== 功能操作 ====================
 
   changePassword:  {
@@ -331,6 +386,21 @@ export const VolunteerConfig = {
       responses:   {
         200: {
           description: '变更成功',
+        },
+      },
+    },
+  },
+
+  changeRole:      {
+    params: t.Object({ lotusId: t.String() }),
+    body:   VolunteerRoleUpdateSchema,
+    detail: {
+      tags:        ['义工管理-功能-角色管理'],
+      summary:     '变更系统角色',
+      description: '将义工升为管理员，或将管理员恢复为义工/驻堂',
+      responses:   {
+        200: {
+          description: '角色更新成功',
         },
       },
     },

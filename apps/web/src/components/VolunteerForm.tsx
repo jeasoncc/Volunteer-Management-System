@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ImageUpload } from "@/components/ImageUpload";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 import { User, Phone, Mail, MapPin, GraduationCap, Heart, CreditCard, Users } from "lucide-react";
 
 interface VolunteerFormProps {
@@ -25,17 +26,35 @@ export function VolunteerForm({
 }: VolunteerFormProps) {
 	const form = useForm({
 		defaultValues: {
+			// 基本信息
 			name: volunteer?.name || "",
 			phone: volunteer?.phone || "",
 			idNumber: volunteer?.idNumber || "",
 			gender: volunteer?.gender || "male",
+			birthDate: volunteer?.birthDate || "",
 			email: volunteer?.email || "",
 			wechat: volunteer?.wechat || "",
 			address: volunteer?.address || "",
-			dharmaName: volunteer?.dharmaName || "",
-			education: volunteer?.education || "",
-			joinReason: volunteer?.joinReason || "",
 			avatar: volunteer?.avatar || "",
+
+			// 佛教信息
+			dharmaName: volunteer?.dharmaName || "",
+			education: volunteer?.education || "high_school",
+			hasBuddhismFaith: volunteer?.hasBuddhismFaith || false,
+			refugeStatus: volunteer?.refugeStatus || "none",
+			religiousBackground: volunteer?.religiousBackground || "upasaka",
+
+			// 健康和其他信息
+			healthConditions: volunteer?.healthConditions || "healthy",
+			joinReason: volunteer?.joinReason || "",
+			hobbies: volunteer?.hobbies || "",
+			availableTimes: volunteer?.availableTimes || "",
+			emergencyContact: volunteer?.emergencyContact || "",
+
+			// 义工状态和岗位
+			volunteerStatus: volunteer?.volunteerStatus || "applicant",
+			severPosition: volunteer?.severPosition || "other",
+			familyConsent: volunteer?.familyConsent || "self_decided",
 		},
 		onSubmit: async ({ value }) => {
 			await onSubmit(value);
@@ -51,7 +70,7 @@ export function VolunteerForm({
 			}}
 			className="space-y-6"
 		>
-			<div className="max-h-[75vh] overflow-y-auto px-1 space-y-6">
+			<div className="px-1 space-y-6">
 				{/* 照片上传 */}
 				<Card className="border-2 border-dashed hover:border-primary/50 transition-colors">
 					<CardContent className="flex justify-center pt-6">
@@ -231,6 +250,26 @@ export function VolunteerForm({
 
 							<div className="space-y-2">
 								<Label className="flex items-center gap-2">
+									<svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+									</svg>
+									出生日期
+								</Label>
+								<form.Field name="birthDate">
+									{(field) => (
+										<DatePicker
+											value={field.state.value}
+											onChange={(date) => {
+												field.handleChange(date ? format(date, "yyyy-MM-dd") : "");
+											}}
+											placeholder="选择出生日期"
+										/>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label className="flex items-center gap-2">
 									<Mail className="h-4 w-4 text-muted-foreground" />
 									邮箱
 								</Label>
@@ -283,7 +322,7 @@ export function VolunteerForm({
 					</CardContent>
 				</Card>
 
-				{/* 其他信息 */}
+				{/* 佛教信息 */}
 				<Card className="border-l-4 border-l-blue-500">
 					<CardHeader className="pb-4 bg-blue-50/50 dark:bg-blue-950/20">
 						<div className="flex items-center gap-2">
@@ -291,7 +330,7 @@ export function VolunteerForm({
 								<Heart className="h-5 w-5 text-blue-500" />
 							</div>
 							<div>
-								<CardTitle className="text-lg">其他信息</CardTitle>
+								<CardTitle className="text-lg">佛教信息</CardTitle>
 								<CardDescription className="text-xs">选填项</CardDescription>
 							</div>
 						</div>
@@ -321,10 +360,224 @@ export function VolunteerForm({
 								</Label>
 								<form.Field name="education">
 									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择学历" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="none">无</SelectItem>
+												<SelectItem value="elementary">小学</SelectItem>
+												<SelectItem value="middle_school">初中</SelectItem>
+												<SelectItem value="high_school">高中</SelectItem>
+												<SelectItem value="bachelor">本科</SelectItem>
+												<SelectItem value="master">硕士</SelectItem>
+												<SelectItem value="phd">博士</SelectItem>
+												<SelectItem value="other">其他</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>皈依状态</Label>
+								<form.Field name="refugeStatus">
+									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择皈依状态" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="none">未皈依</SelectItem>
+												<SelectItem value="took_refuge">已皈依</SelectItem>
+												<SelectItem value="five_precepts">受五戒</SelectItem>
+												<SelectItem value="bodhisattva">菩萨戒</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>宗教身份</Label>
+								<form.Field name="religiousBackground">
+									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择宗教身份" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="upasaka">居士（男）</SelectItem>
+												<SelectItem value="upasika">居士（女）</SelectItem>
+												<SelectItem value="sramanera">沙弥</SelectItem>
+												<SelectItem value="sramanerika">沙弥尼</SelectItem>
+												<SelectItem value="bhikkhu">比丘</SelectItem>
+												<SelectItem value="bhikkhuni">比丘尼</SelectItem>
+												<SelectItem value="anagarika">净人</SelectItem>
+												<SelectItem value="buddhist_visitor">访客</SelectItem>
+												<SelectItem value="none">无</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>健康状况</Label>
+								<form.Field name="healthConditions">
+									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择健康状况" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="healthy">健康</SelectItem>
+												<SelectItem value="has_chronic_disease">有慢性病</SelectItem>
+												<SelectItem value="has_disability">有残疾</SelectItem>
+												<SelectItem value="has_allergies">有过敏</SelectItem>
+												<SelectItem value="recovering_from_illness">恢复中</SelectItem>
+												<SelectItem value="other_conditions">其他情况</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>家属同意情况</Label>
+								<form.Field name="familyConsent">
+									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择家属同意情况" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="approved">同意</SelectItem>
+												<SelectItem value="partial">部分同意</SelectItem>
+												<SelectItem value="rejected">不同意</SelectItem>
+												<SelectItem value="self_decided">自主决定</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+
+				{/* 义工信息 */}
+				<Card className="border-l-4 border-l-green-500">
+					<CardHeader className="pb-4 bg-green-50/50 dark:bg-green-950/20">
+						<div className="flex items-center gap-2">
+							<div className="p-2 bg-green-500/10 rounded-lg">
+								<Users className="h-5 w-5 text-green-500" />
+							</div>
+							<div>
+								<CardTitle className="text-lg">义工信息</CardTitle>
+								<CardDescription className="text-xs">选填项</CardDescription>
+							</div>
+						</div>
+					</CardHeader>
+					<CardContent className="pt-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div className="space-y-2">
+								<Label>服务岗位</Label>
+								<form.Field name="severPosition">
+									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择服务岗位" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="kitchen">厨房</SelectItem>
+												<SelectItem value="chanting">助念</SelectItem>
+												<SelectItem value="cleaning">清洁</SelectItem>
+												<SelectItem value="reception">接待</SelectItem>
+												<SelectItem value="security">安保</SelectItem>
+												<SelectItem value="office">办公室</SelectItem>
+												<SelectItem value="other">其他</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>义工状态</Label>
+								<form.Field name="volunteerStatus">
+									{(field) => (
+										<Select
+											value={field.state.value}
+											onValueChange={(value) => field.handleChange(value as any)}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择义工状态" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="applicant">申请人</SelectItem>
+												<SelectItem value="trainee">培训中</SelectItem>
+												<SelectItem value="registered">已注册</SelectItem>
+												<SelectItem value="inactive">不活跃</SelectItem>
+												<SelectItem value="suspended">暂停</SelectItem>
+											</SelectContent>
+										</Select>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>可服务时间</Label>
+								<form.Field name="availableTimes">
+									{(field) => (
 										<Input
 											value={field.state.value}
 											onChange={(e) => field.handleChange(e.target.value)}
-											placeholder="请输入学历"
+											placeholder="例如：周末、工作日晚上"
+										/>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label>紧急联系人</Label>
+								<form.Field name="emergencyContact">
+									{(field) => (
+										<Input
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											placeholder="姓名+电话"
+										/>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2 md:col-span-2">
+								<Label>爱好特长</Label>
+								<form.Field name="hobbies">
+									{(field) => (
+										<Textarea
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											placeholder="请输入爱好特长..."
+											className="min-h-[80px] resize-none"
 										/>
 									)}
 								</form.Field>

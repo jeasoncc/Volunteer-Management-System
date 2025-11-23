@@ -17,11 +17,11 @@ export function useAuth() {
 				const res = await authService.me();
 				return res.data || null;
 			} catch (error: any) {
-				// If we get a 401 error, clear the auth cache
-				if (error?.response?.status === 401) {
+				// 401 错误是正常的未登录状态，不需要打印错误日志
+				if (error?.message?.includes("未登录") || error?.message?.includes("未授权")) {
 					return null;
 				}
-				// For other errors, still return null but log them
+				// 其他错误才打印日志
 				console.error("获取用户信息失败:", error);
 				return null;
 			}
@@ -32,8 +32,13 @@ export function useAuth() {
 	// 登录
 	const loginMutation = useMutation({
 		mutationFn: (params: LoginParams) => authService.login(params),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+		onSuccess: async (data) => {
+			// 直接设置用户数据到缓存，避免等待重新获取
+			if (data?.data?.user) {
+				queryClient.setQueryData(["auth", "me"], data.data.user);
+			}
+			// 同时触发重新获取以确保数据最新
+			await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
 		},
 		onError: (error) => {
 			console.error("登录失败:", error);
@@ -59,6 +64,8 @@ export function useAuth() {
 		user,
 		isLoading,
 		isAuthenticated: !!user,
+		isSuperAdmin: user?.adminInfo?.role === "super",
+		isAdmin: user?.lotusRole === "admin",
 		login: loginMutation.mutateAsync,
 		logout: logoutMutation.mutateAsync,
 		isLoggingIn: loginMutation.isPending,

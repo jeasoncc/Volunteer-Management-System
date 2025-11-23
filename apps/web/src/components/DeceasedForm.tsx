@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 import { User, Phone, MapPin, Calendar, Heart, Users } from "lucide-react";
 
 interface DeceasedFormProps {
@@ -57,7 +58,7 @@ export function DeceasedForm({
 			}}
 			className="space-y-6"
 		>
-			<div className="max-h-[75vh] overflow-y-auto px-1 space-y-6">
+			<div className="px-1 space-y-6">
 				{/* 基本信息 */}
 				<Card className="border-l-4 border-l-primary">
 					<CardHeader className="pb-4 bg-muted/30">
@@ -177,11 +178,12 @@ export function DeceasedForm({
 								</Label>
 								<form.Field name="birthDate">
 									{(field) => (
-										<Input
-											id="birthDate"
-											type="date"
+										<DatePicker
 											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
+											onChange={(date) => {
+												field.handleChange(date ? format(date, "yyyy-MM-dd") : "");
+											}}
+											placeholder="选择出生日期"
 										/>
 									)}
 								</form.Field>
@@ -193,12 +195,12 @@ export function DeceasedForm({
 								</Label>
 								<form.Field name="deathDate">
 									{(field) => (
-										<Input
-											id="deathDate"
-											type="date"
+										<DatePicker
 											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
-											required
+											onChange={(date) => {
+												field.handleChange(date ? format(date, "yyyy-MM-dd") : "");
+											}}
+											placeholder="选择往生日期"
 										/>
 									)}
 								</form.Field>

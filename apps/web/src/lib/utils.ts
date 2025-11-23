@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { debounce as _debounce, throttle as _throttle } from "lodash-es";
 
 /**
  * 合并 Tailwind CSS 类名
@@ -38,39 +39,15 @@ export function sleep(ms: number): Promise<void> {
 }
 
 /**
- * 防抖函数
+ * 防抖函数 (使用 lodash)
+ * @param func 要防抖的函数
+ * @param wait 等待时间（毫秒）
  */
-export function debounce<T extends (...args: any[]) => any>(
-	func: T,
-	wait: number,
-): (...args: Parameters<T>) => void {
-	let timeout: NodeJS.Timeout | null = null;
-
-	return function executedFunction(...args: Parameters<T>) {
-		const later = () => {
-			timeout = null;
-			func(...args);
-		};
-
-		if (timeout) clearTimeout(timeout);
-		timeout = setTimeout(later, wait);
-	};
-}
+export const debounce = _debounce;
 
 /**
- * 节流函数
+ * 节流函数 (使用 lodash)
+ * @param func 要节流的函数
+ * @param wait 等待时间（毫秒）
  */
-export function throttle<T extends (...args: any[]) => any>(
-	func: T,
-	limit: number,
-): (...args: Parameters<T>) => void {
-	let inThrottle: boolean;
-
-	return function executedFunction(...args: Parameters<T>) {
-		if (!inThrottle) {
-			func(...args);
-			inThrottle = true;
-			setTimeout(() => (inThrottle = false), limit);
-		}
-	};
-}
+export const throttle = _throttle;

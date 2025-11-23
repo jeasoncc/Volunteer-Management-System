@@ -8,11 +8,11 @@ import {
 	Shield,
 	Settings,
 	FileText,
-	Flower2,
-	Plus,
+	Plus
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
+import { LotusLogo } from "@/components/ui/lotus-logo";
 import { Button } from "@/components/ui/button";
 import {
 	Sidebar,
@@ -24,7 +24,8 @@ import {
 	SidebarMenuItem,
 	SidebarGroup,
 	SidebarGroupLabel,
-	SidebarGroupContent
+	SidebarGroupContent,
+	useSidebar
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { approvalService } from "@/services/approval";
@@ -33,6 +34,7 @@ import { checkinService } from "@/services/checkin";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { user, isAuthenticated } = useAuth();
 	const location = useLocation();
+	// const { state } = useSidebar(); // 获取侧边栏状态
 
 	// 获取待审批数量
 	const { data: pendingData } = useQuery({
@@ -113,7 +115,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		{
 			title: "往生者管理",
 			url: "/deceased",
-			icon: Flower2,
+			icon: LotusLogo,
 		},
 		{
 			title: "助念排班",
@@ -154,43 +156,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	};
 
 	return (
-		<Sidebar collapsible="icon" {...props} className="border-r-0 shadow-xl bg-card/50 backdrop-blur-xl">
-			<SidebarHeader>
+		<Sidebar collapsible="icon" {...props} className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm">
+			<SidebarHeader className="pb-4 pt-4">
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:!p-2 hover:bg-transparent active:bg-transparent"
+							className="data-[slot=sidebar-menu-button]:!p-2 hover:bg-sidebar-accent active:bg-sidebar-accent"
 						>
 							<Link to="/">
-								<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
-									<Flower2 className="h-5 w-5" />
+								<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-sidebar-primary text-sidebar-primary-foreground">
+									<LotusLogo className="h-6 w-6" />
 								</div>
-								<div className="flex flex-col gap-0.5 leading-none">
-									<span className="text-lg font-bold tracking-tight">莲花斋</span>
-									<span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">v1.0.0</span>
+								<div className="flex flex-col gap-0.5 leading-none min-w-0 items-start justify-center">
+									<span className="text-lg font-serif font-bold tracking-wide text-sidebar-foreground truncate">生命关怀</span>
 								</div>
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
-				{/* 快捷操作按钮 */}
-				<div className="px-2 py-2">
+				
+				{/* 快捷操作按钮 - 仅在展开时显示 */}
+				<div className="px-2 py-2 group-data-[collapsible=icon]:hidden">
 					<Button 
-						className="w-full shadow-sm group-data-[collapsible=icon]:hidden bg-primary/90 hover:bg-primary" 
+						className="w-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 shadow-none border border-transparent rounded-sm" 
 						size="sm"
 						asChild
 					>
 						<Link to="/volunteers" search={{ action: "add" }}>
 							<Plus className="h-4 w-4 mr-2" />
-							添加义工
+							<span className="font-serif tracking-wide">新增义工</span>
 						</Link>
 					</Button>
 				</div>
 			</SidebarHeader>
+			
 			<SidebarContent>
 				<SidebarGroup>
-					<SidebarGroupLabel>平台功能</SidebarGroupLabel>
+					<SidebarGroupLabel className="text-sidebar-foreground/50 font-serif tracking-widest text-xs">目录</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{navMain.map((item) => {
@@ -205,25 +208,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 											isActive={isActive}
 											tooltip={item.title}
 											className={`
-												relative overflow-hidden transition-all duration-200
+												relative transition-all duration-200 rounded-sm my-0.5
 												${isActive 
-													? "bg-primary/10 text-primary font-medium shadow-sm" 
-													: "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+													? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+													: "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
 												}
 											`}
 										>
 											<Link to={item.url}>
-												{/* 左侧激活指示器 */}
-												{isActive && (
-													<div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-primary rounded-r-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-												)}
-												
-												<item.icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-primary" : ""}`} />
-												<span>{item.title}</span>
+												<item.icon className={`h-4 w-4 shrink-0 opacity-80`} />
+												<span className="font-medium tracking-wide">{item.title}</span>
 												
 												{/* 待审批徽章 */}
 												{item.badge === "pending" && pendingCount > 0 && (
-													<span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white shadow-sm">
+													<span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground shadow-sm">
 														{pendingCount > 99 ? "99+" : pendingCount}
 													</span>
 												)}
@@ -236,17 +234,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
-			<SidebarFooter>
-				{/* 统计信息 */}
-				<div className="mx-2 mb-2 p-3 rounded-xl bg-muted/30 border border-border/50 group-data-[collapsible=icon]:hidden">
+			
+			<SidebarFooter className="border-t border-sidebar-border/50 pt-2">
+				{/* 统计信息 - 仅在展开时显示 */}
+				<div className="mx-2 mb-4 p-3 rounded-sm bg-sidebar-accent/30 border border-sidebar-border group-data-[collapsible=icon]:hidden">
 					<div className="space-y-2">
 						<div className="flex justify-between items-center text-xs">
-							<span className="text-muted-foreground">义工总数</span>
-							<span className="font-semibold text-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">{totalVolunteers}</span>
+							<span className="text-sidebar-foreground/60 font-serif">义工总数</span>
+							<span className="font-mono font-semibold text-sidebar-foreground">{totalVolunteers}</span>
 						</div>
 						<div className="flex justify-between items-center text-xs">
-							<span className="text-muted-foreground">本月工时</span>
-							<span className="font-semibold text-foreground bg-background px-1.5 py-0.5 rounded border shadow-sm">{totalServiceHours.toFixed(0)}</span>
+							<span className="text-sidebar-foreground/60 font-serif">本月工时</span>
+							<span className="font-mono font-semibold text-sidebar-foreground">{totalServiceHours.toFixed(0)}</span>
 						</div>
 					</div>
 				</div>

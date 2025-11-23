@@ -1,6 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 
 interface AdminData {
 	id?: number;
@@ -128,10 +129,12 @@ export function AdminForm({ admin, onSubmit, onCancel }: AdminFormProps) {
 					<label className="text-sm font-medium">出生日期</label>
 					<form.Field name="birthDate">
 						{(field) => (
-							<Input
-								type="date"
+							<DatePicker
 								value={field.state.value}
-								onChange={(e) => field.handleChange(e.target.value)}
+								onChange={(date) => {
+									field.handleChange(date ? format(date, "yyyy-MM-dd") : "");
+								}}
+								placeholder="选择出生日期"
 							/>
 						)}
 					</form.Field>

@@ -1,7 +1,7 @@
-import { and, count, eq, like, or } from 'drizzle-orm'
+import { and, count, eq, like, or, sql } from 'drizzle-orm'
 import { MySqlTransaction } from 'drizzle-orm/mysql-core'
 import { db } from '../../db'
-import { volunteer } from '../../db/schema'
+import { volunteer, admin } from '../../db/schema'
 import { generateLotusId } from '../../utils/lotusIdFn'
 import { VolunteerCreateDto, VolunteerListQuery, VolunteerUpdateDto } from './model'
 import { filterableFields, VolunteerStatus } from './types'
@@ -207,6 +207,80 @@ export class VolunteerService {
   }
 
   /**
+   * 根据 lotusId 变更角色
+   * 需要超级管理员权限
+   */
+  static async changeRoleByLotusId(
+    lotusId: string,
+    newRole: 'admin' | 'volunteer',
+    operatorId: number,
+    operatorAdminRole?: string,
+  ) {
+    return db.transaction(async tx => {
+      // 检查操作者权限
+      if (operatorAdminRole !== 'super') {
+        throw new Error('权限不足，只有超级管理员可以变更用户角色')
+      }
+
+      const [existing] = await tx.select().from(volunteer).where(eq(volunteer.lotusId, lotusId))
+
+      if (!existing) throw new Error('义工不存在')
+
+      if (existing.lotusRole === newRole) {
+        return {
+          success: true,
+          message: '角色未发生变化',
+        }
+      }
+
+      // 如果是升为管理员，需要在 admin 表中创建记录
+      if (newRole === 'admin' && existing.lotusRole !== 'admin') {
+        // 检查 admin 表中是否已有记录
+        const [existingAdmin] = await tx.select().from(admin).where(eq(admin.id, existing.id))
+
+        if (!existingAdmin) {
+          // 创建普通管理员记录
+          await tx.insert(admin).values({
+            id:          existing.id,
+            role:        'admin', // 默认为普通管理员
+            permissions: null,
+            isActive:    true,
+          })
+        }
+      }
+
+      // 如果是从管理员降为其他角色，删除 admin 表记录（但保留 super admin）
+      if (newRole !== 'admin' && existing.lotusRole === 'admin') {
+        const [existingAdmin] = await tx.select().from(admin).where(eq(admin.id, existing.id))
+
+        // 不允许降级超级管理员
+        if (existingAdmin?.role === 'super') {
+          throw new Error('不能降级超级管理员')
+        }
+
+        // 删除普通管理员记录
+        if (existingAdmin) {
+          await tx.delete(admin).where(eq(admin.id, existing.id))
+        }
+      }
+
+      await tx
+        .update(volunteer)
+        .set({
+          lotusRole: newRole,
+          updatedAt: new Date(),
+        })
+        .where(eq(volunteer.lotusId, lotusId))
+
+      return {
+        success: true,
+        message: `角色已更新为 ${newRole === 'admin' ? '管理员' : '义工'}`,
+        data:    { lotusId, newRole, name: existing.name },
+      }
+    })
+  }
+
+  /**
    * 批量删除（根据 lotusId 数组）
    */
   static async batchDelete(lotusIds: string[]) {
@@ -266,7 +340,7 @@ export class VolunteerService {
    * 获取义工列表
    */
   static async getList(query: VolunteerListQuery) {
-    const { page = 1, limit = 10, ...filters } = query
+    const { page = 1, limit = 10, keyword, ...filters } = query
     const offset = (page - 1) * limit
 
     // 构建筛选条件 - 完全类型安全
@@ -284,7 +358,19 @@ export class VolunteerService {
           : eq(volunteer[key], value)
       })
 
-    const [volunteers, totalResult] = await Promise.all([
+    // 如果有关键词搜索，添加 OR 条件
+    if (keyword && keyword.trim()) {
+      const keywordCondition = or(
+        like(volunteer.name, `%${keyword}%`),
+        like(volunteer.phone, `%${keyword}%`),
+        like(volunteer.account, `%${keyword}%`),
+        like(volunteer.email, `%${keyword}%`),
+        like(volunteer.lotusId, `%${keyword}%`),
+      )
+      whereConditions.push(keywordCondition as any)
+    }
+
+    const [volunteers, totalResult, newThisMonthResult, activeResult] = await Promise.all([
       db
         .select()
         .from(volunteer)
@@ -296,6 +382,17 @@ export class VolunteerService {
         .select({ count: count() })
         .from(volunteer)
         .where(whereConditions.length > 0 ? and(...whereConditions) : undefined),
+      db
+        .select({ count: count() })
+        .from(volunteer)
+        .where(sql`
+          YEAR(${volunteer.createdAt}) = YEAR(CURRENT_DATE)
+          AND MONTH(${volunteer.createdAt}) = MONTH(CURRENT_DATE)
+        `),
+      db
+        .select({ count: count() })
+        .from(volunteer)
+        .where(eq(volunteer.volunteerStatus, 'registered')),
     ])
 
     const total = Number(totalResult[0]?.count) || 0
@@ -306,6 +403,11 @@ export class VolunteerService {
       page,
       pageSize:   limit,
       totalPages: Math.ceil(total / limit),
+      stats: {
+        total,
+        newThisMonth:    Number(newThisMonthResult[0]?.count) || 0,
+        activeVolunteers: Number(activeResult[0]?.count) || 0,
+      },
     }
   }
 
@@ -447,5 +549,55 @@ export class VolunteerService {
       )
       .limit(limit)
       .orderBy(volunteer.name)
+  }
+
+  /**
+   * 获取义工统计数据
+   */
+  static async getStats() {
+    const now = new Date()
+    const thisMonth = now.getMonth() // JavaScript月份从0开始，0-11
+    const thisYear = now.getFullYear()
+
+    // 计算本月的起始和结束日期（转换为 ISO 字符串格式）
+    const monthStart = new Date(thisYear, thisMonth, 1)
+    const monthEnd = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
+
+    console.log('📅 统计时间范围:', { monthStart, monthEnd, thisYear, thisMonth })
+
+    // 获取总数
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(volunteer)
+
+    console.log('📊 总数查询结果:', totalResult)
+
+    // 获取本月新增（使用日期范围查询，使用 SQL 函数）
+    const [newThisMonthResult] = await db
+      .select({ count: count() })
+      .from(volunteer)
+      .where(
+        sql`YEAR(${volunteer.createdAt}) = ${thisYear} AND MONTH(${volunteer.createdAt}) = ${thisMonth + 1}`
+      )
+
+    console.log('📊 本月新增查询结果:', newThisMonthResult)
+
+    // 获取活跃义工（已注册状态）
+    const [activeResult] = await db
+      .select({ count: count() })
+      .from(volunteer)
+      .where(eq(volunteer.volunteerStatus, 'registered'))
+
+    console.log('📊 活跃义工查询结果:', activeResult)
+
+    const result = {
+      total:            Number(totalResult?.count) || 0,
+      newThisMonth:     Number(newThisMonthResult?.count) || 0,
+      activeVolunteers: Number(activeResult?.count) || 0,
+    }
+
+    console.log('📊 最终统计结果:', result)
+
+    return result
   }
 }

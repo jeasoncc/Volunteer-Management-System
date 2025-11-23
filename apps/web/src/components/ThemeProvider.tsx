@@ -1,55 +1,77 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "light" | "dark" | "blue" | "green" | "purple" | "orange";
+type Mode = "light" | "dark" | "system";
+type ColorTheme = "theme-lotus" | "theme-land" | "theme-lapis";
 
 type ThemeProviderProps = {
 	children: React.ReactNode;
-	defaultTheme?: Theme;
+	defaultMode?: Mode;
+	defaultColorTheme?: ColorTheme;
 	storageKey?: string;
 };
 
 type ThemeProviderState = {
-	theme: Theme;
-	setTheme: (theme: Theme) => void;
+	mode: Mode;
+	setMode: (mode: Mode) => void;
+	colorTheme: ColorTheme;
+	setColorTheme: (theme: ColorTheme) => void;
 };
 
 const initialState: ThemeProviderState = {
-	theme: "light",
-	setTheme: () => null,
+	mode: "system",
+	setMode: () => null,
+	colorTheme: "theme-lotus",
+	setColorTheme: () => null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
 	children,
-	defaultTheme = "light",
+	defaultMode = "system",
+	defaultColorTheme = "theme-lotus",
 	storageKey = "vite-ui-theme",
 	...props
 }: ThemeProviderProps) {
-	const [theme, setTheme] = useState<Theme>(
-		() => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
+	const [mode, setMode] = useState<Mode>(
+		() => (localStorage.getItem(`${storageKey}-mode`) as Mode) || defaultMode,
+	);
+	const [colorTheme, setColorTheme] = useState<ColorTheme>(
+		() => (localStorage.getItem(`${storageKey}-color`) as ColorTheme) || defaultColorTheme,
 	);
 
 	useEffect(() => {
 		const root = window.document.documentElement;
 
-		// 移除所有主题类
-		root.classList.remove("light", "dark", "blue", "green", "purple", "orange");
+		// 1. 处理 Dark Mode
+		root.classList.remove("light", "dark");
 
-		// 添加当前主题类
-		root.classList.add(theme);
-
-		// 如果是深色主题，也添加 dark 类
-		if (theme === "dark") {
-			root.classList.add("dark");
+		if (mode === "system") {
+			const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+				.matches
+				? "dark"
+				: "light";
+			root.classList.add(systemTheme);
+		} else {
+			root.classList.add(mode);
 		}
-	}, [theme]);
+
+		// 2. 处理 Color Theme
+		root.classList.remove("theme-lotus", "theme-land", "theme-lapis");
+		root.classList.add(colorTheme);
+		
+	}, [mode, colorTheme]);
 
 	const value = {
-		theme,
-		setTheme: (theme: Theme) => {
-			localStorage.setItem(storageKey, theme);
-			setTheme(theme);
+		mode,
+		setMode: (mode: Mode) => {
+			localStorage.setItem(`${storageKey}-mode`, mode);
+			setMode(mode);
+		},
+		colorTheme,
+		setColorTheme: (theme: ColorTheme) => {
+			localStorage.setItem(`${storageKey}-color`, theme);
+			setColorTheme(theme);
 		},
 	};
 

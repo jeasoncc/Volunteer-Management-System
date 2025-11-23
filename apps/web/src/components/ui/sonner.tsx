@@ -5,31 +5,35 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useTheme } from "../ThemeProvider"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { mode } = useTheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={mode as ToasterProps["theme"]}
       className="toaster group"
+      position="top-right"
+      richColors={true}
+      closeButton={true}
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon className="h-5 w-5" />,
+        info: <InfoIcon className="h-5 w-5" />,
+        warning: <TriangleAlertIcon className="h-5 w-5" />,
+        error: <OctagonXIcon className="h-5 w-5" />,
+        loading: <Loader2Icon className="h-5 w-5 animate-spin" />,
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
+      toastOptions={{
+        classNames: {
+          // 仅对 default 类型的 toast 应用应用背景色，其他类型使用 richColors 的颜色
+          toast: "group toast group-[.toaster]:shadow-lg font-sans data-[type=default]:bg-background data-[type=default]:text-foreground data-[type=default]:border-border data-[type=default]:border",
+          description: "group-[.toast]:text-muted-foreground",
+          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+        },
+      }}
       {...props}
     />
   )

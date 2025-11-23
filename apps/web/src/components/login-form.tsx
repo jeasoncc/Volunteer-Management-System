@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export function LoginForm({
 	className,
@@ -19,7 +20,6 @@ export function LoginForm({
 	const [password, setPassword] = useState("");
 	const [rememberMe, setRememberMe] = useState(false);
 	const [error, setError] = useState("");
-	const [showPassword, setShowPassword] = useState(false);
 	const [isShaking, setIsShaking] = useState(false);
 	const accountInputRef = useRef<HTMLInputElement>(null);
 	const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +49,12 @@ export function LoginForm({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		
+		// 防止重复提交
+		if (isLoggingIn) {
+			return;
+		}
+		
 		setError("");
 
 		if (!account || !password) {
@@ -78,17 +84,31 @@ export function LoginForm({
 				localStorage.removeItem("rememberMe");
 			}
 
+			toast.success("登录成功", {
+				description: "欢迎回来！",
+			});
+
+			// 等待一小段时间确保 React Query 缓存已更新，然后跳转
+			await new Promise(resolve => setTimeout(resolve, 100));
+			
 			// Redirect to dashboard after successful login
 			navigate({ to: "/" });
 		} catch (err: any) {
+			let errorMessage = "登录失败，请检查账号密码";
 			// More specific error handling
 			if (err.message?.includes("401")) {
-				setError("账号或密码错误");
+				errorMessage = "账号或密码错误";
 			} else if (err.message?.includes("网络")) {
-				setError("网络连接失败，请检查网络设置");
-			} else {
-				setError(err.message || "登录失败，请检查账号密码");
+				errorMessage = "网络连接失败，请检查网络设置";
+			} else if (err.message) {
+				errorMessage = err.message;
 			}
+			
+			setError(errorMessage);
+			toast.error("登录失败", {
+				description: errorMessage,
+			});
+			
 			// Clear password field on error
 			setPassword("");
 			// 触发震动动画
@@ -107,102 +127,104 @@ export function LoginForm({
 
 	return (
 		<form
-			className={cn("flex flex-col gap-6", className)}
+			className={cn("grid gap-6", className)}
 			onSubmit={handleSubmit}
 			{...props}
 		>
-			<div className="flex flex-col items-center gap-2 text-center">
-				<h1 className="text-2xl font-bold">莲花斋义工管理系统</h1>
-				<p className="text-balance text-sm text-muted-foreground">
-					请使用管理员账号登录系统
-				</p>
-			</div>
-			<div className="grid gap-6">
+			{error && (
+				<Alert 
+					variant="destructive"
+					className={cn(
+						"bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-200",
+						isShaking && "animate-shake"
+					)}
+				>
+					<AlertDescription className="text-sm font-medium">
+						{error}
+					</AlertDescription>
+				</Alert>
+			)}
+
+			<div className="grid gap-4">
 				<div className="grid gap-2">
-					<Label htmlFor="account">账号</Label>
+					<Label htmlFor="account" className="text-stone-600 dark:text-stone-400 font-medium">
+						账号
+					</Label>
 					<Input
 						ref={accountInputRef}
 						id="account"
 						type="text"
-						placeholder="请输入账号"
+						placeholder="请输入管理员账号"
 						value={account}
 						onChange={(e) => setAccount(e.target.value)}
 						onKeyDown={handleAccountKeyDown}
 						disabled={isLoggingIn}
 						required
 						autoComplete="username"
+						className="h-11 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 focus-visible:ring-stone-400 rounded-md"
 					/>
 				</div>
+				
 				<div className="grid gap-2">
-					<Label htmlFor="password">密码</Label>
-					<div className="relative">
-						<Input
-							ref={passwordInputRef}
-							id="password"
-							type={showPassword ? "text" : "password"}
-							placeholder="请输入密码"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							disabled={isLoggingIn}
-							required
-							autoComplete="current-password"
-							className="pr-10"
-						/>
-						<button
-							type="button"
-							onClick={() => setShowPassword(!showPassword)}
-							disabled={isLoggingIn}
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-							aria-label={showPassword ? "隐藏密码" : "显示密码"}
-						>
-							{showPassword ? (
-								<EyeOff className="h-4 w-4" />
-							) : (
-								<Eye className="h-4 w-4" />
-							)}
-						</button>
+					<div className="flex items-center justify-between">
+						<Label htmlFor="password" className="text-stone-600 dark:text-stone-400 font-medium">
+							密码
+						</Label>
 					</div>
-				</div>
-				<div className="flex items-center space-x-2">
-					<Checkbox
-						id="remember"
-						checked={rememberMe}
-						onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+					<Input
+						ref={passwordInputRef}
+						id="password"
+						type="password"
+						placeholder="请输入登录密码"
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
 						disabled={isLoggingIn}
+						required
+						autoComplete="current-password"
+						className="h-11 bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 focus-visible:ring-stone-400 rounded-md"
 					/>
-					<Label
-						htmlFor="remember"
-						className="text-sm font-normal cursor-pointer"
-					>
-						记住密码
-					</Label>
 				</div>
-				{error && (
-					<Alert 
-						variant="destructive"
-						className={cn(
-							"transition-all",
-							isShaking && "animate-shake"
-						)}
-					>
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
-				)}
-				<Button type="submit" className="w-full" disabled={isLoggingIn}>
+
+				<div className="flex items-center justify-between pt-2">
+					<div className="flex items-center space-x-2">
+						<Checkbox
+							id="remember"
+							checked={rememberMe}
+							onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+							disabled={isLoggingIn}
+							className="border-stone-300 data-[state=checked]:bg-stone-800 data-[state=checked]:border-stone-800 rounded-sm"
+						/>
+						<Label
+							htmlFor="remember"
+							className="text-sm font-normal cursor-pointer text-stone-600 hover:text-stone-900"
+						>
+							记住密码
+						</Label>
+					</div>
+					<Button variant="link" className="px-0 h-auto font-normal text-xs text-stone-500 hover:text-stone-800 hover:no-underline" asChild>
+						<a href="#" onClick={(e) => e.preventDefault()}>忘记密码?</a>
+					</Button>
+				</div>
+
+				<Button 
+					type="submit" 
+					className="w-full h-11 mt-2 bg-stone-900 hover:bg-stone-800 text-stone-50 font-medium rounded-md tracking-wide transition-colors duration-300" 
+					disabled={isLoggingIn}
+				>
 					{isLoggingIn ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							登录中...
+							正在登录...
 						</>
 					) : (
-						"登录"
+						"登 录"
 					)}
 				</Button>
 			</div>
+
 			{isDevelopment && (
-				<div className="text-center text-sm text-muted-foreground">
-					默认账号：<span className="font-medium">admin</span> / 密码：
-					<span className="font-medium">admin123</span>
+				<div className="mt-4 text-center text-xs text-stone-400 bg-stone-100 dark:bg-stone-900/50 p-3 rounded border border-stone-200 dark:border-stone-800">
+					<p className="font-mono">Dev: admin / admin123</p>
 				</div>
 			)}
 		</form>

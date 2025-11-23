@@ -46,10 +46,13 @@ api.interceptors.response.use(
 		const message =
 			error.response?.data?.message || error.message || "请求失败";
 
-		// 401 未授权
+		// 401 未授权 - 对于 /api/auth/me 请求，这是正常的未登录状态，不需要报错
 		if (error.response?.status === 401) {
-			// 可以跳转到登录页
-			console.error("未授权，请先登录");
+			const isAuthMeRequest = error.config?.url?.includes('/api/auth/me');
+			if (!isAuthMeRequest) {
+				console.error("未授权，请先登录");
+			}
+			// 对于 auth/me 请求，静默处理 401 错误
 		}
 
 		// 403 禁止访问

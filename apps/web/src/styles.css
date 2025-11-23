@@ -1,160 +1,227 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* 
+  主题：庄严净土 • 莲池海会
+  核心意象：大地（沉稳）、莲花（清净）、琉璃（明澈）、金（庄严）
+*/
+
 @theme {
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.141 0.005 285.823);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.141 0.005 285.823);
-  --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.141 0.005 285.823);
-  --color-primary: oklch(0.541 0.281 293.009);
-  --color-primary-foreground: oklch(0.969 0.016 293.756);
-  --color-secondary: oklch(0.967 0.001 286.375);
-  --color-secondary-foreground: oklch(0.21 0.006 285.885);
-  --color-muted: oklch(0.967 0.001 286.375);
-  --color-muted-foreground: oklch(0.552 0.016 285.938);
-  --color-accent: oklch(0.967 0.001 286.375);
-  --color-accent-foreground: oklch(0.21 0.006 285.885);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(0.969 0.016 293.756);
-  --color-border: oklch(0.92 0.004 286.32);
-  --color-input: oklch(0.92 0.004 286.32);
-  --color-ring: oklch(0.702 0.183 293.541);
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.65rem;
-  --radius-xl: 1rem;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @custom-variant dark (&:is(.dark *));
 
+/* 默认主题：莲池海会 (theme-lotus) */
 :root {
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --radius: 0.25rem;
+
+  /* 背景：极淡的暖米色/宣纸色 */
+  --background: oklch(0.985 0.01 85);
+  --foreground: oklch(0.25 0.02 60);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.25 0.02 60);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.541 0.281 293.009);
-  --primary-foreground: oklch(0.969 0.016 293.756);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.969 0.016 293.756);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.702 0.183 293.541);
-  --chart-1: oklch(0.811 0.111 293.571);
-  --chart-2: oklch(0.606 0.25 292.717);
-  --chart-3: oklch(0.541 0.281 293.009);
-  --chart-4: oklch(0.491 0.27 292.581);
-  --chart-5: oklch(0.432 0.232 292.759);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.541 0.281 293.009);
-  --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-  --sidebar-accent: oklch(0.92 0.015 293.009);
-  --sidebar-accent-foreground: oklch(0.541 0.281 293.009);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.702 0.183 293.541);
+  --popover-foreground: oklch(0.25 0.02 60);
+
+  /* Primary：庄严的深莲紫色（偏红褐） */
+  --primary: oklch(0.45 0.1 340);
+  --primary-foreground: oklch(0.98 0.01 340);
+
+  /* Secondary：淡雅的青琉璃色 */
+  --secondary: oklch(0.96 0.02 200);
+  --secondary-foreground: oklch(0.3 0.05 200);
+
+  /* Muted */
+  --muted: oklch(0.96 0.01 85);
+  --muted-foreground: oklch(0.55 0.02 60);
+
+  /* Accent */
+  --accent: oklch(0.96 0.03 85);
+  --accent-foreground: oklch(0.25 0.02 60);
+
+  /* Destructive */
+  --destructive: oklch(0.55 0.15 25);
+  --destructive-foreground: oklch(0.98 0.01 85);
+
+  /* Border */
+  --border: oklch(0.92 0.01 85);
+  --input: oklch(0.92 0.01 85);
+  --ring: oklch(0.45 0.1 340 / 0.2);
+
+  /* Sidebar (莲池海会 - 深紫檀色) */
+  --sidebar: oklch(0.2 0.03 280);
+  --sidebar-foreground: oklch(0.96 0.01 280);
+  --sidebar-primary: oklch(0.85 0.1 85); /* 金色高亮 */
+  --sidebar-primary-foreground: oklch(0.2 0.03 280);
+  --sidebar-accent: oklch(0.25 0.03 280);
+  --sidebar-accent-foreground: oklch(0.96 0.01 280);
+  --sidebar-border: oklch(0.25 0.03 280);
+  --sidebar-ring: oklch(0.85 0.1 85 / 0.2);
+
+  --chart-1: oklch(0.5 0.15 25);
+  --chart-2: oklch(0.6 0.15 150);
+  --chart-3: oklch(0.5 0.15 250);
+  --chart-4: oklch(0.75 0.15 70);
+  --chart-5: oklch(0.4 0.05 280);
 }
 
+/* 深色模式基础 */
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.606 0.25 292.717);
-  --primary-foreground: oklch(0.969 0.016 293.756);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.969 0.016 293.756);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.38 0.189 293.745);
-  --chart-1: oklch(0.811 0.111 293.571);
-  --chart-2: oklch(0.606 0.25 292.717);
-  --chart-3: oklch(0.541 0.281 293.009);
-  --chart-4: oklch(0.491 0.27 292.581);
-  --chart-5: oklch(0.432 0.232 292.759);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.606 0.25 292.717);
-  --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.38 0.189 293.745);
+  --background: oklch(0.15 0.02 280);
+  --foreground: oklch(0.96 0.01 85);
+  --card: oklch(0.18 0.02 280);
+  --card-foreground: oklch(0.96 0.01 85);
+  --popover: oklch(0.18 0.02 280);
+  --popover-foreground: oklch(0.96 0.01 85);
+  --primary: oklch(0.85 0.05 340);
+  --primary-foreground: oklch(0.2 0.03 340);
+  --secondary: oklch(0.25 0.05 200);
+  --secondary-foreground: oklch(0.96 0.01 200);
+  --muted: oklch(0.25 0.02 280);
+  --muted-foreground: oklch(0.7 0.02 280);
+  --accent: oklch(0.25 0.02 280);
+  --accent-foreground: oklch(0.96 0.01 85);
+  --destructive: oklch(0.6 0.15 25);
+  --destructive-foreground: oklch(0.96 0.01 85);
+  --border: oklch(0.25 0.02 280);
+  --input: oklch(0.25 0.02 280);
+  --ring: oklch(0.85 0.05 340 / 0.2);
+  --sidebar: oklch(0.12 0.02 280);
+  --sidebar-foreground: oklch(0.96 0.01 85);
+  --sidebar-primary: oklch(0.85 0.05 340);
+  --sidebar-primary-foreground: oklch(0.2 0.03 280);
+  --sidebar-accent: oklch(0.2 0.02 280);
+  --sidebar-accent-foreground: oklch(0.96 0.01 85);
+  --sidebar-border: oklch(0.2 0.02 280);
+  --sidebar-ring: oklch(0.85 0.05 340 / 0.2);
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* === 主题定义 === */
+
+/* 1. 莲池海会 (默认) - 无需额外类名，即 :root */
+.theme-lotus {
+  /* 继承 :root */
 }
 
-/* 动画效果 */
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
+/* 2. 极乐国土 (theme-land) - 金/褐/暖色 */
+.theme-land {
+  --primary: oklch(0.45 0.12 60); /* 深赭石色 */
+  --primary-foreground: oklch(0.98 0.02 85);
+  
+  --secondary: oklch(0.95 0.05 85); /* 浅金色 */
+  --secondary-foreground: oklch(0.35 0.08 85);
+  
+  --accent: oklch(0.92 0.04 85);
+  --accent-foreground: oklch(0.25 0.03 60);
+  
+  /* 侧边栏 - 深褐/深琥珀色 */
+  --sidebar: oklch(0.2 0.04 60);
+  --sidebar-foreground: oklch(0.96 0.02 85);
+  --sidebar-primary: oklch(0.8 0.15 70); /* 亮橙金 */
+  --sidebar-primary-foreground: oklch(0.2 0.04 60);
+  --sidebar-accent: oklch(0.25 0.04 60);
+  --sidebar-accent-foreground: oklch(0.96 0.02 85);
+  --sidebar-border: oklch(0.25 0.04 60);
 }
 
-.animate-blob {
-  animation: blob 7s infinite;
+.dark.theme-land,
+.dark .theme-land {
+  --primary: oklch(0.8 0.15 70); /* 金色 */
+  --primary-foreground: oklch(0.2 0.05 60);
+  
+  --secondary: oklch(0.3 0.05 60);
+  --secondary-foreground: oklch(0.95 0.05 85);
+  
+  /* 侧边栏 - 更深的黑檀色 */
+  --sidebar: oklch(0.12 0.03 60);
+  --sidebar-primary: oklch(0.8 0.15 70);
+  --sidebar-accent: oklch(0.18 0.03 60);
+  --sidebar-border: oklch(0.18 0.03 60);
 }
 
-.animation-delay-2000 {
-  animation-delay: 2s;
+/* 3. 七宝琉璃 (theme-lapis) - 青/蓝/冷色 */
+.theme-lapis {
+  --primary: oklch(0.4 0.12 250); /* 藏蓝/靛青 */
+  --primary-foreground: oklch(0.98 0.01 240);
+  
+  --secondary: oklch(0.96 0.03 200); /* 天青色 */
+  --secondary-foreground: oklch(0.3 0.06 250);
+  
+  --accent: oklch(0.95 0.02 240);
+  --accent-foreground: oklch(0.25 0.04 250);
+  
+  /* 侧边栏 - 深邃的青金石蓝 */
+  --sidebar: oklch(0.18 0.06 260);
+  --sidebar-foreground: oklch(0.96 0.01 240);
+  --sidebar-primary: oklch(0.7 0.12 220); /* 亮青 */
+  --sidebar-primary-foreground: oklch(0.1 0.05 260);
+  --sidebar-accent: oklch(0.23 0.06 260);
+  --sidebar-accent-foreground: oklch(0.96 0.01 240);
+  --sidebar-border: oklch(0.23 0.06 260);
 }
 
-.animation-delay-4000 {
-  animation-delay: 4s;
+.dark.theme-lapis,
+.dark .theme-lapis {
+  --primary: oklch(0.75 0.1 220); /* 浅青 */
+  --primary-foreground: oklch(0.15 0.05 250);
+  
+  --secondary: oklch(0.25 0.05 250);
+  --secondary-foreground: oklch(0.95 0.02 240);
+  
+  /* 侧边栏 - 深海蓝 */
+  --sidebar: oklch(0.1 0.05 260);
+  --sidebar-primary: oklch(0.75 0.1 220);
+  --sidebar-accent: oklch(0.15 0.05 260);
+  --sidebar-border: oklch(0.15 0.05 260);
 }
-
-/* 震动动画 */
-@keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  10%, 30%, 50%, 70%, 90% {
-    transform: translateX(-8px);
-  }
-  20%, 40%, 60%, 80% {
-    transform: translateX(8px);
-  }
-}
-
-.animate-shake {
-  animation: shake 0.5s ease-in-out;
-}
-
-
 
 @layer base {
   * {
@@ -164,40 +231,91 @@ body {
   body {
     background-color: var(--background);
     color: var(--foreground);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  }
+  /* 标题使用衬线体 */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
 }
 
+/* 动画与工具类 */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+.animate-blob { animation: blob 10s infinite; }
+.animation-delay-2000 { animation-delay: 2s; }
+.animation-delay-4000 { animation-delay: 4s; }
 
-/* 主题变量 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+.animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 
-/* 海洋蓝主题 */
-.blue {
-  --color-primary: oklch(0.541 0.15 240);
-  --color-primary-foreground: oklch(0.969 0.016 240);
-  --color-accent: oklch(0.9 0.05 240);
-  --color-accent-foreground: oklch(0.21 0.006 240);
+/* 仙风仙骨动画 - 飘浮效果 */
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px);
+  }
+  50% { 
+    transform: translateY(-10px);
+  }
+}
+.animate-float { 
+  animation: float 6s ease-in-out infinite;
 }
 
-/* 森林绿主题 */
-.green {
-  --color-primary: oklch(0.541 0.15 145);
-  --color-primary-foreground: oklch(0.969 0.016 145);
-  --color-accent: oklch(0.9 0.05 145);
-  --color-accent-foreground: oklch(0.21 0.006 145);
+/* 发光脉动效果 */
+@keyframes glow-pulse {
+  0%, 100% { 
+    opacity: 0.9;
+    text-shadow: 0 0 2px currentColor, 0 0 4px currentColor;
+  }
+  50% { 
+    opacity: 1;
+    text-shadow: 0 0 8px currentColor, 0 0 16px currentColor, 0 0 24px currentColor;
+  }
+}
+.animate-glow-pulse { 
+  animation: glow-pulse 3s ease-in-out infinite;
 }
 
-/* 优雅紫主题 */
-.purple {
-  --color-primary: oklch(0.541 0.2 293);
-  --color-primary-foreground: oklch(0.969 0.016 293);
-  --color-accent: oklch(0.9 0.05 293);
-  --color-accent-foreground: oklch(0.21 0.006 293);
+/* 微光闪烁效果 */
+@keyframes shimmer {
+  0%, 100% { 
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+.animate-shimmer { 
+  animation: shimmer 4s ease-in-out infinite;
 }
 
-/* 活力橙主题 */
-.orange {
-  --color-primary: oklch(0.641 0.2 45);
-  --color-primary-foreground: oklch(0.969 0.016 45);
-  --color-accent: oklch(0.9 0.05 45);
-  --color-accent-foreground: oklch(0.21 0.006 45);
+/* 动画延迟工具类 */
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-400 { animation-delay: 0.4s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+.animation-delay-600 { animation-delay: 0.6s; }
+.animation-delay-700 { animation-delay: 0.7s; }
+.animation-delay-800 { animation-delay: 0.8s; }
+.animation-delay-1000 { animation-delay: 1s; }
+.animation-delay-1200 { animation-delay: 1.2s; }
+.animation-delay-1400 { animation-delay: 1.4s; }
+
+.writing-vertical-rl {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
 }

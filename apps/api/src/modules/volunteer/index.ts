@@ -1,8 +1,11 @@
 import { Elysia } from 'elysia'
+import { eq } from 'drizzle-orm'
 import { VolunteerConfig } from './config'
 import { VolunteerService } from './service'
 import { jwtPlugin } from '../../lib/middleware/auth'
 import { errorHandler } from '../../lib/middleware/error-handler'
+import { db } from '../../db'
+import { admin } from '../../db/schema'
 
 /**
  * 义工管理模块
@@ -20,7 +23,7 @@ export const volunteerModule = new Elysia({ prefix: '/volunteer' })
 
     if (auth?.value) {
       try {
-        const payload = await jwt.verify(auth.value)
+        const payload = await jwt.verify(auth.value as string)
         if (payload) {
           user = payload
         }
@@ -63,9 +66,59 @@ export const volunteerModule = new Elysia({ prefix: '/volunteer' })
   .get(
     '/',
     async ({ query }) => {
-      return await VolunteerService.getList(query)
+      const result = await VolunteerService.getList(query)
+      return {
+        success: true,
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+        stats: result.stats,
+      }
     },
     VolunteerConfig.getList,
+  )
+
+  /**
+   * 获取所有义工（不分页，用于导出）
+   */
+  .get(
+    '/all',
+    async ({ query }) => {
+      const volunteers = await VolunteerService.getAll(query)
+      return {
+        success: true,
+        data: volunteers,
+      }
+    },
+    VolunteerConfig.getAll,
+  )
+
+  /**
+   * 搜索义工
+   */
+  .get(
+    '/search',
+    async ({ query }) => {
+      return await VolunteerService.search(query.keyword, query.limit)
+    },
+    VolunteerConfig.search,
+  )
+
+  /**
+   * 获取统计数据
+   */
+  .get(
+    '/stats',
+    async () => {
+      const stats = await VolunteerService.getStats()
+      return {
+        success: true,
+        data: stats,
+      }
+    },
+    VolunteerConfig.getStats,
   )
 
   /**
@@ -125,18 +178,7 @@ export const volunteerModule = new Elysia({ prefix: '/volunteer' })
     VolunteerConfig.batchDelete,
   )
 
-  // ==================== 查询功能 ====================
-
-  /**
-   * 搜索义工
-   */
-  .get(
-    '/search',
-    async ({ query }) => {
-      return await VolunteerService.search(query.keyword, query.limit)
-    },
-    VolunteerConfig.search,
-  )
+  // ==================== 功能操作 ====================
 
   /**
    * 修改密码
@@ -162,4 +204,28 @@ export const volunteerModule = new Elysia({ prefix: '/volunteer' })
       return await VolunteerService.changeStatusByLotusId(params.lotusId, body.status)
     },
     VolunteerConfig.changeStatus,
+  )
+
+  /**
+   * 变更角色（管理员 / 义工 / 驻堂）
+   * 需要超级管理员权限
+   */
+  .patch(
+    '/:lotusId/role',
+    async ({ params, body, user }: any) => {
+      // 获取操作者的 admin 信息
+      let operatorAdminRole = undefined
+      if (user.role === 'admin') {
+        const [adminInfo] = await db.select().from(admin).where(eq(admin.id, user.id))
+        operatorAdminRole = adminInfo?.role
+      }
+
+      return await VolunteerService.changeRoleByLotusId(
+        params.lotusId,
+        body.role,
+        user.id,
+        operatorAdminRole,
+      )
+    },
+    VolunteerConfig.changeRole,
   )
