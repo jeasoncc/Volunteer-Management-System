@@ -1,56 +1,382 @@
-# Dependencies
+# ============================================
+# 莲花斋义工管理系统 - .gitignore
+# ============================================
+
+# ============================================
+# 依赖和包管理器
+# ============================================
 node_modules/
 .pnp
 .pnp.js
+.yarn/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
-# Testing
-coverage/
+# 锁文件（根据项目需要选择保留或忽略）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+bun.lockb  # Bun 锁文件，通常需要提交
 
-# Production
+# ============================================
+# 构建和输出
+# ============================================
 dist/
 build/
 .next/
 out/
+.turbo/
+.nitro/
+.tanstack/
+.wrangler/
+*.tsbuildinfo
+*.buildinfo
 
-# Misc
-.DS_Store
-*.pem
+# ============================================
+# 测试和覆盖率
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+playwright-report/
+playwright/.cache/
 
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local env files
+# ============================================
+# 环境变量和配置
+# ============================================
 .env
+.env.*
+!.env.example
+!.env.template
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
 
-# Turbo
-.turbo
+# ============================================
+# 日志文件
+# ============================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log.*
+logs/
+*.log.*
 
-# IDE
+# ============================================
+# 操作系统文件
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# 编辑器文件
+# ============================================
+# Visual Studio Code
 .vscode/
+!.vscode/settings.json.example
+!.vscode/tasks.json.example
+!.vscode/launch.json.example
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# Cursor (基于 VSCode)
+.cursor/
+
+# IntelliJ IDEA / WebStorm / PyCharm
 .idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
+
+# Vim
 *.swp
 *.swo
+*.swn
+*~
+.netrwhist
+tags
+Session.vim
 
-# Logs
-*.log
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
 
-# Database
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+sftp-config.json
+
+# Atom
+.atom/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ============================================
+# 数据库文件
+# ============================================
 *.sqlite
+*.sqlite3
 *.sqlite-journal
+*.db
+*.db-shm
+*.db-wal
+*.sql
+!schema.sql
+!migrations/*.sql
 
-# Uploads
+# ============================================
+# 上传和用户生成的文件
+# ============================================
+# 上传文件
 apps/api/public/upload/
+apps/web/public/upload/
+**/upload/**
+!**/upload/.gitkeep
 
-# Exports
+# 导出文件
 apps/api/exports/
+**/exports/
 *.xlsx
+*.xls
+*.csv
+!**/templates/*.xlsx
+!**/templates/*.csv
 
-# Temporary files
+# 临时文件
+cookies.txt
+*.aux
+*.log
+*.pdf
+!docs/**/*.pdf
+
+# ============================================
+# 临时文件和缓存
+# ============================================
 *.tmp
 *.temp
+*.cache
+.cache/
+.parcel-cache/
+.temp/
+tmp/
+temp/
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# 开发文档和临时文件
+# ============================================
+# 开发过程中的临时文档（不需要版本控制）
+*_SUMMARY.md
+*_COMPLETE.md
+*_FIX.md
+*_GUIDE.md
+*_REFERENCE.md
+*_PROGRESS.md
+*_STATUS.md
+*_AUDIT.md
+*_REPORT.md
+*_OPTIMIZATION.md
+*_IMPROVEMENTS.md
+*_PROPOSAL.md
+*_CHECKLIST.md
+QUICK_*.md
+FINAL_*.md
+ALL_*.md
+COMPLETE_*.md
+SYSTEM_*.md
+PROJECT_*.md
+DATA_*.md
+HOMEPAGE_*.md
+LOGIN_*.md
+TOAST_*.md
+UI_*.md
+VOLUNTEER_*.md
+CHANTING_*.md
+DECEASED_*.md
+PHOTO_*.md
+FORM_*.md
+BACKEND_*.md
+FEATURES.md
+
+# 但保留重要的文档
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!LICENSE
+!ROADMAP.md
+!docs/**/*.md
+
+# ============================================
+# 测试和调试文件
+# ============================================
+# 测试文件（根据项目需要选择）
+# tests/
+# test/
+# __tests__/
+# *.test.ts
+# *.test.tsx
+# *.spec.ts
+# *.spec.tsx
+
+# 调试文件
+*.pem
+*.key
+*.cert
+*.crt
+*.trace
+*.prof
+
+# ============================================
+# 压缩文件
+# ============================================
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.gz
+
+# ============================================
+# 其他
+# ============================================
+# Bun 特定
+*.bun
+
+# TypeScript
+*.tsbuildinfo
+
+# 备份文件
+*.bak
+*.backup
+*.old
+*.orig
+
+# 截图（开发过程中的临时截图）
+screenshots/
+!screenshots/README.md
+!screenshots/*.png
+!screenshots/*.jpg
+!screenshots/*.jpeg
+!screenshots/*.gif
+
+# 性能分析
+*.cpuprofile
+*.heapsnapshot
+
+# 本地配置
+.local/
+local/
+local-*.json
+
+# 脚本生成的临时文件
+scripts/test/
+scripts/temp/
+**/temp/
+**/tmp/
+
+# ============================================
+# 项目特定
+# ============================================
+# Drizzle ORM 迁移文件（通常需要提交）
+# drizzle/
+# 如果需要忽略迁移文件，取消上面的注释
+
+# 路由生成文件（自动生成，但需要提交到 Git）
+# routeTree.gen.ts  # 不忽略，需要提交
+
+# 构建产物
+apps/web/dist/
+apps/api/dist/
+apps/*/dist/
+
+# 开发工具
+.turbo/
+.vercel/
+.netlify/
+
+# ============================================
+# 安全相关（敏感文件）
+# ============================================
+secrets/
+*.secret
+*.private
+credentials.json
+service-account.json
+firebase-adminsdk-*.json
