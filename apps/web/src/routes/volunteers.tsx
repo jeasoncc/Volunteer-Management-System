@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { VolunteerForm } from "@/components/VolunteerForm";
+import { VolunteerDetails } from "@/components/VolunteerDetails";
 import { BatchAddVolunteers } from "@/components/BatchAddVolunteers";
 import { VolunteerDataTable } from "@/components/VolunteerDataTable";
 import { AdvancedFilter, type ActiveFilter } from "@/components/AdvancedFilter";
@@ -35,7 +36,6 @@ import {
 	UserCheck,
 	Clock
 } from "lucide-react";
-import { Pagination } from "@/components/Pagination";
 import { toast } from "@/lib/toast";
 import { exportToExcel, formatDateTime, type ExportColumn } from "@/lib/export";
 
@@ -44,14 +44,16 @@ export const Route = createFileRoute("/volunteers")({
 } as any);
 
 function VolunteersPage() {
-	const { isAuthenticated, isLoading: authLoading } = useAuth();
+	const { isAuthenticated, isLoading: authLoading, isSuperAdmin } = useAuth();
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("all");
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [isBatchAddDialogOpen, setIsBatchAddDialogOpen] = useState(false);
 	const [editingVolunteer, setEditingVolunteer] = useState<
 		Volunteer | undefined
 	>();
+	const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | undefined>();
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(20);
 	const [selectedVolunteers, setSelectedVolunteers] = useState<string[]>([]);
@@ -369,12 +371,12 @@ function VolunteersPage() {
 		).length;
 
 		return {
-			totalVolunteers: volunteers.length,
+			totalVolunteers: data?.data?.total || 0,  // 使用后端返回的总数
 			newThisMonth,
 			pendingApproval: pendingCount,
 			activeVolunteers,
 		};
-	}, [volunteers, pendingCount]);
+	}, [volunteers, pendingCount, data]);
 
 	// 快捷键支持（必须在条件渲染之前）
 	useKeyboardShortcuts([
@@ -442,10 +444,7 @@ function VolunteersPage() {
 	}
 
 	const handleView = (volunteer: Volunteer) => {
-		alert(
-			`查看义工详情功能待实现\n\n姓名: ${volunteer.name}\nID: ${volunteer.lotusId}\n手机: ${volunteer.phone}`,
-		);
-		// TODO: 导航到详情页面
+		setViewingVolunteer(volunteer);
 	};
 
 	const handleEdit = (volunteer: Volunteer) => {
@@ -462,6 +461,42 @@ function VolunteersPage() {
 			items: [volunteer.name],
 			onConfirm: () => {
 				deleteMutation.mutate(volunteer.lotusId);
+				setConfirmDialog((prev) => ({ ...prev, open: false }));
+			},
+		});
+	};
+
+	const handlePromote = (volunteer: Volunteer, newRole: "admin" | "volunteer") => {
+		const roleActions = {
+			admin: {
+				title: "升为管理员",
+				description: `确定要将「${volunteer.name}」升级为管理员吗？该用户将拥有系统管理权限。`,
+				variant: "warning" as const,
+			},
+			volunteer: {
+				title: "降为义工",
+				description: `确定要将「${volunteer.name}」降级为普通义工吗？该用户将失去管理权限。`,
+				variant: "destructive" as const,
+			},
+		};
+
+		const action = roleActions[newRole];
+		
+		setConfirmDialog({
+			open: true,
+			title: action.title,
+			description: action.description,
+			variant: action.variant,
+			items: [volunteer.name],
+			onConfirm: () => {
+				volunteerService.updateRole(volunteer.lotusId, newRole)
+					.then(() => {
+						queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+						toast.success(`${volunteer.name} 已变更为${newRole === "admin" ? "管理员" : "义工"}`);
+					})
+					.catch((error: any) => {
+						toast.error(error.message || "角色变更失败");
+					});
 				setConfirmDialog((prev) => ({ ...prev, open: false }));
 			},
 		});
@@ -781,8 +816,25 @@ function VolunteersPage() {
 								onView={handleView}
 								onEdit={handleEdit}
 								onDelete={handleDelete}
+								onPromote={handlePromote}
+								showRoleManagement={isSuperAdmin}
 								enableSelection={true}
 								onSelectionChange={handleSelectionChange}
+								pagination={{
+									pageIndex: page - 1,
+									pageSize: pageSize,
+									pageCount: Math.ceil((data?.data?.total || 0) / pageSize),
+									total: data?.data?.total || 0,
+									onPageChange: (newPage) => {
+										setPage(newPage + 1);
+										setSelectedVolunteers([]);
+									},
+									onPageSizeChange: (newSize) => {
+										setPageSize(newSize);
+										setPage(1);
+										setSelectedVolunteers([]);
+									},
+								}}
 								emptyState={
 									<EmptyState
 										type="no-data"
@@ -798,25 +850,6 @@ function VolunteersPage() {
 								}
 							/>
 						</div>
-						{volunteers.length > 0 && (
-							<div className="border-t p-4 bg-muted/10">
-								<Pagination
-									currentPage={page}
-									totalPages={Math.ceil((data?.data?.total || 0) / pageSize)}
-									pageSize={pageSize}
-									totalItems={data?.data?.total || 0}
-									onPageChange={(newPage) => {
-										setPage(newPage);
-										setSelectedVolunteers([]);
-									}}
-									onPageSizeChange={(newPageSize) => {
-										setPageSize(newPageSize);
-										setPage(1);
-										setSelectedVolunteers([]);
-									}}
-								/>
-							</div>
-						)}
 					</Card>
 
 					{/* 批量操作栏 */}
@@ -899,6 +932,21 @@ function VolunteersPage() {
 								enableSelection={true}
 								onSelectionChange={handleSelectionChange}
 								showApprovalActions={true}
+								pagination={{
+									pageIndex: pendingPage - 1,
+									pageSize: pendingPageSize,
+									pageCount: Math.ceil((pendingData?.data?.total || 0) / pendingPageSize),
+									total: pendingData?.data?.total || 0,
+									onPageChange: (newPage) => {
+										setPendingPage(newPage + 1);
+										setSelectedVolunteers([]);
+									},
+									onPageSizeChange: (newSize) => {
+										setPendingPageSize(newSize);
+										setPendingPage(1);
+										setSelectedVolunteers([]);
+									},
+								}}
 								emptyState={
 									<EmptyState
 										type="no-data"
@@ -914,25 +962,6 @@ function VolunteersPage() {
 								}
 							/>
 						</div>
-						{pendingVolunteers.length > 0 && (
-							<div className="border-t p-4 bg-muted/10">
-								<Pagination
-									currentPage={pendingPage}
-									totalPages={Math.ceil((pendingData?.data?.total || 0) / pendingPageSize)}
-									pageSize={pendingPageSize}
-									totalItems={pendingData?.data?.total || 0}
-									onPageChange={(newPage) => {
-										setPendingPage(newPage);
-										setSelectedVolunteers([]);
-									}}
-									onPageSizeChange={(newPageSize) => {
-										setPendingPageSize(newPageSize);
-										setPendingPage(1);
-										setSelectedVolunteers([]);
-									}}
-								/>
-							</div>
-						)}
 					</Card>
 
 					{/* 批量操作栏 */}
@@ -990,6 +1019,32 @@ function VolunteersPage() {
 					/>
 				</TabsContent>
 			</Tabs>
+
+			{/* 查看详情对话框 */}
+			<Dialog
+				open={!!viewingVolunteer}
+				onClose={() => setViewingVolunteer(undefined)}
+				title="义工档案详情"
+				maxWidth="3xl"
+			>
+				{viewingVolunteer && (
+					<div className="space-y-6">
+						<VolunteerDetails volunteer={viewingVolunteer} />
+						<div className="flex justify-end gap-3 border-t pt-6 mt-2">
+							<Button variant="outline" onClick={() => setViewingVolunteer(undefined)} className="min-w-[100px]">
+								关闭
+							</Button>
+							<Button onClick={() => {
+								const v = viewingVolunteer;
+								setViewingVolunteer(undefined);
+								handleEdit(v);
+							}} className="min-w-[100px]">
+								编辑档案
+							</Button>
+						</div>
+					</div>
+				)}
+			</Dialog>
 
 			{/* 添加/编辑对话框 */}
 			<Dialog
