@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Upload, X, User, Camera } from "lucide-react";
+import { X, User, Camera, Image as ImageIcon, Smartphone } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { MobileUploadDialog } from "./MobileUploadDialog";
 
 interface ImageUploadProps {
 	value?: string;
@@ -11,6 +12,7 @@ interface ImageUploadProps {
 	disabled?: boolean;
 	maxSize?: number; // MB
 	accept?: string;
+	allowCamera?: boolean; // 是否允许直接拍照
 }
 
 export function ImageUpload({
@@ -20,10 +22,14 @@ export function ImageUpload({
 	disabled = false,
 	maxSize = 5,
 	accept = "image/jpeg,image/png,image/jpg,image/webp",
+	allowCamera = true,
 }: ImageUploadProps) {
 	const [uploading, setUploading] = useState(false);
 	const [preview, setPreview] = useState<string | undefined>(value);
+	const [showMobileDialog, setShowMobileDialog] = useState(false);
+	const [uploadToken, setUploadToken] = useState("");
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const cameraInputRef = useRef<HTMLInputElement>(null);
 
 	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -92,6 +98,35 @@ export function ImageUpload({
 		fileInputRef.current?.click();
 	};
 
+	const handleCameraClick = () => {
+		cameraInputRef.current?.click();
+	};
+
+	const handleMobileUpload = async () => {
+		try {
+			// 生成上传令牌
+			const { api } = await import("@/lib/api");
+			const data: any = await api.post("/api/upload/token");
+
+			if (!data.data?.token) {
+				throw new Error("获取上传令牌失败");
+			}
+
+			setUploadToken(data.data.token);
+			setShowMobileDialog(true);
+		} catch (error: any) {
+			console.error("手机上传失败:", error);
+			toast.error(error.message || "打开手机上传失败，请确保已登录");
+		}
+	};
+
+	const handleMobileUploadComplete = (url: string) => {
+		setPreview(url);
+		onChange(url);
+		setShowMobileDialog(false);
+		toast.success("照片已接收！");
+	};
+
 	return (
 		<div className="flex flex-col items-center gap-4">
 			{/* 预览区域 */}
@@ -118,8 +153,20 @@ export function ImageUpload({
 								onClick={handleClick}
 								disabled={uploading}
 							>
-								<Camera className="h-4 w-4" />
+								<ImageIcon className="h-4 w-4" />
 							</Button>
+							{allowCamera && (
+								<Button
+									type="button"
+									size="sm"
+									variant="secondary"
+									className="h-8 w-8 p-0 rounded-full"
+									onClick={handleCameraClick}
+									disabled={uploading}
+								>
+									<Camera className="h-4 w-4" />
+								</Button>
+							)}
 							<Button
 								type="button"
 								size="sm"
@@ -136,7 +183,8 @@ export function ImageUpload({
 			</div>
 
 			{/* 上传按钮 */}
-			<div className="flex flex-col items-center gap-2">
+			<div className="flex flex-col items-center gap-3">
+				{/* 从相册选择的input */}
 				<input
 					ref={fileInputRef}
 					type="file"
@@ -146,25 +194,80 @@ export function ImageUpload({
 					disabled={disabled || uploading}
 				/>
 
-				{!preview && (
+				{/* 拍照的input - 移动端会直接调用相机 */}
+				{allowCamera && (
+					<input
+						ref={cameraInputRef}
+						type="file"
+						accept="image/*"
+						capture="environment"
+						onChange={handleFileSelect}
+						className="hidden"
+						disabled={disabled || uploading}
+					/>
+				)}
+
+				<div className="flex flex-col gap-2 w-full">
+					{!preview && (
+						<div className="flex flex-col sm:flex-row gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={handleClick}
+								disabled={disabled || uploading}
+								className="min-w-[120px]"
+							>
+								<ImageIcon className="h-4 w-4 mr-2" />
+								{uploading ? "上传中..." : "选择照片"}
+							</Button>
+							
+							{allowCamera && (
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={handleCameraClick}
+									disabled={disabled || uploading}
+									className="min-w-[120px]"
+								>
+									<Camera className="h-4 w-4 mr-2" />
+									拍照上传
+								</Button>
+							)}
+						</div>
+					)}
+					
+					{/* 手机上传按钮 - 始终显示 */}
 					<Button
 						type="button"
-						variant="outline"
+						variant="secondary"
 						size="sm"
-						onClick={handleClick}
+						onClick={handleMobileUpload}
 						disabled={disabled || uploading}
+						className="w-full"
 					>
-						<Upload className="h-4 w-4 mr-2" />
-						{uploading ? "上传中..." : "上传照片"}
+						<Smartphone className="h-4 w-4 mr-2" />
+						手机扫码上传
 					</Button>
-				)}
+				</div>
 
 				<p className="text-xs text-muted-foreground text-center">
 					支持 JPG、PNG、WEBP 格式
 					<br />
 					文件大小不超过 {maxSize}MB
+					<br />
+					<span className="text-primary">📱 可使用手机扫码上传</span>
 				</p>
 			</div>
+
+			{/* 手机上传对话框 */}
+			<MobileUploadDialog
+				open={showMobileDialog}
+				onClose={() => setShowMobileDialog(false)}
+				onUploadComplete={handleMobileUploadComplete}
+				uploadToken={uploadToken}
+			/>
 		</div>
 	);
 }

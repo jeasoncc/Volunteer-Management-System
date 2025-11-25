@@ -25,4 +25,16 @@ export default defineConfig({
     include: ['react', 'react-dom'],
     exclude: ['@tanstack/react-router-devtools'],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/upload': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
+  },
 })

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VolunteersRouteImport } from './routes/volunteers'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as MobileUploadRouteImport } from './routes/mobile-upload'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as DevicesRouteImport } from './routes/devices'
@@ -33,6 +34,11 @@ const VolunteersRoute = VolunteersRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MobileUploadRoute = MobileUploadRouteImport.update({
+  id: '/mobile-upload',
+  path: '/mobile-upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/devices': typeof DevicesRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
+  '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/records': typeof CheckinRecordsRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/devices': typeof DevicesRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
+  '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/records': typeof CheckinRecordsRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/devices': typeof DevicesRoute
   '/documents': typeof DocumentsRoute
   '/login': typeof LoginRoute
+  '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/records': typeof CheckinRecordsRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/documents'
     | '/login'
+    | '/mobile-upload'
     | '/settings'
     | '/volunteers'
     | '/checkin/records'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/documents'
     | '/login'
+    | '/mobile-upload'
     | '/settings'
     | '/volunteers'
     | '/checkin/records'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/devices'
     | '/documents'
     | '/login'
+    | '/mobile-upload'
     | '/settings'
     | '/volunteers'
     | '/checkin/records'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   DevicesRoute: typeof DevicesRoute
   DocumentsRoute: typeof DocumentsRoute
   LoginRoute: typeof LoginRoute
+  MobileUploadRoute: typeof MobileUploadRoute
   SettingsRoute: typeof SettingsRoute
   VolunteersRoute: typeof VolunteersRouteWithChildren
 }
@@ -235,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mobile-upload': {
+      id: '/mobile-upload'
+      path: '/mobile-upload'
+      fullPath: '/mobile-upload'
+      preLoaderRoute: typeof MobileUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -377,6 +397,7 @@ const rootRouteChildren: RootRouteChildren = {
   DevicesRoute: DevicesRoute,
   DocumentsRoute: DocumentsRoute,
   LoginRoute: LoginRoute,
+  MobileUploadRoute: MobileUploadRoute,
   SettingsRoute: SettingsRoute,
   VolunteersRoute: VolunteersRouteWithChildren,
 }
