@@ -1,125 +1,88 @@
-import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
+import { Menu, X, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { cn } from '../lib/utils';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navLinks = [
+    { name: '关于我们', href: '/about' },
+    { name: '志愿服务', href: '/services' },
+    { name: '项目故事', href: '/stories' },
+    { name: '新闻动态', href: '/news' },
+    { name: '加入我们', href: '/join' },
+    { name: '捐赠支持', href: '/donate' },
+    { name: '联系我们', href: '/contact' },
+  ];
 
   return (
-    <header className="border-b border-[#e0d4bf] bg-[#f5ecdd]/90 backdrop-blur sticky top-0 z-50">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-[#d9b37c]" />
-          <div>
-            <div className="text-sm font-semibold tracking-wide text-[#6b4a2b]">
-              莲花生命关怀
-            </div>
-            <div className="text-xs text-[#8a6a46]">志愿者服务 · 生命陪伴</div>
+    <header
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b border-transparent",
+        scrolled ? "bg-background/80 backdrop-blur-md border-white/10 py-3" : "bg-transparent py-6"
+      )}
+    >
+      <div className="container mx-auto px-6 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/30 group-hover:bg-primary group-hover:text-black transition-colors duration-500">
+            <Heart className="w-5 h-5 text-primary group-hover:text-black transition-colors" fill="currentColor" />
           </div>
-        </div>
+          <div>
+            <div className="font-['Cinzel'] font-bold text-lg tracking-wider text-foreground">LOTUS CARE</div>
+            <div className="text-[10px] tracking-[0.3em] text-muted-foreground uppercase">Volunteers</div>
+          </div>
+        </Link>
 
-        {/* 桌面端导航 */}
-        <nav className="hidden gap-6 text-sm text-[#6b4a2b] md:flex">
-          <Link to="/" className="[&.active]:font-medium hover:text-[#a0672a]">
-            首页
-          </Link>
-          <Link to="/about" className="[&.active]:font-medium hover:text-[#a0672a]">
-            关于我们
-          </Link>
-          <Link to="/services" className="[&.active]:font-medium hover:text-[#a0672a]">
-            志愿服务
-          </Link>
-          <Link to="/stories" className="[&.active]:font-medium hover:text-[#a0672a]">
-            项目故事
-          </Link>
-          <Link to="/news" className="[&.active]:font-medium hover:text-[#a0672a]">
-            新闻动态
-          </Link>
-          <Link to="/join" className="[&.active]:font-medium hover:text-[#a0672a]">
-            加入我们
-          </Link>
-          <Link to="/donate" className="[&.active]:font-medium hover:text-[#a0672a]">
-            捐赠支持
-          </Link>
-          <Link to="/contact" className="[&.active]:font-medium hover:text-[#a0672a]">
-            联系我们
-          </Link>
+        {/* Desktop Nav */}
+        <nav className="hidden lg:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors tracking-wide relative group"
+            >
+              {link.name}
+              <span className="absolute -bottom-1 left-0 w-0 h-px bg-primary transition-all duration-300 group-hover:w-full" />
+            </Link>
+          ))}
         </nav>
 
-        {/* 移动端菜单按钮 */}
-        <button 
-          className="md:hidden text-[#6b4a2b]"
+        {/* Mobile Toggle */}
+        <button
+          className="lg:hidden text-foreground p-2"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="切换菜单"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          {isMenuOpen ? <X /> : <Menu />}
         </button>
       </div>
 
-      {/* 移动端菜单 */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-[#f5ecdd] border-t border-[#e0d4bf] absolute w-full shadow-lg">
-          <nav className="flex flex-col py-2">
-            <Link 
-              to="/" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              首页
-            </Link>
-            <Link 
-              to="/about" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              关于我们
-            </Link>
-            <Link 
-              to="/services" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              志愿服务
-            </Link>
-            <Link 
-              to="/stories" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              项目故事
-            </Link>
-            <Link 
-              to="/news" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              新闻动态
-            </Link>
-            <Link 
-              to="/join" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              加入我们
-            </Link>
-            <Link 
-              to="/donate" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf] border-b border-[#e0d4bf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              捐赠支持
-            </Link>
-            <Link 
-              to="/contact" 
-              className="px-4 py-3 text-[#6b4a2b] hover:bg-[#f1e4cf]"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              联系我们
-            </Link>
-          </nav>
-        </div>
-      )}
+      {/* Mobile Menu */}
+      <div
+        className={cn(
+          "fixed inset-0 bg-background z-40 flex flex-col items-center justify-center gap-8 transition-all duration-500 lg:hidden",
+          isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none pointer-events-none"
+        )}
+      >
+        {navLinks.map((link) => (
+          <Link
+            key={link.href}
+            to={link.href}
+            onClick={() => setIsMenuOpen(false)}
+            className="text-2xl font-['Cinzel'] text-foreground hover:text-primary transition-colors"
+          >
+            {link.name}
+          </Link>
+        ))}
+      </div>
     </header>
   );
 }

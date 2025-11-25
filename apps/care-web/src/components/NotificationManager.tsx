@@ -1,19 +1,54 @@
-import { useState, createContext, useContext } from 'react';
-import type { ReactNode } from 'react';
-import { Notification } from './Notification';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { cn } from '../lib/utils';
 
-interface NotificationData {
-  id: string;
+interface Notification {
+  id: number;
   message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  duration?: number;
+  type: 'success' | 'error' | 'info';
 }
 
 interface NotificationContextType {
-  showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info', duration?: number) => void;
+  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 3000);
+  }, []);
+
+  return (
+    <NotificationContext.Provider value={{ showNotification }}>
+      {children}
+      {createPortal(
+        <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+          {notifications.map(notification => (
+            <div
+              key={notification.id}
+              className={cn(
+                "pointer-events-auto px-6 py-3 rounded-lg shadow-lg text-white font-medium animate-fade-in-up transition-all",
+                notification.type === 'success' ? 'bg-green-600' :
+                notification.type === 'error' ? 'bg-red-600' :
+                'bg-blue-600'
+              )}
+            >
+              {notification.message}
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
+    </NotificationContext.Provider>
+  );
+}
 
 export function useNotification() {
   const context = useContext(NotificationContext);
@@ -21,49 +56,4 @@ export function useNotification() {
     throw new Error('useNotification must be used within a NotificationProvider');
   }
   return context;
-}
-
-interface NotificationProviderProps {
-  children: ReactNode;
-}
-
-export function NotificationProvider({ children }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState<NotificationData[]>([]);
-
-  const showNotification = (
-    message: string, 
-    type: 'success' | 'error' | 'warning' | 'info', 
-    duration: number = 5000
-  ) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const newNotification = { id, message, type, duration };
-    
-    setNotifications(prev => [...prev, newNotification]);
-    
-    // 自动移除通知
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(notification => notification.id !== id));
-    }, duration + 300); // 加上动画时间
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  };
-
-  return (
-    <NotificationContext.Provider value={{ showNotification }}>
-      {children}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {notifications.map(notification => (
-          <Notification
-            key={notification.id}
-            message={notification.message}
-            type={notification.type}
-            duration={notification.duration}
-            onClose={() => removeNotification(notification.id)}
-          />
-        ))}
-      </div>
-    </NotificationContext.Provider>
-  );
 }

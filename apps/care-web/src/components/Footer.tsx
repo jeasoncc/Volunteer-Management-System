@@ -1,53 +1,49 @@
+import { Link } from '@tanstack/react-router';
+import { Heart } from 'lucide-react';
+
 export function Footer() {
   return (
-    <footer className="border-t border-[#e0d4bf] bg-[#f5ecdd]/80 py-6 text-center text-sm text-[#9c7a4f]">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="mb-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="mb-4 md:mb-0 text-center md:text-left">
-            <div className="font-semibold text-[#6b4a2b]">莲花生命关怀志愿者</div>
-            <div className="text-xs mt-1">Lotus Life Care Volunteers</div>
+    <footer className="bg-card border-t border-white/5 pt-24 pb-12">
+      <div className="container mx-auto px-6">
+        <div className="grid gap-12 md:grid-cols-4 mb-16">
+          <div className="col-span-1 md:col-span-2">
+            <Link to="/" className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/30">
+                <Heart className="w-4 h-4 text-primary" fill="currentColor" />
+              </div>
+              <span className="font-['Cinzel'] font-bold text-lg tracking-wider text-foreground">LOTUS CARE</span>
+            </Link>
+            <p className="text-muted-foreground leading-relaxed max-w-md mb-8">
+              我们致力于为临终者提供最后的尊严与安宁，为家属提供情感支持与哀伤辅导。
+              以凡人之躯，行微小善事。
+            </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
-            <div>
-              <div className="font-medium text-[#6b4a2b] mb-2">关于我们</div>
-              <ul className="text-xs space-y-1">
-                <li><a href="/about" className="hover:text-[#a0672a]">组织介绍</a></li>
-                <li><a href="/about#mission" className="hover:text-[#a0672a]">使命愿景</a></li>
-                <li><a href="/about#team" className="hover:text-[#a0672a]">团队成员</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-medium text-[#6b4a2b] mb-2">志愿服务</div>
-              <ul className="text-xs space-y-1">
-                <li><a href="/services#hospital" className="hover:text-[#a0672a]">病房陪伴</a></li>
-                <li><a href="/services#family" className="hover:text-[#a0672a]">家属支持</a></li>
-                <li><a href="/services#ceremony" className="hover:text-[#a0672a]">告别仪式</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-medium text-[#6b4a2b] mb-2">加入我们</div>
-              <ul className="text-xs space-y-1">
-                <li><a href="/join#process" className="hover:text-[#a0672a]">报名流程</a></li>
-                <li><a href="/join#training" className="hover:text-[#a0672a]">培训计划</a></li>
-                <li><a href="/faq" className="hover:text-[#a0672a]">常见问题</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-medium text-[#6b4a2b] mb-2">支持我们</div>
-              <ul className="text-xs space-y-1">
-                <li><a href="/stories" className="hover:text-[#a0672a]">项目故事</a></li>
-                <li><a href="/donate" className="hover:text-[#a0672a]">捐赠支持</a></li>
-                <li><a href="/volunteer" className="hover:text-[#a0672a]">志愿服务</a></li>
-              </ul>
-            </div>
+          
+          <div>
+            <h4 className="font-bold text-foreground mb-6 uppercase tracking-widest text-sm">快速链接</h4>
+            <ul className="space-y-4 text-sm text-muted-foreground">
+              <li><Link to="/about" className="hover:text-primary transition-colors">关于我们</Link></li>
+              <li><Link to="/services" className="hover:text-primary transition-colors">志愿服务</Link></li>
+              <li><Link to="/stories" className="hover:text-primary transition-colors">项目故事</Link></li>
+              <li><Link to="/join" className="hover:text-primary transition-colors">加入我们</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-foreground mb-6 uppercase tracking-widest text-sm">联系方式</h4>
+            <ul className="space-y-4 text-sm text-muted-foreground">
+              <li>Email: volunteer@lotuscare.org</li>
+              <li>Tel: 400-XXX-XXXX</li>
+              <li>Add: XX省XX市XX区XX路</li>
+            </ul>
           </div>
         </div>
-        <div className="pt-4 mt-4 border-t border-[#e0d4bf] text-xs">
-          <div className="mb-2">
-            联系我们：example@lotuscare.org | 微信/电话：请在实际运营时补充
-          </div>
-          <div>
-            © {new Date().getFullYear()} 莲花生命关怀志愿者. 保留所有权利.
+
+        <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground/50">
+          <p>© 2025 Lotus Life Care. All rights reserved.</p>
+          <div className="flex gap-6">
+            <span>隐私政策</span>
+            <span>服务条款</span>
           </div>
         </div>
       </div>

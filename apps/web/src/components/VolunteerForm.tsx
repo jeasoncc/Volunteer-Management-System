@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ImageUpload } from "@/components/ImageUpload";
 import { format } from "date-fns";
 import { User, Phone, Mail, MapPin, GraduationCap, Heart, CreditCard, Users } from "lucide-react";
 
