@@ -52,10 +52,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		queryKey: ["volunteers", "stats"],
 		queryFn: async () => {
 			if (!isAuthenticated) return { data: { total: 0 } };
-			const response = await fetch("/api/volunteers?page=1&pageSize=1", {
-				credentials: "include",
-			});
-			return response.json();
+			const { api } = await import("@/lib/api");
+			return api.get("/api/volunteers?page=1&pageSize=1");
 		},
 		refetchInterval: isAuthenticated ? 60000 : false,
 		staleTime: 30000,

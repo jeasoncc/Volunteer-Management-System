@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { checkinService } from "@/services/checkin";
 import { Download, FileSpreadsheet, Calendar, FileText } from "lucide-react";
 import dayjs from "dayjs";
+import { getBackendUrl } from "@/config/network";
 
 export const Route = createFileRoute("/documents")({
 	component: DocumentsPage,
@@ -33,7 +34,7 @@ function DocumentsPage() {
 		try {
 			setIsExporting(true);
 			const response = await fetch(
-				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/document/care-registration`,
+				`${getBackendUrl()}/api/document/care-registration`,
 				{
 					method: "POST",
 					headers: {
@@ -66,7 +67,7 @@ function DocumentsPage() {
 			
 			// 下载文件
 			const downloadResponse = await fetch(
-				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}${result.downloadUrl}`,
+				`${getBackendUrl()}${result.downloadUrl}`,
 			);
 			const blob = await downloadResponse.blob();
 			const url = window.URL.createObjectURL(blob);
@@ -91,7 +92,7 @@ function DocumentsPage() {
 		try {
 			setIsExporting(true);
 			const response = await fetch(
-				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/document/invitation-letter`,
+				`${getBackendUrl()}/api/document/invitation-letter`,
 				{
 					method: "POST",
 					headers: {
@@ -114,7 +115,7 @@ function DocumentsPage() {
 			
 			// 下载文件
 			const downloadResponse = await fetch(
-				`${import.meta.env.VITE_API_URL || "http://localhost:3001"}${result.downloadUrl}`,
+				`${getBackendUrl()}${result.downloadUrl}`,
 			);
 			const blob = await downloadResponse.blob();
 			const url = window.URL.createObjectURL(blob);

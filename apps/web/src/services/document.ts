@@ -25,8 +25,9 @@ export const documentService = {
 			queryParams.append("activityName", params.activityName);
 		}
 
+		const { getBackendUrl } = await import("@/config/network");
 		const response = await fetch(
-			`${import.meta.env.VITE_API_URL || "http://localhost:3001"}/api/v1/export/volunteer-service?${queryParams}`,
+			`${getBackendUrl()}/api/v1/export/volunteer-service?${queryParams}`,
 			{
 				method: "GET",
 				credentials: "include",

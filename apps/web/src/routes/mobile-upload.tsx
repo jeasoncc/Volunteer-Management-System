@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, Image as ImageIcon, Upload, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { getApiEndpoint } from "@/config/network";
 
 export const Route = createFileRoute("/mobile-upload")({
 	component: MobileUploadPage,
@@ -62,8 +63,10 @@ function MobileUploadPage() {
 			formData.append("file", file);
 			formData.append("token", token);
 
-			// 使用 fetch 因为需要上传 FormData
-			const response = await fetch("http://localhost:3001/api/upload/mobile", {
+			// 使用全局配置的API地址
+			const apiUrl = getApiEndpoint('/api/upload/mobile', true);
+
+			const response = await fetch(apiUrl, {
 				method: "POST",
 				body: formData,
 				credentials: "include",

@@ -4,10 +4,11 @@
  */
 
 import axios, { type AxiosError } from "axios";
+import { getBackendUrl } from "@/config/network";
 
-// API 基础地址
+// API 基础地址 - 优先使用环境变量，否则使用网络配置
 const API_BASE_URL =
-	import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+	import.meta.env.VITE_API_BASE_URL || getBackendUrl();
 
 // 创建 axios 实例
 export const api = axios.create({

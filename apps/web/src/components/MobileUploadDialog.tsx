@@ -4,6 +4,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Copy, Check, RefreshCw } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { getFrontendUrl, isLocalhost, LOCAL_IP } from "@/config/network";
 
 interface MobileUploadDialogProps {
 	open: boolean;
@@ -21,8 +22,9 @@ export function MobileUploadDialog({
 	const [copied, setCopied] = useState(false);
 	const [checking, setChecking] = useState(false);
 
-	// 生成手机上传链接
-	const uploadUrl = `${window.location.origin}/mobile-upload?token=${uploadToken}`;
+	// 生成手机上传链接 - 使用全局配置
+	const uploadUrl = `${getFrontendUrl(true)}/mobile-upload?token=${uploadToken}`;
+	const isLocal = isLocalhost();
 
 	// 复制链接
 	const handleCopy = async () => {
@@ -137,6 +139,13 @@ export function MobileUploadDialog({
 						<p className="mt-2 text-orange-600 dark:text-orange-400">
 							⚠️ 链接10分钟内有效，请尽快上传
 						</p>
+						{isLocal && (
+							<p className="mt-2 text-green-600 dark:text-green-400 font-medium">
+								✅ 已自动使用局域网IP：{LOCAL_IP}
+								<br />
+								请确保手机和电脑在同一WiFi网络
+							</p>
+						)}
 					</div>
 
 				{/* 关闭按钮 */}
