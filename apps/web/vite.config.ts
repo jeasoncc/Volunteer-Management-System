@@ -28,11 +28,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: process.env.VITE_API_BASE_URL || 'http://192.168.5.4:3001',
         changeOrigin: true,
       },
       '/upload': {
-        target: 'http://localhost:3001',
+        target: process.env.VITE_API_BASE_URL || 'http://192.168.5.4:3001',
         changeOrigin: true,
       },
     },

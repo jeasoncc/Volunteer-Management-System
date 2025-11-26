@@ -38,7 +38,7 @@ export const chantingService = {
 			...rest,
 			limit: pageSize,
 		};
-		return api.get("/chanting", { params: apiParams });
+		return api.get("/api/chanting", { params: apiParams });
 	},
 
 	/**
@@ -54,7 +54,7 @@ export const chantingService = {
 	create: async (
 		data: CreateChantingScheduleParams,
 	): Promise<ApiResponse<ChantingSchedule>> => {
-		return api.post("/chanting", data);
+		return api.post("/api/chanting", data);
 	},
 
 	/**
@@ -105,6 +105,6 @@ export const chantingService = {
 		year: number,
 		month: number,
 	): Promise<ApiResponse<ChantingSchedule[]>> => {
-		return api.get("/chanting/calendar", { params: { year, month } });
+		return api.get("/api/chanting/calendar", { params: { year, month } });
 	},
 };

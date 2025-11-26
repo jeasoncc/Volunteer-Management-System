@@ -17,14 +17,37 @@ export function MobileUploadDialog({
 	open,
 	onClose,
 	onUploadComplete,
-	uploadToken,
+	uploadToken: initialToken,
 }: MobileUploadDialogProps) {
 	const [copied, setCopied] = useState(false);
 	const [checking, setChecking] = useState(false);
+	const [uploadToken, setUploadToken] = useState(initialToken);
+	const [regenerating, setRegenerating] = useState(false);
 
 	// 生成手机上传链接 - 使用全局配置
 	const uploadUrl = `${getFrontendUrl(true)}/mobile-upload?token=${uploadToken}`;
 	const isLocal = isLocalhost();
+
+	// 重新生成令牌
+	const handleRegenerate = async () => {
+		try {
+			setRegenerating(true);
+			const { api } = await import("@/lib/api");
+			const data: any = await api.post("/api/upload/token");
+
+			if (!data.data?.token) {
+				throw new Error("获取上传令牌失败");
+			}
+
+			setUploadToken(data.data.token);
+			toast.success("二维码已刷新");
+		} catch (error: any) {
+			console.error("重新生成令牌失败:", error);
+			toast.error(error.message || "刷新失败，请重试");
+		} finally {
+			setRegenerating(false);
+		}
+	};
 
 	// 复制链接
 	const handleCopy = async () => {
@@ -40,11 +63,13 @@ export function MobileUploadDialog({
 
 	// 轮询检查上传状态
 	useEffect(() => {
-		if (!open) return;
+		if (!open || !uploadToken) return;
+
+		// 初始显示等待状态
+		setChecking(true);
 
 		const checkUploadStatus = async () => {
 			try {
-				setChecking(true);
 				const { api } = await import("@/lib/api");
 				const data: any = await api.get(`/api/upload/status/${uploadToken}`);
 
@@ -55,15 +80,17 @@ export function MobileUploadDialog({
 				}
 			} catch (error) {
 				console.error("检查上传状态失败:", error);
-			} finally {
-				setChecking(false);
 			}
+			// 不要在这里设置 checking 状态，避免抖动
 		};
 
-		// 每3秒检查一次
-		const interval = setInterval(checkUploadStatus, 3000);
+		// 每 5 秒检查一次（降低频率）
+		const interval = setInterval(checkUploadStatus, 5000);
 
-		return () => clearInterval(interval);
+		return () => {
+			clearInterval(interval);
+			setChecking(false);
+		};
 	}, [open, uploadToken, onUploadComplete, onClose]);
 
 	return (
@@ -76,10 +103,25 @@ export function MobileUploadDialog({
 
 				{/* 二维码 */}
 					<div className="flex flex-col items-center gap-4">
-						<div className="p-4 bg-white rounded-lg border-2 border-dashed">
-							<QRCodeSVG value={uploadUrl} size={200} level="H" />
+						<div className="relative">
+							<div className="p-4 bg-white rounded-lg border-2 border-dashed">
+								<QRCodeSVG value={uploadUrl} size={200} level="H" />
+							</div>
+							{/* 刷新按钮 */}
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={handleRegenerate}
+								disabled={regenerating}
+								className="absolute -bottom-3 left-1/2 -translate-x-1/2 shadow-md"
+								title="如果二维码过期，点击刷新"
+							>
+								<RefreshCw className={`h-4 w-4 mr-1 ${regenerating ? 'animate-spin' : ''}`} />
+								{regenerating ? '刷新中...' : '刷新二维码'}
+							</Button>
 						</div>
-						<p className="text-sm text-muted-foreground text-center">
+						<p className="text-sm text-muted-foreground text-center mt-2">
 							使用手机微信或浏览器扫描二维码
 							<br />
 							即可打开上传页面
@@ -138,6 +180,9 @@ export function MobileUploadDialog({
 						</ol>
 						<p className="mt-2 text-orange-600 dark:text-orange-400">
 							⚠️ 链接10分钟内有效，请尽快上传
+						</p>
+						<p className="mt-1 text-blue-600 dark:text-blue-400">
+							💡 如果提示"令牌过期"，点击上方"刷新二维码"按钮
 						</p>
 						{isLocal && (
 							<p className="mt-2 text-green-600 dark:text-green-400 font-medium">

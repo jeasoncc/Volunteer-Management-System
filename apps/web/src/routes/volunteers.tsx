@@ -254,7 +254,7 @@ function VolunteersPage() {
 	const pendingVolunteers = Array.isArray(pendingData?.data)
 		? pendingData.data
 		: [];
-	const pendingCount = pendingData?.data?.total || 0;
+	const pendingCount = pendingData?.total || 0;  // 修复：total 在顶层，不在 data 里
 
 	// 筛选配置
 	const filterOptions = [
@@ -935,8 +935,8 @@ function VolunteersPage() {
 								pagination={{
 									pageIndex: pendingPage - 1,
 									pageSize: pendingPageSize,
-									pageCount: Math.ceil((pendingData?.data?.total || 0) / pendingPageSize),
-									total: pendingData?.data?.total || 0,
+									pageCount: Math.ceil((pendingData?.total || 0) / pendingPageSize),
+									total: pendingData?.total || 0,
 									onPageChange: (newPage) => {
 										setPendingPage(newPage + 1);
 										setSelectedVolunteers([]);

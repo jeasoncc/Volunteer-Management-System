@@ -55,7 +55,7 @@ export const adminService = {
 	getList: async (
 		params: AdminListParams,
 	): Promise<ApiResponse<PaginationResponse<User>>> => {
-		return api.get("/admin", { params });
+		return api.get("/api/admin", { params });
 	},
 
 	/**
@@ -71,7 +71,7 @@ export const adminService = {
 	create: async (
 		data: CreateAdminParams,
 	): Promise<ApiResponse<User>> => {
-		return api.post("/admin", data);
+		return api.post("/api/admin", data);
 	},
 
 	/**
@@ -98,7 +98,7 @@ export const adminService = {
 		keyword: string,
 		limit?: number,
 	): Promise<ApiResponse<User[]>> => {
-		return api.get("/admin/search", { params: { keyword, limit } });
+		return api.get("/api/admin/search", { params: { keyword, limit } });
 	},
 
 	/**
@@ -107,6 +107,6 @@ export const adminService = {
 	promote: async (
 		data: PromoteVolunteerParams,
 	): Promise<ApiResponse> => {
-		return api.post("/admin/promote", data);
+		return api.post("/api/admin/promote", data);
 	},
 };

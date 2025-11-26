@@ -15,7 +15,7 @@ import { admin } from '../../db/schema'
  * 2. 所有接口需要登录
  * 3. 提供完整的 CRUD 功能
  */
-export const volunteerModule = new Elysia({ prefix: '/volunteer' })
+export const volunteerModule = new Elysia({ prefix: '/api/volunteer' })
   .use(errorHandler)
   .use(jwtPlugin)
   .derive(async ({ jwt, cookie: { auth } }) => {

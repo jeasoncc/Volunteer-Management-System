@@ -75,15 +75,31 @@ function MobileUploadPage() {
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.message || "上传失败");
+				const errorMsg = data.message || "上传失败";
+				
+				// 检查是否是令牌相关错误
+				if (errorMsg.includes("令牌") || errorMsg.includes("token")) {
+					if (errorMsg.includes("过期")) {
+						throw new Error("⏰ 上传链接已过期\n\n请返回电脑端重新生成二维码");
+					} else if (errorMsg.includes("无效")) {
+						throw new Error("❌ 上传链接无效\n\n请返回电脑端重新生成二维码");
+					}
+				}
+				
+				throw new Error(errorMsg);
 			}
 
 			setUploaded(true);
 			toast.success("上传成功！");
 		} catch (error: any) {
 			console.error("上传失败:", error);
-			toast.error(error.message || "上传失败，请重试");
-			setPreview(undefined);
+			const errorMessage = error.message || "上传失败，请重试";
+			toast.error(errorMessage);
+			
+			// 如果是过期或无效的token，清除预览
+			if (errorMessage.includes("过期") || errorMessage.includes("无效") || errorMessage.includes("令牌")) {
+				setPreview(undefined);
+			}
 		} finally {
 			setUploading(false);
 		}
@@ -96,10 +112,18 @@ function MobileUploadPage() {
 					<CardContent className="pt-6">
 						<div className="text-center space-y-4">
 							<AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
-							<h2 className="text-xl font-bold">无效的上传链接</h2>
+							<h2 className="text-xl font-bold">链接无效或已过期</h2>
 							<p className="text-muted-foreground">
-								请重新扫描二维码或检查链接是否正确
+								上传链接可能已过期或无效
 							</p>
+							<div className="bg-yellow-50 dark:bg-yellow-950/20 p-4 rounded-lg text-sm text-left space-y-2">
+								<p className="font-medium">💡 解决方法：</p>
+								<ul className="list-disc list-inside space-y-1 ml-2">
+									<li>返回电脑端重新生成二维码</li>
+									<li>确保在二维码生成后 10 分钟内扫描</li>
+									<li>检查网络连接是否正常</li>
+								</ul>
+							</div>
 						</div>
 					</CardContent>
 				</Card>
@@ -212,6 +236,7 @@ function MobileUploadPage() {
 						<ul className="list-disc list-inside space-y-1 ml-2">
 							<li>支持 JPG、PNG、WEBP 格式</li>
 							<li>文件大小不超过 5MB</li>
+							<li>链接有效期 10 分钟</li>
 							<li>上传后请返回电脑端查看</li>
 						</ul>
 					</div>

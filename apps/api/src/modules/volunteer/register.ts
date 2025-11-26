@@ -14,7 +14,7 @@ import { eq } from 'drizzle-orm'
 
 const logger = createLogger()
 
-export const volunteerRegisterModule = new Elysia({ prefix: '/volunteer/register' })
+export const volunteerRegisterModule = new Elysia({ prefix: '/api/volunteer/register' })
   .use(errorHandler)
   
   /**

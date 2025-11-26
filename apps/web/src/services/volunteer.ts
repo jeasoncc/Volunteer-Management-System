@@ -129,14 +129,14 @@ export const volunteerService = {
 			...rest,
 			limit: pageSize,
 		};
-		return api.get("/volunteer", { params: apiParams });
+		return api.get("/api/volunteer", { params: apiParams });
 	},
 
 	/**
 	 * 根据 lotusId 获取义工详情
 	 */
 	getByLotusId: async (lotusId: string): Promise<ApiResponse<Volunteer>> => {
-		return api.get(`/volunteer/${lotusId}`);
+		return api.get(`/api/volunteer/${lotusId}`);
 	},
 
 	/**
@@ -145,7 +145,7 @@ export const volunteerService = {
 	create: async (
 		data: CreateVolunteerParams,
 	): Promise<ApiResponse<Volunteer>> => {
-		return api.post("/volunteer", data);
+		return api.post("/api/volunteer", data);
 	},
 
 	/**
@@ -155,14 +155,16 @@ export const volunteerService = {
 		lotusId: string,
 		data: Partial<CreateVolunteerParams>,
 	): Promise<ApiResponse<Volunteer>> => {
-		return api.put(`/volunteer/${lotusId}`, data);
+		// 调试：打印发送的数据
+		console.log('🔍 更新志愿者数据:', JSON.stringify(data, null, 2));
+		return api.put(`/api/volunteer/${lotusId}`, data);
 	},
 
 	/**
 	 * 删除义工
 	 */
 	delete: async (lotusId: string): Promise<ApiResponse> => {
-		return api.delete(`/volunteer/${lotusId}`);
+		return api.delete(`/api/volunteer/${lotusId}`);
 	},
 
 	/**
@@ -172,7 +174,7 @@ export const volunteerService = {
 		keyword: string,
 		limit?: number,
 	): Promise<ApiResponse<Volunteer[]>> => {
-		return api.get("/volunteer/search", { params: { keyword, limit } });
+		return api.get("/api/volunteer/search", { params: { keyword, limit } });
 	},
 
 	/**
@@ -183,7 +185,7 @@ export const volunteerService = {
 		oldPassword: string,
 		newPassword: string,
 	): Promise<ApiResponse> => {
-		return api.post(`/volunteer/${lotusId}/change-password`, {
+		return api.post(`/api/volunteer/${lotusId}/change-password`, {
 			oldPassword,
 			newPassword,
 		});
@@ -196,7 +198,7 @@ export const volunteerService = {
 		lotusId: string,
 		status: string,
 	): Promise<ApiResponse> => {
-		return api.patch(`/volunteer/${lotusId}/status`, { status });
+		return api.patch(`/api/volunteer/${lotusId}/status`, { status });
 	},
 
 	/**
@@ -205,14 +207,14 @@ export const volunteerService = {
 	batchImport: async (
 		volunteers: CreateVolunteerParams[],
 	): Promise<ApiResponse> => {
-		return api.post("/volunteer/batch/import", { volunteers });
+		return api.post("/api/volunteer/batch/import", { volunteers });
 	},
 
 	/**
 	 * 批量删除
 	 */
 	batchDelete: async (lotusIds: string[]): Promise<ApiResponse> => {
-		return api.post("/volunteer/batch/delete", { lotusIds });
+		return api.post("/api/volunteer/batch/delete", { lotusIds });
 	},
 
 	/**
@@ -225,7 +227,7 @@ export const volunteerService = {
 		createdAtStart?: string;
 		createdAtEnd?: string;
 	}): Promise<ApiResponse<Volunteer[]>> => {
-		return api.get("/volunteer/all", { params: filters });
+		return api.get("/api/volunteer/all", { params: filters });
 	},
 
 	/**
@@ -235,6 +237,6 @@ export const volunteerService = {
 		lotusId: string,
 		role: "admin" | "volunteer",
 	): Promise<ApiResponse> => {
-		return api.patch(`/volunteer/${lotusId}/role`, { role });
+		return api.patch(`/api/volunteer/${lotusId}/role`, { role });
 	},
 };

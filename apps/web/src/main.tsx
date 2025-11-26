@@ -10,6 +10,11 @@ import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 import reportWebVitals from "./reportWebVitals.ts";
 
+// 开发环境加载调试工具
+if (import.meta.env.DEV) {
+	import("./lib/debug");
+}
+
 // Create a new router instance
 const router = createRouter({
 	routeTree,

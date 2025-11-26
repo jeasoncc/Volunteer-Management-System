@@ -20,6 +20,7 @@ if (!existsSync(AVATAR_DIR)) {
 
 // 存储上传令牌和对应的图片URL
 // 格式: { token: { url: string, createdAt: number } }
+// 注意：存储在内存中，服务器重启后会丢失
 const uploadTokens = new Map<string, { url?: string; createdAt: number }>()
 
 /**

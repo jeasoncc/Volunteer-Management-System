@@ -26,7 +26,7 @@ const BatchApprovalSchema = t.Object({
 /**
  * 审批模块路由
  */
-export const approvalModule = new Elysia({ prefix: '/volunteer/approval' })
+export const approvalModule = new Elysia({ prefix: '/api/volunteer/approval' })
   .use(errorHandler)
   .use(jwtPlugin)
   .derive(async ({ jwt, cookie: { auth } }) => {

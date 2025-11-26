@@ -15,7 +15,7 @@ export const NETWORK_CONFIG = {
   },
   // 局域网环境
   lan: {
-    frontend: 'http://192.168.5.4:3002',
+    frontend: 'http://192.168.5.4:3000',
     backend: 'http://192.168.5.4:3001',
   },
   // 生产环境（外网）
@@ -33,7 +33,7 @@ export const CURRENT_ENV: Environment = 'lan';
 
 // 端口配置（用于兼容旧代码）
 export const PORTS = {
-  frontend: 3002,
+  frontend: 3000,
   backend: 3001,
 };
 

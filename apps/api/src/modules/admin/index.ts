@@ -4,7 +4,7 @@ import { AdminService } from './service'
 import { authMiddleware } from '../../lib/middleware/auth'
 import { errorHandler } from '../../lib/middleware/error-handler'
 
-export const adminModule = new Elysia({ prefix: '/admin' })
+export const adminModule = new Elysia({ prefix: '/api/admin' })
   // 使用统一的错误处理
   .use(errorHandler)
   // 使用统一的认证中间件 - 所有 admin 接口都需要登录

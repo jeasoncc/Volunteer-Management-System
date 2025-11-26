@@ -29,7 +29,7 @@ export const approvalService = {
 			...rest,
 			limit: pageSize,
 		};
-		return api.get("/volunteer/approval/pending", { params: apiParams });
+		return api.get("/api/volunteer/approval/pending", { params: apiParams });
 	},
 
 	/**
@@ -39,14 +39,14 @@ export const approvalService = {
 		lotusId: string,
 		data: ApprovalRequest,
 	): Promise<ApiResponse> => {
-		return api.post(`/volunteer/approval/${lotusId}`, data);
+		return api.post(`/api/volunteer/approval/${lotusId}`, data);
 	},
 
 	/**
 	 * 批量审批
 	 */
 	batchApprove: async (data: BatchApprovalRequest): Promise<ApiResponse> => {
-		return api.post("/volunteer/approval/batch", data);
+		return api.post("/api/volunteer/approval/batch", data);
 	},
 
 	/**
@@ -61,6 +61,6 @@ export const approvalService = {
 			...rest,
 			limit: pageSize,
 		};
-		return api.get("/volunteer/approval/history", { params: apiParams });
+		return api.get("/api/volunteer/approval/history", { params: apiParams });
 	},
 };

@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { LatexGenerator } from './latex-generator'
 
-export const documentModule = new Elysia({ prefix: 'api/document' })
+export const documentModule = new Elysia({ prefix: '/api/document' })
   // 生成关怀登记表（LaTeX）
   .post('care-registration', async ({ body }) => {
     return await LatexGenerator.generateCareRegistrationForm(body)

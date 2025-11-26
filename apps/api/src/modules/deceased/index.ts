@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia'
 import { deceasedService } from './service'
 import { authMiddleware } from '../auth/middleware'
 
-export const deceasedModule = new Elysia({ prefix: '/deceased' })
+export const deceasedModule = new Elysia({ prefix: '/api/deceased' })
   .use(authMiddleware)
   .get(
     '/',

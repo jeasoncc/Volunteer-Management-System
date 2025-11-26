@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia'
 import { chantingService } from './service'
 import { authMiddleware } from '../auth/middleware'
 
-export const chantingModule = new Elysia({ prefix: '/chanting' })
+export const chantingModule = new Elysia({ prefix: '/api/chanting' })
   .use(authMiddleware)
   .get(
     '/',

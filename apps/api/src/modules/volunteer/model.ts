@@ -161,6 +161,16 @@ const ServiceFields = {
       t.Null(),
     ]),
   ),
+  volunteerStatus:  t.Optional(
+    t.Union([
+      t.Literal('applicant'),
+      t.Literal('trainee'),
+      t.Literal('registered'),
+      t.Literal('inactive'),
+      t.Literal('suspended'),
+      t.Null(),
+    ]),
+  ),
 }
 
 // ==================== Schema 组合 ====================

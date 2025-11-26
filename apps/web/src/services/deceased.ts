@@ -48,7 +48,7 @@ export const deceasedService = {
 			...rest,
 			limit: pageSize,
 		};
-		return api.get("/deceased", { params: apiParams });
+		return api.get("/api/deceased", { params: apiParams });
 	},
 
 	/**
@@ -64,7 +64,7 @@ export const deceasedService = {
 	create: async (
 		data: CreateDeceasedParams,
 	): Promise<ApiResponse<Deceased>> => {
-		return api.post("/deceased", data);
+		return api.post("/api/deceased", data);
 	},
 
 	/**
@@ -88,7 +88,7 @@ export const deceasedService = {
 	 * 批量删除往生者
 	 */
 	batchDelete: async (ids: number[]): Promise<ApiResponse> => {
-		return api.post("/deceased/batch/delete", { ids });
+		return api.post("/api/deceased/batch/delete", { ids });
 	},
 
 	/**
@@ -98,6 +98,6 @@ export const deceasedService = {
 		keyword: string,
 		limit?: number,
 	): Promise<ApiResponse<Deceased[]>> => {
-		return api.get("/deceased/search", { params: { keyword, limit } });
+		return api.get("/api/deceased/search", { params: { keyword, limit } });
 	},
 };
