@@ -125,6 +125,7 @@ export function VolunteerDataTable({
 					</div>
 				</div>
 			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: "volunteerId",
@@ -172,6 +173,7 @@ export function VolunteerDataTable({
 			filterFn: (row, id, value) => {
 				return value.includes(row.getValue(id));
 			},
+			enableSorting: false,
 		},
 		{
 			accessorKey: "lotusRole",
@@ -193,6 +195,7 @@ export function VolunteerDataTable({
 					</div>
 				);
 			},
+			enableSorting: false,
 		},
 		{
 			accessorKey: "gender",
@@ -205,6 +208,7 @@ export function VolunteerDataTable({
 					</span>
 				);
 			},
+			enableSorting: false,
 		},
 		{
 			accessorKey: "phone",
@@ -220,6 +224,7 @@ export function VolunteerDataTable({
 				</span>
 				);
 			},
+			enableSorting: false,
 		},
 		{
 			accessorKey: "createdAt",
@@ -229,11 +234,18 @@ export function VolunteerDataTable({
 				if (!dateStr) return <span className="text-muted-foreground">-</span>;
 				
 				const date = new Date(dateStr);
-				// 格式化为 YYYY-MM-DD
-				const formatted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+				// 格式化为中国格式：YYYY年MM月DD日 HH:mm:ss
+				const year = date.getFullYear();
+				const month = String(date.getMonth() + 1).padStart(2, '0');
+				const day = String(date.getDate()).padStart(2, '0');
+				const hours = String(date.getHours()).padStart(2, '0');
+				const minutes = String(date.getMinutes()).padStart(2, '0');
+				const seconds = String(date.getSeconds()).padStart(2, '0');
+				
+				const formatted = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`;
 				
 				return (
-					<div className="text-xs text-muted-foreground font-mono">
+					<div className="text-xs text-muted-foreground font-mono whitespace-nowrap">
 						{formatted}
 					</div>
 				);

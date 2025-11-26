@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>义工数据检查工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .volunteer-card {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+        }
+        .volunteer-card.missing {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            flex: 1;
+            padding: 20px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-box.existing {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .stat-box.missing {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 义工数据检查工具</h1>
+        
+        <div class="input-group">
+            <label for="apiUrl">API地址：</label>
+            <input type="text" id="apiUrl" value="http://localhost:3000/api/volunteer" 
+                   placeholder="输入API地址">
+        </div>
+        
+        <button onclick="checkVolunteers()">开始检查</button>
+        
+        <div class="results" id="results" style="display:none;">
+            <h2>检查结果</h2>
+            <div class="stats">
+                <div class="stat-box existing">
+                    <div class="stat-number" id="existingCount">0</div>
+                    <div class="stat-label">已存在</div>
+                </div>
+                <div class="stat-box missing">
+                    <div class="stat-number" id="missingCount">0</div>
+                    <div class="stat-label">需要添加</div>
+                </div>
+            </div>
+            
+            <h3>需要添加的义工：</h3>
+            <div id="missingList"></div>
+            
+            <h3>已存在的义工：</h3>
+            <div id="existingList"></div>
+        </div>
+    </div>
+
+    <script>
+        // 所有需要检查的义工数据
+        const allVolunteers = [
+            { name: "林楚立", idNumber: "440513199709122913", phone: "17512087450", volunteerId: "0000723721" },
+            { name: "房石安", idNumber: "445281198404086317", phone: "18680836552", volunteerId: "0000704055" },
+            { name: "钟礼兵", idNumber: "360521197504294819", phone: "18938641964", volunteerId: "0000692349" },
+            { name: "陶小妹", idNumber: "360111196504012528", phone: "19860018709", volunteerId: "0000464036" },
+            { name: "张文戈", idNumber: "420106195311256340", phone: "15112599967", volunteerId: "0000345780" },
+            { name: "王成山", idNumber: "422429195905221797", phone: "15323898481", volunteerId: "0099141706" },
+            { name: "彭东娥", idNumber: "430421195611264643", phone: "13613081786", volunteerId: "0000997387" },
+            { name: "杨秀敏", idNumber: "441203197601250545", phone: "13809886462", volunteerId: "0700299295" },
+            { name: "陈莉", idNumber: "433123198505240026", phone: "13428749159", volunteerId: "0000308314" },
+            { name: "刘银萍", idNumber: "610104196511051128", phone: "13902949898", volunteerId: "0000119653" },
+            { name: "严小英", idNumber: "441623197904160026", phone: "13424314311", volunteerId: "1700093607" },
+            { name: "朱碧丽", idNumber: "441523197301256760", phone: "13670084694", volunteerId: "1700231375" },
+            { name: "张凤兰", idNumber: "232700196210122023", phone: "13845762218", volunteerId: "0000702442" },
+            { name: "陈璋", idNumber: "610424199309287618", phone: "13129546291", volunteerId: "0300207442" },
+            { name: "吴崴", idNumber: "220203197703293026", phone: "15013883666", volunteerId: "0000015846" },
+            { name: "汪金英", idNumber: "420204195203014523", phone: "18002514316", volunteerId: "0099127522" },
+            { name: "陈莎莎", idNumber: "43102519890730004X", phone: "17717592025", volunteerId: "0000685907" },
+            { name: "游锦秀", idNumber: "422431195303152183", phone: "15871763405", volunteerId: "0000766192" },
+            { name: "刘洁香", idNumber: "442529196911257423", phone: "15994839048", volunteerId: "0000660333" },
+            { name: "范娘电", idNumber: "442531195905306337", phone: "18319431574", volunteerId: "0000303553" },
+            { name: "高丽萍", idNumber: "44524199209041524", phone: "13715259350", volunteerId: "0000080841" },
+            { name: "庄美君", idNumber: "441523196809236766", phone: "13715259350", volunteerId: "0000306280" },
+            { name: "刘春艳", idNumber: "152127197210131829", phone: "18041122297", volunteerId: "0000729915" },
+            { name: "王海燕", idNumber: "440924197109172767", phone: "13512742586", volunteerId: "" },
+            { name: "刘宋平", idNumber: "442522196611254429", phone: "13728866373", volunteerId: "0000787460" },
+            { name: "柴光俊", idNumber: "411222195106180038", phone: "18039258751", volunteerId: "0000662883" },
+            { name: "史栓香", idNumber: "411222196009160021", phone: "18039258752", volunteerId: "0000662883" },
+            { name: "凌英", idNumber: "441521196603141320", phone: "18938905495", volunteerId: "" },
+            { name: "林柳兰", idNumber: "440582198111030086", phone: "13714196377", volunteerId: "0000727017" },
+            { name: "王廷云", idNumber: "132235197410065549", phone: "17733907831", volunteerId: "0000721050" },
+            { name: "李雪梅", idNumber: "440623195006202327", phone: "13794607324", volunteerId: "0000044929" },
+            { name: "蓝财娣", idNumber: "440321195712064620", phone: "", volunteerId: "0000669988" }
+            // ... 可以继续添加更多义工
+        ];
+
+        async function checkVolunteers() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const resultsDiv = document.getElementById('results');
+            const missingList = document.getElementById('missingList');
+            const existingList = document.getElementById('existingList');
+            
+            resultsDiv.style.display = 'block';
+            missingList.innerHTML = '<p>检查中...</p>';
+            existingList.innerHTML = '<p>检查中...</p>';
+            
+            const existing = [];
+            const missing = [];
+            
+            for (const volunteer of allVolunteers) {
+                try {
+                    // 使用身份证号查询
+                    const response = await fetch(`${apiUrl}?idNumber=${volunteer.idNumber}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.volunteers && data.volunteers.length > 0) {
+                            existing.push(volunteer);
+                        } else {
+                            missing.push(volunteer);
+                        }
+                    } else {
+                        missing.push(volunteer);
+                    }
+                } catch (error) {
+                    console.error(`检查 ${volunteer.name} 时出错:`, error);
+                    missing.push(volunteer);
+                }
+                
+                // 更新进度
+                document.getElementById('existingCount').textContent = existing.length;
+                document.getElementById('missingCount').textContent = missing.length;
+            }
+            
+            // 显示结果
+            displayResults(missing, existing);
+        }
+        
+        function displayResults(missing, existing) {
+            const missingList = document.getElementById('missingList');
+            const existingList = document.getElementById('existingList');
+            
+            if (missing.length === 0) {
+                missingList.innerHTML = '<p>✅ 所有义工都已存在！</p>';
+            } else {
+                missingList.innerHTML = missing.map(v => `
+                    <div class="volunteer-card missing">
+                        <strong>${v.name}</strong><br>
+                        身份证：${v.idNumber}<br>
+                        手机号：${v.phone}<br>
+                        深圳义工号：${v.volunteerId || '无'}
+                    </div>
+                `).join('');
+            }
+            
+            if (existing.length === 0) {
+                existingList.innerHTML = '<p>❌ 没有找到已存在的义工</p>';
+            } else {
+                existingList.innerHTML = existing.map(v => `
+                    <div class="volunteer-card">
+                        <strong>${v.name}</strong><br>
+                        身份证：${v.idNumber}<br>
+                        手机号：${v.phone}<br>
+                        深圳义工号：${v.volunteerId || '无'}
+                    </div>
+                `).join('');
+            }
+        }
+    </script>
+</body>
+</html>
