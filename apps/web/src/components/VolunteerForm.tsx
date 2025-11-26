@@ -31,6 +31,7 @@ export function VolunteerForm({
 			name: volunteer?.name || "",
 			phone: volunteer?.phone || "",
 			idNumber: volunteer?.idNumber || "",
+			volunteerId: volunteer?.volunteerId || "",
 			gender: volunteer?.gender || "male",
 			birthDate: volunteer?.birthDate || "",
 			email: volunteer?.email || "",
@@ -221,6 +222,22 @@ export function VolunteerForm({
 												</p>
 											)}
 										</>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label className="flex items-center gap-2">
+									<CreditCard className="h-4 w-4 text-muted-foreground" />
+									深圳义工号
+								</Label>
+								<form.Field name="volunteerId">
+									{(field) => (
+										<Input
+											value={field.state.value || ""}
+											onChange={(e) => field.handleChange(e.target.value)}
+											placeholder="请输入深圳义工号（选填）"
+										/>
 									)}
 								</form.Field>
 							</div>

@@ -127,6 +127,28 @@ export function VolunteerDataTable({
 			),
 		},
 		{
+			accessorKey: "volunteerId",
+			header: "深圳义工号",
+			cell: ({ row }) => {
+				const volunteerId = row.original.volunteerId;
+				if (!volunteerId) return <span className="text-muted-foreground text-xs">-</span>;
+				return (
+					<div 
+						className="flex items-center gap-1 text-xs font-mono text-foreground cursor-pointer hover:text-primary transition-colors group"
+						onClick={(e) => {
+							e.stopPropagation();
+							navigator.clipboard.writeText(volunteerId);
+							toast.success("义工号已复制");
+						}}
+						title="点击复制义工号"
+					>
+						<span>{volunteerId}</span>
+						<Copy className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+					</div>
+				);
+			},
+		},
+		{
 			accessorKey: "volunteerStatus",
 			header: "状态",
 			cell: ({ row }) => {
@@ -317,8 +339,8 @@ export function VolunteerDataTable({
 	const columnLabels: Record<string, string> = {
 		lotusId: "莲花斋ID",
 		name: "姓名",
+		volunteerId: "深圳义工号",
 		gender: "性别",
-		volunteerId: "义工号",
 		volunteerStatus: "状态",
 		lotusRole: "角色",
 		createdAt: "创建时间",
@@ -332,6 +354,7 @@ export function VolunteerDataTable({
 		const exportColumns: ExportColumn[] = [
 			{ key: "lotusId", label: "莲花斋ID" },
 			{ key: "name", label: "姓名" },
+			{ key: "volunteerId", label: "深圳义工号" },
 			{
 				key: "gender",
 				label: "性别",
