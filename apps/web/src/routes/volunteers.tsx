@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,6 +81,28 @@ function VolunteersPage() {
 		start: string | null;
 		end: string | null;
 	}>({ start: null, end: null });
+	const [searchKeyword, setSearchKeyword] = useState("");
+	const [debouncedSearchKeyword, setDebouncedSearchKeyword] = useState("");
+	const [isSearching, setIsSearching] = useState(false);
+
+	// 搜索防抖
+	useEffect(() => {
+		setIsSearching(true);
+		const timer = setTimeout(() => {
+			setDebouncedSearchKeyword(searchKeyword);
+			setIsSearching(false);
+			if (searchKeyword !== debouncedSearchKeyword) {
+				setPage(1); // 重置到第一页
+			}
+		}, 300); // 300ms 防抖延迟
+
+		return () => clearTimeout(timer);
+	}, [searchKeyword, debouncedSearchKeyword]);
+
+	// 搜索时重置页码
+	const handleSearchChange = (value: string) => {
+		setSearchKeyword(value);
+	};
 
 	// 获取所有义工（前端分页方案：一次性获取全部数据）
 	const { data, isLoading } = useQuery({
@@ -286,17 +308,50 @@ function VolunteersPage() {
 				{ value: "other", label: "其他" },
 			],
 		},
+		{
+			id: "hasAvatar",
+			label: "头像",
+			options: [
+				{ value: "yes", label: "有头像" },
+				{ value: "no", label: "无头像" },
+			],
+		},
 	];
 
 	// 应用筛选（useMemo 必须在条件渲染之前）
 	const filteredVolunteers = useMemo((): Volunteer[] => {
 		let result: Volunteer[] = allVolunteers;
 
+		// 应用搜索关键词（使用防抖后的值）
+		if (debouncedSearchKeyword.trim()) {
+			const keyword = debouncedSearchKeyword.toLowerCase().trim();
+			result = result.filter((volunteer) => {
+				return (
+					volunteer.name?.toLowerCase().includes(keyword) ||
+					volunteer.lotusId?.toLowerCase().includes(keyword) ||
+					volunteer.phone?.toLowerCase().includes(keyword) ||
+					volunteer.email?.toLowerCase().includes(keyword)
+				);
+			});
+		}
+
 		// 应用筛选条件
 		if (activeFilters.length > 0) {
 			result = result.filter((volunteer) => {
 				return activeFilters.every((filter) => {
 					if (filter.values.length === 0) return true;
+					
+					// 特殊处理：头像筛选
+					if (filter.id === 'hasAvatar') {
+						const hasAvatar = volunteer.avatar && volunteer.avatar.trim() !== '';
+						return filter.values.some(value => {
+							if (value === 'yes') return hasAvatar;
+							if (value === 'no') return !hasAvatar;
+							return false;
+						});
+					}
+					
+					// 普通字段筛选
 					const value = volunteer[filter.id as keyof Volunteer];
 					return filter.values.includes(String(value));
 				});
@@ -318,7 +373,7 @@ function VolunteersPage() {
 		}
 
 		return result;
-	}, [allVolunteers, activeFilters, dateRange]);
+	}, [allVolunteers, debouncedSearchKeyword, activeFilters, dateRange]);
 
 	// 前端分页：从筛选后的数据中取当前页
 	const paginatedVolunteers = useMemo((): Volunteer[] => {
@@ -330,11 +385,36 @@ function VolunteersPage() {
 	const filteredPendingVolunteers = useMemo((): Volunteer[] => {
 		let result: Volunteer[] = pendingVolunteers;
 
+		// 应用搜索关键词（使用防抖后的值）
+		if (debouncedSearchKeyword.trim()) {
+			const keyword = debouncedSearchKeyword.toLowerCase().trim();
+			result = result.filter((volunteer) => {
+				return (
+					volunteer.name?.toLowerCase().includes(keyword) ||
+					volunteer.lotusId?.toLowerCase().includes(keyword) ||
+					volunteer.phone?.toLowerCase().includes(keyword) ||
+					volunteer.email?.toLowerCase().includes(keyword)
+				);
+			});
+		}
+
 		// 应用筛选条件
 		if (activeFilters.length > 0) {
 			result = result.filter((volunteer) => {
 				return activeFilters.every((filter) => {
 					if (filter.values.length === 0) return true;
+					
+					// 特殊处理：头像筛选
+					if (filter.id === 'hasAvatar') {
+						const hasAvatar = volunteer.avatar && volunteer.avatar.trim() !== '';
+						return filter.values.some(value => {
+							if (value === 'yes') return hasAvatar;
+							if (value === 'no') return !hasAvatar;
+							return false;
+						});
+					}
+					
+					// 普通字段筛选
 					const value = volunteer[filter.id as keyof Volunteer];
 					return filter.values.includes(String(value));
 				});
@@ -356,7 +436,7 @@ function VolunteersPage() {
 		}
 
 		return result;
-	}, [pendingVolunteers, activeFilters, dateRange]);
+	}, [pendingVolunteers, debouncedSearchKeyword, activeFilters, dateRange]);
 
 	// 计算统计数据（基于全部数据）
 	const stats = useMemo(() => {
@@ -828,6 +908,9 @@ function VolunteersPage() {
 								showRoleManagement={isSuperAdmin}
 								enableSelection={true}
 								onSelectionChange={handleSelectionChange}
+								searchValue={searchKeyword}
+								onSearchChange={handleSearchChange}
+								isSearching={isSearching}
 								pagination={{
 									pageIndex: page - 1,
 									pageSize: pageSize,
@@ -941,6 +1024,9 @@ function VolunteersPage() {
 								enableSelection={true}
 								onSelectionChange={handleSelectionChange}
 								showApprovalActions={true}
+								searchValue={searchKeyword}
+								onSearchChange={handleSearchChange}
+								isSearching={isSearching}
 								pagination={{
 									pageIndex: pendingPage - 1,
 									pageSize: pendingPageSize,

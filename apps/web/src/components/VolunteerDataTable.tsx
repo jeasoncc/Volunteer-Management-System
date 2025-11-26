@@ -33,6 +33,9 @@ interface VolunteerDataTableProps {
 	showRoleManagement?: boolean; // 是否显示角色管理功能（仅超级管理员）
 	emptyState?: React.ReactNode;
 	noResultsState?: React.ReactNode;
+	searchValue?: string;
+	onSearchChange?: (value: string) => void;
+	isSearching?: boolean;
 	pagination?: {
 		pageIndex: number;
 		pageSize: number;
@@ -60,6 +63,9 @@ export function VolunteerDataTable({
 	showRoleManagement = false,
 	emptyState,
 	noResultsState,
+	searchValue,
+	onSearchChange,
+	isSearching,
 	pagination,
 }: VolunteerDataTableProps) {
 	const columns: ColumnDef<Volunteer>[] = [
@@ -401,6 +407,9 @@ export function VolunteerDataTable({
 			enableExport={true}
 			columnLabels={columnLabels}
 			onExport={handleExport}
+			searchValue={searchValue}
+			onSearchChange={onSearchChange}
+			isSearching={isSearching}
 			pagination={pagination}
 			onSelectionChange={(rows) => {
 				if (onSelectionChange) {

@@ -16,27 +16,33 @@ export function mapToUpdateData(
     ...(body.email !== undefined && { email: body.email ?? null }),
     ...(body.address !== undefined && { address: body.address ?? null }),
     ...(body.wechat !== undefined && { wechat: body.wechat ?? null }),
-    ...(body.birthDate && { birthDate: new Date(body.birthDate) }), // 确保转换为Date
+    ...(body.birthDate !== undefined && { 
+      birthDate: body.birthDate ? new Date(body.birthDate) : null 
+    }),
     ...(body.avatar !== undefined && { avatar: body.avatar ?? null }),
 
     // 佛教信息
     ...(body.dharmaName !== undefined && { dharmaName: body.dharmaName ?? null }),
-    ...(body.education && { education: body.education }),
+    ...(body.education !== undefined && { education: body.education ?? null }),
     ...(body.hasBuddhismFaith !== undefined && { hasBuddhismFaith: body.hasBuddhismFaith }),
-    ...(body.refugeStatus && { refugeStatus: body.refugeStatus }),
-    ...(body.religiousBackground && { religiousBackground: body.religiousBackground }),
+    ...(body.refugeStatus !== undefined && { refugeStatus: body.refugeStatus ?? null }),
+    ...(body.religiousBackground !== undefined && { religiousBackground: body.religiousBackground ?? null }),
 
     // 健康和其他信息
-    ...(body.healthConditions && { healthConditions: body.healthConditions }),
+    ...(body.healthConditions !== undefined && { healthConditions: body.healthConditions ?? null }),
     ...(body.joinReason !== undefined && { joinReason: body.joinReason ?? null }),
     ...(body.hobbies !== undefined && { hobbies: body.hobbies ?? null }),
-    ...(body.availableTimes !== undefined && { availableTimes: body.availableTimes ?? null }),
+    ...(body.availableTimes !== undefined && { 
+      availableTimes: body.availableTimes 
+        ? (Array.isArray(body.availableTimes) ? JSON.stringify(body.availableTimes) : body.availableTimes)
+        : null 
+    }),
     ...(body.emergencyContact !== undefined && { emergencyContact: body.emergencyContact ?? null }),
 
     // 义工状态和岗位
-    ...(body.volunteerStatus && { volunteerStatus: body.volunteerStatus }),
-    ...(body.severPosition && { severPosition: body.severPosition }),
-    ...(body.familyConsent && { familyConsent: body.familyConsent }),
+    ...(body.volunteerStatus !== undefined && { volunteerStatus: body.volunteerStatus ?? null }),
+    ...(body.severPosition !== undefined && { severPosition: body.severPosition ?? null }),
+    ...(body.familyConsent !== undefined && { familyConsent: body.familyConsent ?? null }),
 
     // 系统字段
     updatedAt: new Date(),

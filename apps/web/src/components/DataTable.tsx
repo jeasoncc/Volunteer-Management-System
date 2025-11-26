@@ -48,6 +48,7 @@ import {
   ChevronsRight,
   FileType,
   FileCode,
+  Loader2,
 } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
@@ -61,6 +62,10 @@ interface DataTableProps<TData, TValue> {
   onSelectionChange?: (selectedRows: TData[]) => void;
   emptyState?: React.ReactNode;
   noResultsState?: React.ReactNode;
+  // 外部搜索控制
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  isSearching?: boolean; // 搜索加载状态
   // 服务端分页配置
   pagination?: {
     pageIndex: number; // 0-based
@@ -83,17 +88,23 @@ export function DataTable<TData, TValue>({
   onSelectionChange,
   emptyState,
   noResultsState,
+  searchValue,
+  onSearchChange,
+  isSearching = false,
   pagination,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [internalGlobalFilter, setInternalGlobalFilter] = useState("");
   const [debouncedGlobalFilter, setDebouncedGlobalFilter] = useState("");
   const [density, setDensity] = useState<"compact" | "normal" | "comfortable">(
     "normal",
   );
+
+  // 使用外部搜索值或内部搜索值
+  const globalFilter = searchValue !== undefined ? searchValue : internalGlobalFilter;
 
   // 内部状态（仅当没有提供外部 pagination 时使用）
   const [internalPagination, setInternalPagination] = useState<PaginationState>(
@@ -103,13 +114,15 @@ export function DataTable<TData, TValue>({
     },
   );
 
-  // 搜索防抖
+  // 搜索防抖（仅在使用内部搜索时）
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedGlobalFilter(globalFilter);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [globalFilter]);
+    if (searchValue === undefined) {
+      const timer = setTimeout(() => {
+        setDebouncedGlobalFilter(internalGlobalFilter);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [internalGlobalFilter, searchValue]);
 
   // 构建 Table 实例
   const table = useReactTable({
@@ -118,12 +131,12 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: searchValue !== undefined ? undefined : getFilteredRowModel(), // 外部搜索时禁用内部过滤
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onGlobalFilterChange: setDebouncedGlobalFilter,
+    onGlobalFilterChange: searchValue !== undefined ? undefined : setDebouncedGlobalFilter,
     // 分页配置
     manualPagination: !!pagination, // 如果提供了 pagination prop，则启用服务端分页模式
     pageCount: pagination?.pageCount, // 服务端总页数
@@ -163,7 +176,7 @@ export function DataTable<TData, TValue>({
       columnFilters,
       columnVisibility,
       rowSelection,
-      globalFilter: debouncedGlobalFilter,
+      globalFilter: searchValue !== undefined ? undefined : debouncedGlobalFilter, // 外部搜索时不使用内部globalFilter
       pagination: pagination
         ? {
           pageIndex: pagination.pageIndex,
@@ -237,15 +250,31 @@ export function DataTable<TData, TValue>({
             <Input
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-8"
+              onChange={(e) => {
+                const value = e.target.value;
+                if (onSearchChange) {
+                  onSearchChange(value);
+                } else {
+                  setInternalGlobalFilter(value);
+                }
+              }}
+              className="pl-8 pr-8"
             />
-            {globalFilter && (
+            {isSearching && (
+              <Loader2 className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground animate-spin" />
+            )}
+            {globalFilter && !isSearching && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="absolute right-1 top-1 h-7 w-7 p-0"
-                onClick={() => setGlobalFilter("")}
+                onClick={() => {
+                  if (onSearchChange) {
+                    onSearchChange("");
+                  } else {
+                    setInternalGlobalFilter("");
+                  }
+                }}
               >
                 <X className="h-4 w-4" />
               </Button>

@@ -145,7 +145,31 @@ export const volunteerService = {
 	create: async (
 		data: CreateVolunteerParams,
 	): Promise<ApiResponse<Volunteer>> => {
-		return api.post("/api/volunteer", data);
+		// 数据转换：处理特殊字段
+		const transformedData: any = { ...data };
+		
+		// 转换 availableTimes：字符串 -> 数组
+		if (typeof transformedData.availableTimes === 'string') {
+			if (transformedData.availableTimes === '' || transformedData.availableTimes === '[]') {
+				transformedData.availableTimes = [];
+			} else {
+				try {
+					transformedData.availableTimes = JSON.parse(transformedData.availableTimes);
+				} catch (e) {
+					// 如果解析失败，设为空数组
+					transformedData.availableTimes = [];
+				}
+			}
+		}
+		
+		// 转换空字符串为 null（后端期望的格式）
+		Object.keys(transformedData).forEach((key) => {
+			if (transformedData[key] === '') {
+				transformedData[key] = null;
+			}
+		});
+		
+		return api.post("/api/volunteer", transformedData);
 	},
 
 	/**
@@ -155,9 +179,33 @@ export const volunteerService = {
 		lotusId: string,
 		data: Partial<CreateVolunteerParams>,
 	): Promise<ApiResponse<Volunteer>> => {
+		// 数据转换：处理特殊字段
+		const transformedData: any = { ...data };
+		
+		// 转换 availableTimes：字符串 -> 数组
+		if (typeof transformedData.availableTimes === 'string') {
+			if (transformedData.availableTimes === '' || transformedData.availableTimes === '[]') {
+				transformedData.availableTimes = [];
+			} else {
+				try {
+					transformedData.availableTimes = JSON.parse(transformedData.availableTimes);
+				} catch (e) {
+					// 如果解析失败，设为空数组
+					transformedData.availableTimes = [];
+				}
+			}
+		}
+		
+		// 转换空字符串为 null（后端期望的格式）
+		Object.keys(transformedData).forEach((key) => {
+			if (transformedData[key] === '') {
+				transformedData[key] = null;
+			}
+		});
+		
 		// 调试：打印发送的数据
-		console.log('🔍 更新志愿者数据:', JSON.stringify(data, null, 2));
-		return api.put(`/api/volunteer/${lotusId}`, data);
+		console.log('🔍 更新志愿者数据:', JSON.stringify(transformedData, null, 2));
+		return api.put(`/api/volunteer/${lotusId}`, transformedData);
 	},
 
 	/**
