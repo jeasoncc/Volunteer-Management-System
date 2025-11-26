@@ -14,11 +14,12 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle, XCircle, Shield, User, Copy } from "lucide-react";
-import { exportToExcel, exportToCSV, formatDateTime, type ExportColumn } from "@/lib/export";
+import { exportToExcel, exportToCSV, exportToTXT, exportToMarkdown, formatDateTime, type ExportColumn } from "@/lib/export";
 import { toast } from "@/lib/toast";
 
 interface VolunteerDataTableProps {
 	data: Volunteer[];
+	exportData?: Volunteer[]; // 用于导出的完整数据（可选，默认使用data）
 	isLoading?: boolean;
 	onEdit?: (volunteer: Volunteer) => void;
 	onView?: (volunteer: Volunteer) => void;
@@ -45,6 +46,7 @@ interface VolunteerDataTableProps {
 
 export function VolunteerDataTable({
 	data,
+	exportData,
 	isLoading,
 	onEdit,
 	onView,
@@ -317,7 +319,10 @@ export function VolunteerDataTable({
 	};
 
 	// 导出处理
-	const handleExport = (format: "excel" | "csv") => {
+	const handleExport = (format: "excel" | "csv" | "txt" | "markdown") => {
+		// 使用 exportData（全部数据）或 data（当前页数据）
+		const dataToExport = exportData || data;
+		
 		const exportColumns: ExportColumn[] = [
 			{ key: "lotusId", label: "莲花斋ID" },
 			{ key: "name", label: "姓名" },
@@ -352,22 +357,39 @@ export function VolunteerDataTable({
 
 		const filename = showApprovalActions ? "待审批义工" : "义工列表";
 
-		if (format === "excel") {
-			exportToExcel({
-				filename,
-				sheetName: filename,
-				columns: exportColumns,
-				data,
-			});
-		} else {
-			exportToCSV({
-				filename,
-				columns: exportColumns,
-				data,
-			});
+		switch (format) {
+			case "excel":
+				exportToExcel({
+					filename,
+					sheetName: filename,
+					columns: exportColumns,
+					data: dataToExport,
+				});
+				break;
+			case "csv":
+				exportToCSV({
+					filename,
+					columns: exportColumns,
+					data: dataToExport,
+				});
+				break;
+			case "txt":
+				exportToTXT({
+					filename,
+					columns: exportColumns,
+					data: dataToExport,
+				});
+				break;
+			case "markdown":
+				exportToMarkdown({
+					filename,
+					columns: exportColumns,
+					data: dataToExport,
+				});
+				break;
 		}
 
-		toast.success(`已导出 ${data.length} 条记录`);
+		toast.success(`已导出 ${dataToExport.length} 条记录`);
 	};
 
 	return (

@@ -40,10 +40,9 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
 	const { isAuthenticated, isLoading, user } = useAuth();
-	const [lastUpdate, setLastUpdate] = React.useState(new Date());
 
 	// 启用键盘快捷键
-	useKeyboardShortcuts();
+	useKeyboardShortcuts([]);
 
 	// 获取义工统计
 	const { data: volunteersData, isLoading: volunteersLoading, error: volunteersError, refetch: refetchVolunteers } = useQuery({
@@ -86,7 +85,6 @@ function HomePage() {
 			refetchPending(),
 			refetchCheckin(),
 		]);
-		setLastUpdate(new Date());
 		toast.success("数据已刷新", {
 			description: "最新统计数据已加载完成",
 		});
@@ -97,8 +95,8 @@ function HomePage() {
 	const hasError = volunteersError && pendingError && checkinError;
 
 	// 修正数据路径：后端直接返回 { success, data, total, page, ... }
-	const totalVolunteers = volunteersData?.total || 0;
-	const pendingCount = pendingData?.total || 0;
+	const totalVolunteers = (volunteersData as any)?.total || 0;
+	const pendingCount = (pendingData as any)?.total || 0;
 	const volunteers = checkinData?.data?.volunteers || [];
 	const totalHours = volunteers.reduce((sum: number, v: any) => sum + (v.totalHours || 0), 0);
 	const totalDays = volunteers.reduce((sum: number, v: any) => sum + (v.totalDays || 0), 0);
@@ -215,7 +213,7 @@ function HomePage() {
 
 			{/* 核心数据指标 */}
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<Link to="/volunteers" className="group block">
+				<Link to="/volunteers" className="group block" title="查看所有义工档案">
 					<Card className="relative overflow-hidden border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
 						<div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
@@ -234,7 +232,7 @@ function HomePage() {
 					</Card>
 				</Link>
 
-				<Link to="/approval" className="group block">
+				<Link to="/approval" className="group block" title={pendingCount > 0 ? `有 ${pendingCount} 个义工申请待审批` : "当前无待审批申请"}>
 					<Card className={`relative overflow-hidden border-l-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${pendingCount > 0 ? "border-l-orange-500" : "border-l-slate-300"}`}>
 						<div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity ${pendingCount > 0 ? "from-orange-50/50" : "from-slate-50/50"}`} />
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">

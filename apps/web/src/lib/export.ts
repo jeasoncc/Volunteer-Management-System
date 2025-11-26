@@ -125,3 +125,90 @@ export function formatDate(date: string | Date | undefined): string {
 	const d = new Date(date);
 	return d.toLocaleDateString("zh-CN");
 }
+
+/**
+ * 导出数据为 TXT 文件
+ */
+export function exportToTXT({
+	filename,
+	columns,
+	data,
+}: Omit<ExportOptions, "sheetName">) {
+	// 准备表头
+	const headers = columns.map((col) => col.label).join("\t");
+
+	// 准备数据行
+	const rows = data.map((item) =>
+		columns
+			.map((col) => {
+				const value = item[col.key];
+				const formatted = col.format ? col.format(value) : value ?? "";
+				return String(formatted);
+			})
+			.join("\t"),
+	);
+
+	// 组合内容
+	const txtContent = [headers, ...rows].join("\n");
+
+	// 创建 Blob 并下载
+	const blob = new Blob([txtContent], {
+		type: "text/plain;charset=utf-8;",
+	});
+	const link = document.createElement("a");
+	const url = URL.createObjectURL(blob);
+	link.href = url;
+	const timestamp = new Date().toISOString().split("T")[0];
+	link.download = `${filename}_${timestamp}.txt`;
+	link.click();
+	URL.revokeObjectURL(url);
+}
+
+/**
+ * 导出数据为 Markdown 文件
+ */
+export function exportToMarkdown({
+	filename,
+	columns,
+	data,
+}: Omit<ExportOptions, "sheetName">) {
+	// 准备表头
+	const headers = columns.map((col) => col.label);
+	const headerRow = `| ${headers.join(" | ")} |`;
+	const separatorRow = `| ${headers.map(() => "---").join(" | ")} |`;
+
+	// 准备数据行
+	const rows = data.map((item) => {
+		const cells = columns.map((col) => {
+			const value = item[col.key];
+			const formatted = col.format ? col.format(value) : value ?? "";
+			// Markdown 转义：替换管道符和换行符
+			return String(formatted).replace(/\|/g, "\\|").replace(/\n/g, " ");
+		});
+		return `| ${cells.join(" | ")} |`;
+	});
+
+	// 组合内容
+	const markdownContent = [
+		`# ${filename}`,
+		"",
+		`导出时间：${new Date().toLocaleString("zh-CN")}`,
+		`数据总数：${data.length} 条`,
+		"",
+		headerRow,
+		separatorRow,
+		...rows,
+	].join("\n");
+
+	// 创建 Blob 并下载
+	const blob = new Blob([markdownContent], {
+		type: "text/markdown;charset=utf-8;",
+	});
+	const link = document.createElement("a");
+	const url = URL.createObjectURL(blob);
+	link.href = url;
+	const timestamp = new Date().toISOString().split("T")[0];
+	link.download = `${filename}_${timestamp}.md`;
+	link.click();
+	URL.revokeObjectURL(url);
+}

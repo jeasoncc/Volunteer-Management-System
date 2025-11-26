@@ -46,6 +46,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  FileType,
+  FileCode,
 } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
@@ -54,7 +56,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   searchPlaceholder?: string;
   enableExport?: boolean;
-  onExport?: (format: "excel" | "csv") => void;
+  onExport?: (format: "excel" | "csv" | "txt" | "markdown") => void;
   columnLabels?: Record<string, string>;
   onSelectionChange?: (selectedRows: TData[]) => void;
   emptyState?: React.ReactNode;
@@ -183,7 +185,7 @@ export function DataTable<TData, TValue>({
   }, [rowSelection]);
 
   // 导出处理
-  const handleExport = (format: "excel" | "csv") => {
+  const handleExport = (format: "excel" | "csv" | "txt" | "markdown") => {
     if (onExport) {
       onExport(format);
     }
@@ -381,7 +383,7 @@ export function DataTable<TData, TValue>({
                   <ChevronDown className="h-4 w-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>导出格式</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuCheckboxItem
@@ -393,6 +395,14 @@ export function DataTable<TData, TValue>({
                 <DropdownMenuCheckboxItem onSelect={() => handleExport("csv")}>
                   <FileText className="h-4 w-4 mr-2" />
                   CSV (.csv)
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem onSelect={() => handleExport("txt")}>
+                  <FileType className="h-4 w-4 mr-2" />
+                  文本 (.txt)
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem onSelect={() => handleExport("markdown")}>
+                  <FileCode className="h-4 w-4 mr-2" />
+                  Markdown (.md)
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>

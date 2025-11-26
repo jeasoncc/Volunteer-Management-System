@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -46,7 +46,6 @@ export const Route = createFileRoute("/volunteers")({
 function VolunteersPage() {
 	const { isAuthenticated, isLoading: authLoading, isSuperAdmin } = useAuth();
 	const queryClient = useQueryClient();
-	const navigate = useNavigate();
 	const [activeTab, setActiveTab] = useState("all");
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [isBatchAddDialogOpen, setIsBatchAddDialogOpen] = useState(false);
@@ -55,7 +54,7 @@ function VolunteersPage() {
 	>();
 	const [viewingVolunteer, setViewingVolunteer] = useState<Volunteer | undefined>();
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(20);
+	const [pageSize, setPageSize] = useState(10);  // 修改为每页10条
 	const [selectedVolunteers, setSelectedVolunteers] = useState<string[]>([]);
 	const [approvalDialog, setApprovalDialog] = useState<{
 		open: boolean;
@@ -83,16 +82,16 @@ function VolunteersPage() {
 		end: string | null;
 	}>({ start: null, end: null });
 
-	// 获取所有义工
+	// 获取所有义工（前端分页方案：一次性获取全部数据）
 	const { data, isLoading } = useQuery({
-		queryKey: ["volunteers", page, pageSize],
-		queryFn: () => volunteerService.getList({ page, pageSize }),
+		queryKey: ["volunteers", "all"],  // 移除 page 和 pageSize 依赖
+		queryFn: () => volunteerService.getAll(),  // 使用 getAll 接口
 		enabled: isAuthenticated,
 	});
 
 	// 获取待审批义工
 	const [pendingPage, setPendingPage] = useState(1);
-	const [pendingPageSize, setPendingPageSize] = useState(20);
+	const [pendingPageSize, setPendingPageSize] = useState(10);  // 修改为每页10条
 	const { data: pendingData, isLoading: pendingLoading } = useQuery({
 		queryKey: ["approval", "pending", pendingPage, pendingPageSize],
 		queryFn: () => approvalService.getPendingList({ page: pendingPage, pageSize: pendingPageSize }),
@@ -250,11 +249,12 @@ function VolunteersPage() {
 	});
 
 	// 准备数据（在条件渲染之前）
-	const volunteers = Array.isArray(data?.data) ? data.data : [];
+	// 前端分页：allVolunteers 包含所有数据
+	const allVolunteers = Array.isArray(data?.data) ? data.data : [];
 	const pendingVolunteers = Array.isArray(pendingData?.data)
 		? pendingData.data
 		: [];
-	const pendingCount = pendingData?.total || 0;  // 修复：total 在顶层，不在 data 里
+	const pendingCount = (pendingData as any)?.total || 0;
 
 	// 筛选配置
 	const filterOptions = [
@@ -290,7 +290,7 @@ function VolunteersPage() {
 
 	// 应用筛选（useMemo 必须在条件渲染之前）
 	const filteredVolunteers = useMemo((): Volunteer[] => {
-		let result: Volunteer[] = volunteers;
+		let result: Volunteer[] = allVolunteers;
 
 		// 应用筛选条件
 		if (activeFilters.length > 0) {
@@ -318,7 +318,14 @@ function VolunteersPage() {
 		}
 
 		return result;
-	}, [volunteers, activeFilters, dateRange]);
+	}, [allVolunteers, activeFilters, dateRange]);
+
+	// 前端分页：从筛选后的数据中取当前页
+	const paginatedVolunteers = useMemo((): Volunteer[] => {
+		const start = (page - 1) * pageSize;
+		const end = start + pageSize;
+		return filteredVolunteers.slice(start, end);
+	}, [filteredVolunteers, page, pageSize]);
 
 	const filteredPendingVolunteers = useMemo((): Volunteer[] => {
 		let result: Volunteer[] = pendingVolunteers;
@@ -351,13 +358,13 @@ function VolunteersPage() {
 		return result;
 	}, [pendingVolunteers, activeFilters, dateRange]);
 
-	// 计算统计数据（必须在条件渲染之前）
+	// 计算统计数据（基于全部数据）
 	const stats = useMemo(() => {
 		const now = new Date();
 		const thisMonth = now.getMonth();
 		const thisYear = now.getFullYear();
 
-		const newThisMonth = volunteers.filter((v) => {
+		const newThisMonth = allVolunteers.filter((v) => {
 			if (!v.createdAt) return false;
 			const createdDate = new Date(v.createdAt);
 			return (
@@ -366,17 +373,17 @@ function VolunteersPage() {
 			);
 		}).length;
 
-		const activeVolunteers = volunteers.filter(
+		const activeVolunteers = allVolunteers.filter(
 			(v) => v.volunteerStatus === "registered",
 		).length;
 
 		return {
-			totalVolunteers: data?.data?.total || 0,  // 使用后端返回的总数
-			newThisMonth,
+			totalVolunteers: allVolunteers.length,  // 全部数据的总数
+			newThisMonth,  // 基于全部数据计算
 			pendingApproval: pendingCount,
-			activeVolunteers,
+			activeVolunteers,  // 基于全部数据计算
 		};
-	}, [volunteers, pendingCount, data]);
+	}, [allVolunteers, pendingCount]);
 
 	// 快捷键支持（必须在条件渲染之前）
 	useKeyboardShortcuts([
@@ -385,8 +392,8 @@ function VolunteersPage() {
 			ctrl: true,
 			callback: () => {
 				if (activeTab === "all") {
-					const currentData = activeFilters.length === 0 ? volunteers : filteredVolunteers;
-					setSelectedVolunteers(currentData.map((v) => v.lotusId));
+					// 全选当前页的数据
+					setSelectedVolunteers(paginatedVolunteers.map((v: Volunteer) => v.lotusId));
 				}
 			},
 			description: "全选",
@@ -720,7 +727,7 @@ function VolunteersPage() {
 
 			{/* 统计概览 */}
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+				<Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow" title="系统中所有义工的总数">
 					<CardContent className="p-6 flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-muted-foreground">义工总数</p>
@@ -731,7 +738,7 @@ function VolunteersPage() {
 						</div>
 					</CardContent>
 				</Card>
-				<Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow">
+				<Card className="border-l-4 border-l-green-500 shadow-sm hover:shadow-md transition-shadow" title="本月新注册的义工数量">
 					<CardContent className="p-6 flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-muted-foreground">本月新增</p>
@@ -742,7 +749,7 @@ function VolunteersPage() {
 						</div>
 					</CardContent>
 				</Card>
-				<Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
+				<Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow" title={stats.pendingApproval > 0 ? `有 ${stats.pendingApproval} 个义工申请待审批` : "当前无待审批申请"}>
 					<CardContent className="p-6 flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-muted-foreground">待审批</p>
@@ -753,7 +760,7 @@ function VolunteersPage() {
 						</div>
 					</CardContent>
 				</Card>
-				<Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
+				<Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow" title="状态为已注册的活跃义工数量">
 					<CardContent className="p-6 flex items-center justify-between">
 						<div>
 							<p className="text-sm font-medium text-muted-foreground">活跃义工</p>
@@ -811,7 +818,8 @@ function VolunteersPage() {
 					<Card className="shadow-sm border-t-4 border-t-primary/20">
 						<div className="p-6">
 							<VolunteerDataTable
-								data={filteredVolunteers}
+								data={paginatedVolunteers}
+								exportData={filteredVolunteers}
 								isLoading={isLoading}
 								onView={handleView}
 								onEdit={handleEdit}
@@ -823,8 +831,8 @@ function VolunteersPage() {
 								pagination={{
 									pageIndex: page - 1,
 									pageSize: pageSize,
-									pageCount: Math.ceil((data?.data?.total || 0) / pageSize),
-									total: data?.data?.total || 0,
+									pageCount: Math.ceil(filteredVolunteers.length / pageSize),  // 基于筛选后的数据
+									total: filteredVolunteers.length,  // 筛选后的总数
 									onPageChange: (newPage) => {
 										setPage(newPage + 1);
 										setSelectedVolunteers([]);
@@ -860,7 +868,7 @@ function VolunteersPage() {
 						onSelectAll={handleSelectAll}
 						actions={[
 							{
-								label: "导出选中",
+								label: "导出选中 (Excel)",
 								icon: <Download className="h-4 w-4 mr-1" />,
 								variant: "secondary",
 								onClick: () => {
@@ -925,6 +933,7 @@ function VolunteersPage() {
 						<div className="p-6">
 							<VolunteerDataTable
 								data={filteredPendingVolunteers}
+								exportData={filteredPendingVolunteers}
 								isLoading={pendingLoading}
 								onView={handleView}
 								onApprove={handleApprove}
@@ -935,8 +944,8 @@ function VolunteersPage() {
 								pagination={{
 									pageIndex: pendingPage - 1,
 									pageSize: pendingPageSize,
-									pageCount: Math.ceil((pendingData?.total || 0) / pendingPageSize),
-									total: pendingData?.total || 0,
+									pageCount: Math.ceil(((pendingData as any)?.total || 0) / pendingPageSize),
+									total: (pendingData as any)?.total || 0,
 									onPageChange: (newPage) => {
 										setPendingPage(newPage + 1);
 										setSelectedVolunteers([]);
@@ -986,7 +995,7 @@ function VolunteersPage() {
 								disabled: batchApproveMutation.isPending,
 							},
 							{
-								label: "导出选中",
+								label: "导出选中 (Excel)",
 								icon: <Download className="h-4 w-4 mr-1" />,
 								variant: "secondary",
 								onClick: () => {
