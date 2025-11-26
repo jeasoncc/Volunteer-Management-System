@@ -898,7 +898,7 @@ function VolunteersPage() {
 					<Card className="shadow-sm border-t-4 border-t-primary/20">
 						<div className="p-6">
 							<VolunteerDataTable
-								data={paginatedVolunteers}
+								data={filteredVolunteers}
 								exportData={filteredVolunteers}
 								isLoading={isLoading}
 								onView={handleView}
@@ -911,21 +911,6 @@ function VolunteersPage() {
 								searchValue={searchKeyword}
 								onSearchChange={handleSearchChange}
 								isSearching={isSearching}
-								pagination={{
-									pageIndex: page - 1,
-									pageSize: pageSize,
-									pageCount: Math.ceil(filteredVolunteers.length / pageSize),  // 基于筛选后的数据
-									total: filteredVolunteers.length,  // 筛选后的总数
-									onPageChange: (newPage) => {
-										setPage(newPage + 1);
-										setSelectedVolunteers([]);
-									},
-									onPageSizeChange: (newSize) => {
-										setPageSize(newSize);
-										setPage(1);
-										setSelectedVolunteers([]);
-									},
-								}}
 								emptyState={
 									<EmptyState
 										type="no-data"

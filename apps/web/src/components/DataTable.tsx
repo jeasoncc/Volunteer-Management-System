@@ -93,7 +93,9 @@ export function DataTable<TData, TValue>({
   isSearching = false,
   pagination,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "createdAt", desc: true } // 默认按加入时间降序排序
+  ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
@@ -139,6 +141,7 @@ export function DataTable<TData, TValue>({
     onGlobalFilterChange: searchValue !== undefined ? undefined : setDebouncedGlobalFilter,
     // 分页配置
     manualPagination: !!pagination, // 如果提供了 pagination prop，则启用服务端分页模式
+    manualSorting: false, // 始终使用客户端排序
     pageCount: pagination?.pageCount, // 服务端总页数
     onPaginationChange: (updaterOrValue) => {
       if (pagination) {

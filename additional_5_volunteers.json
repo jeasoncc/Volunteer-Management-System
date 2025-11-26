@@ -1,0 +1,70 @@
+[
+  {
+    "name": "刘金艳",
+    "idNumber": "430223199001018381",
+    "gender": "female",
+    "birthDate": "1990-01-01",
+    "phone": "13128851618",
+    "address": "广东省深圳市宝安区石岩镇",
+    "education": "middle_school",
+    "religiousBackground": "upasaka",
+    "wechat": "13128851618",
+    "healthConditions": "healthy",
+    "refugeStatus": "refuge"
+  },
+  {
+    "name": "欧阳钟培",
+    "idNumber": "440582198611205153",
+    "gender": "male",
+    "birthDate": "1986-11-20",
+    "phone": "13923923911",
+    "address": "广东省深圳市福田区福星路福滨新村",
+    "email": "oyzp868@163.com",
+    "education": "middle_school",
+    "religiousBackground": "upasaka",
+    "wechat": "13923923911",
+    "healthConditions": "healthy",
+    "refugeStatus": "refuge"
+  },
+  {
+    "name": "柯映卿",
+    "idNumber": "440528197010180066",
+    "gender": "female",
+    "birthDate": "1970-10-18",
+    "phone": "13049887669",
+    "address": "广东省惠来县仙庵镇华园管区柯厝村西三巷3之一号",
+    "education": "elementary",
+    "religiousBackground": "upasaka",
+    "wechat": "13049887669",
+    "healthConditions": "healthy",
+    "refugeStatus": "refuge"
+  },
+  {
+    "name": "郭奕丽",
+    "idNumber": "440307195810040043",
+    "gender": "female",
+    "birthDate": "1958-10-04",
+    "phone": "13662230864",
+    "address": "深圳市龙岗区南湾丹竹头新洲东九巷三号",
+    "education": "middle_school",
+    "religiousBackground": "upasaka",
+    "volunteerId": "0099120567",
+    "wechat": "13662230864",
+    "healthConditions": "healthy",
+    "refugeStatus": "refuge"
+  },
+  {
+    "name": "刘新娣",
+    "idNumber": "45250119510519684X",
+    "gender": "female",
+    "birthDate": "1951-05-19",
+    "phone": "14774907851",
+    "address": "深圳市龙岗区吉华街道三联玺樾山二期五栋201/广西育林市新月县",
+    "education": "elementary",
+    "religiousBackground": "upasaka",
+    "volunteerId": "1700251470",
+    "wechat": "14774907851",
+    "healthConditions": "healthy",
+    "refugeStatus": "refuge"
+  }
+]
