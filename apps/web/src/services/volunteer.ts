@@ -255,7 +255,7 @@ export const volunteerService = {
 	batchImport: async (
 		volunteers: CreateVolunteerParams[],
 	): Promise<ApiResponse> => {
-		return api.post("/api/volunteer/batch/import", { volunteers });
+		return api.post("/api/volunteer/batch/import", volunteers);
 	},
 
 	/**

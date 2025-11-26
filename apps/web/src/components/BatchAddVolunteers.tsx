@@ -16,11 +16,16 @@ interface VolunteerInput {
 	phone: string;
 	idNumber: string;
 	gender: "male" | "female" | "other";
+	birthDate?: string;
+	volunteerId?: string;
 	email?: string;
 	wechat?: string;
 	address?: string;
 	dharmaName?: string;
 	education?: string;
+	religiousBackground?: string;
+	refugeStatus?: string;
+	healthConditions?: string;
 	errors?: {
 		name?: string;
 		phone?: string;
@@ -52,11 +57,16 @@ export function BatchAddVolunteers({
 			phone: "",
 			idNumber: "",
 			gender: "male",
+			birthDate: "",
+			volunteerId: "",
 			email: "",
 			wechat: "",
 			address: "",
 			dharmaName: "",
 			education: "",
+			religiousBackground: "",
+			refugeStatus: "",
+			healthConditions: "",
 		};
 	}
 
@@ -141,11 +151,16 @@ export function BatchAddVolunteers({
 			phone: v.phone,
 			idNumber: v.idNumber,
 			gender: v.gender,
+			birthDate: v.birthDate || undefined,
+			volunteerId: v.volunteerId || undefined,
 			email: v.email || undefined,
 			wechat: v.wechat || undefined,
 			address: v.address || undefined,
 			dharmaName: v.dharmaName || undefined,
-			education: v.education || undefined,
+			education: v.education as any || undefined,
+			religiousBackground: v.religiousBackground as any || undefined,
+			refugeStatus: v.refugeStatus as any || undefined,
+			healthConditions: v.healthConditions as any || undefined,
 		}));
 
 		await onSubmit(data);
@@ -302,6 +317,30 @@ export function BatchAddVolunteers({
 										</Select>
 									</div>
 
+									{/* 出生日期 */}
+									<div className="space-y-2">
+										<Label>出生日期</Label>
+										<Input
+											type="date"
+											value={volunteer.birthDate}
+											onChange={(e) =>
+												updateVolunteer(volunteer.id, "birthDate", e.target.value)
+											}
+										/>
+									</div>
+
+									{/* 深圳义工号 */}
+									<div className="space-y-2">
+										<Label>深圳义工号</Label>
+										<Input
+											value={volunteer.volunteerId}
+											onChange={(e) =>
+												updateVolunteer(volunteer.id, "volunteerId", e.target.value)
+											}
+											placeholder="请输入深圳义工号"
+										/>
+									</div>
+
 									{/* 邮箱 */}
 									<div className="space-y-2">
 										<Label>邮箱</Label>
@@ -354,13 +393,84 @@ export function BatchAddVolunteers({
 									{/* 学历 */}
 									<div className="space-y-2">
 										<Label>学历</Label>
-										<Input
+										<Select
 											value={volunteer.education}
-											onChange={(e) =>
-												updateVolunteer(volunteer.id, "education", e.target.value)
+											onValueChange={(value) =>
+												updateVolunteer(volunteer.id, "education", value)
 											}
-											placeholder="请输入学历"
-										/>
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择学历" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="elementary">小学</SelectItem>
+												<SelectItem value="middle_school">初中</SelectItem>
+												<SelectItem value="high_school">高中</SelectItem>
+												<SelectItem value="technical_secondary">中专</SelectItem>
+												<SelectItem value="associate">专科</SelectItem>
+												<SelectItem value="bachelor">本科</SelectItem>
+												<SelectItem value="master">硕士</SelectItem>
+												<SelectItem value="doctor">博士</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									{/* 宗教背景 */}
+									<div className="space-y-2">
+										<Label>宗教背景</Label>
+										<Select
+											value={volunteer.religiousBackground}
+											onValueChange={(value) =>
+												updateVolunteer(volunteer.id, "religiousBackground", value)
+											}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择宗教背景" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="upasaka">佛教</SelectItem>
+												<SelectItem value="none">无</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									{/* 皈依状态 */}
+									<div className="space-y-2">
+										<Label>皈依状态</Label>
+										<Select
+											value={volunteer.refugeStatus}
+											onValueChange={(value) =>
+												updateVolunteer(volunteer.id, "refugeStatus", value)
+											}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择皈依状态" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="refuge">已皈依</SelectItem>
+												<SelectItem value="none">未皈依</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									{/* 健康状况 */}
+									<div className="space-y-2">
+										<Label>健康状况</Label>
+										<Select
+											value={volunteer.healthConditions}
+											onValueChange={(value) =>
+												updateVolunteer(volunteer.id, "healthConditions", value)
+											}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="请选择健康状况" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="healthy">很好</SelectItem>
+												<SelectItem value="general">一般</SelectItem>
+												<SelectItem value="poor">较差</SelectItem>
+											</SelectContent>
+										</Select>
 									</div>
 								</div>
 							</CardContent>

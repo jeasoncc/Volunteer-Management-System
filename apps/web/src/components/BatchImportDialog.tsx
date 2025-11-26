@@ -32,13 +32,21 @@ export function BatchImportDialog({
 		const selectedFile = e.target.files?.[0];
 		if (!selectedFile) return;
 
-		// 验证文件类型
+		// 验证文件类型 - 支持 Excel 和 CSV
 		const validTypes = [
 			"application/vnd.ms-excel",
 			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			"text/csv",
+			"application/csv",
 		];
-		if (!validTypes.includes(selectedFile.type)) {
-			toast.error("请上传 Excel 文件（.xls 或 .xlsx）");
+		const fileName = selectedFile.name.toLowerCase();
+		const isValidType = validTypes.includes(selectedFile.type) || 
+			fileName.endsWith('.xlsx') || 
+			fileName.endsWith('.xls') || 
+			fileName.endsWith('.csv');
+		
+		if (!isValidType) {
+			toast.error("请上传 Excel 文件（.xls 或 .xlsx）或 CSV 文件（.csv）");
 			return;
 		}
 
@@ -56,24 +64,106 @@ export function BatchImportDialog({
 				const worksheet = workbook.Sheets[sheetName];
 				const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-				// 映射字段名
-				const mappedData = jsonData.map((row: any) => ({
-					name: row["姓名"] || row["name"],
-					phone: row["手机号"] || row["phone"],
-					idNumber: row["身份证号"] || row["idNumber"],
-					gender:
-						row["性别"] === "男"
-							? "male"
-							: row["性别"] === "女"
-							? "female"
-							: row["gender"] || "other",
-					email: row["邮箱"] || row["email"],
-					address: row["地址"] || row["address"],
-					dharmaName: row["法名"] || row["dharmaName"],
-					education: row["学历"] || row["education"],
-					emergencyContact: row["紧急联系人"] || row["emergencyContact"],
-				}));
+				// 辅助函数：清理空值，将空字符串转为 undefined
+				const cleanValue = (value: any): any => {
+					if (value === "" || value === null || value === undefined) {
+						return undefined;
+					}
+					return value;
+				};
 
+				// 映射字段名 - 支持完整字段
+				const mappedData = jsonData.map((row: any) => {
+					// 处理性别
+					let gender = "other";
+					if (row["性别"] === "男") gender = "male";
+					else if (row["性别"] === "女") gender = "female";
+					else if (row["性别"] === "其他") gender = "other";
+					else if (row["gender"]) gender = row["gender"];
+					
+					// 处理学历
+					const educationMap: Record<string, string> = {
+						"小学": "elementary",
+						"初中": "middle_school",
+						"高中": "high_school",
+						"中专": "technical_secondary",
+						"专科": "associate",
+						"本科": "bachelor",
+						"硕士": "master",
+						"博士": "doctor",
+					};
+					const educationValue = row["学历"] || row["education"];
+					const education = educationValue ? (educationMap[educationValue] || educationValue) : undefined;
+					
+					// 处理宗教背景
+					const religionMap: Record<string, string> = {
+						"佛教": "upasaka",
+						"无": "none",
+					};
+					const religionValue = row["宗教背景"] || row["religiousBackground"] || row["宗教信仰"];
+					const religiousBackground = religionValue ? (religionMap[religionValue] || religionValue) : undefined;
+					
+					// 处理皈依状态
+					const refugeMap: Record<string, string> = {
+						"皈依": "took_refuge",
+						"已皈依": "took_refuge",
+						"无": "none",
+						"未皈依": "none",
+					};
+					const refugeValue = row["皈依状态"] || row["refugeStatus"] || row["是否皈依"];
+					const refugeStatus = refugeValue ? (refugeMap[refugeValue] || refugeValue) : undefined;
+					
+					// 处理健康状况
+					const healthMap: Record<string, string> = {
+						"很好": "healthy",
+						"无疾病": "healthy",
+						"健康": "healthy",
+						"一般": "has_chronic_disease",
+						"较差": "has_chronic_disease",
+					};
+					const healthValue = row["健康状况"] || row["healthConditions"];
+					const healthConditions = healthValue ? (healthMap[healthValue] || healthValue) : undefined;
+					
+					// 构建数据对象，清理所有空值
+					const data: any = {
+						name: cleanValue(row["姓名"] || row["name"]),
+						phone: cleanValue(row["手机号"] || row["phone"]),
+						idNumber: cleanValue(row["身份证号"] || row["idNumber"]),
+						gender,
+					};
+
+					// 只添加非空的可选字段
+					const optionalFields = {
+						birthDate: cleanValue(row["出生日期"] || row["birthDate"] || row["出生年月"]),
+						email: cleanValue(row["邮箱"] || row["email"]),
+						address: cleanValue(row["地址"] || row["address"] || row["住址"]),
+						volunteerId: cleanValue(row["深圳义工号"] || row["volunteerId"]),
+						wechat: cleanValue(row["微信号"] || row["wechat"]),
+						dharmaName: cleanValue(row["法名"] || row["dharmaName"]),
+						education,
+						religiousBackground,
+						refugeStatus,
+						healthConditions,
+						emergencyContact: cleanValue(row["紧急联系人"] || row["emergencyContact"]),
+						emergencyPhone: cleanValue(row["紧急联系电话"] || row["emergencyPhone"]),
+					};
+
+					// 只添加有值的字段
+					Object.entries(optionalFields).forEach(([key, value]) => {
+						if (value !== undefined) {
+							data[key] = value;
+						}
+					});
+
+					return data;
+				});
+
+				// 调试：打印解析后的数据
+				console.log("=== CSV解析结果 ===");
+				console.log("原始数据:", jsonData);
+				console.log("映射后数据:", mappedData);
+				console.log("第一条数据详情:", JSON.stringify(mappedData[0], null, 2));
+				
 				setPreviewData(mappedData);
 				toast.success(`成功解析 ${mappedData.length} 条数据`);
 			} catch (error) {
@@ -84,19 +174,26 @@ export function BatchImportDialog({
 		reader.readAsBinaryString(file);
 	};
 
-	const handleDownloadTemplate = () => {
-		// 创建模板数据
+	const handleDownloadTemplate = (format: "excel" | "csv" = "excel") => {
+		// 创建模板数据 - 包含所有重要字段
 		const template = [
 			{
 				姓名: "张三",
 				手机号: "13800138000",
 				身份证号: "110101199001011234",
 				性别: "男",
+				出生日期: "1990-01-01",
+				深圳义工号: "0000123456",
+				微信号: "zhangsan_wx",
 				邮箱: "zhangsan@example.com",
-				地址: "北京市朝阳区",
-				法名: "释某某",
+				地址: "北京市朝阳区某某街道",
 				学历: "本科",
-				紧急联系人: "李四 13900139000",
+				宗教背景: "佛教",
+				皈依状态: "皈依",
+				健康状况: "很好",
+				法名: "释某某",
+				紧急联系人: "李四",
+				紧急联系电话: "13900139000",
 			},
 		];
 
@@ -107,20 +204,32 @@ export function BatchImportDialog({
 
 		// 设置列宽
 		worksheet["!cols"] = [
-			{ wch: 10 },
-			{ wch: 15 },
-			{ wch: 20 },
-			{ wch: 8 },
-			{ wch: 25 },
-			{ wch: 30 },
-			{ wch: 12 },
-			{ wch: 10 },
-			{ wch: 25 },
+			{ wch: 10 },  // 姓名
+			{ wch: 15 },  // 手机号
+			{ wch: 20 },  // 身份证号
+			{ wch: 8 },   // 性别
+			{ wch: 12 },  // 出生日期
+			{ wch: 15 },  // 深圳义工号
+			{ wch: 15 },  // 微信号
+			{ wch: 25 },  // 邮箱
+			{ wch: 30 },  // 地址
+			{ wch: 10 },  // 学历
+			{ wch: 10 },  // 宗教背景
+			{ wch: 10 },  // 皈依状态
+			{ wch: 10 },  // 健康状况
+			{ wch: 12 },  // 法名
+			{ wch: 12 },  // 紧急联系人
+			{ wch: 15 },  // 紧急联系电话
 		];
 
 		// 下载文件
-		XLSX.writeFile(workbook, "义工导入模板.xlsx");
-		toast.success("模板下载成功");
+		if (format === "csv") {
+			XLSX.writeFile(workbook, "义工导入模板.csv", { bookType: "csv" });
+			toast.success("CSV 模板下载成功");
+		} else {
+			XLSX.writeFile(workbook, "义工导入模板.xlsx");
+			toast.success("Excel 模板下载成功");
+		}
 	};
 
 	const handleImport = async () => {
@@ -187,14 +296,22 @@ export function BatchImportDialog({
 				{/* 下载模板 */}
 				<div className="space-y-2">
 					<label className="text-sm font-medium">步骤 1: 下载导入模板</label>
-					<Button
-						variant="outline"
-						className="w-full"
-						onClick={handleDownloadTemplate}
-					>
-						<Download className="h-4 w-4 mr-2" />
-						下载 Excel 模板
-					</Button>
+					<div className="grid grid-cols-2 gap-2">
+						<Button
+							variant="outline"
+							onClick={() => handleDownloadTemplate("excel")}
+						>
+							<Download className="h-4 w-4 mr-2" />
+							Excel 模板
+						</Button>
+						<Button
+							variant="outline"
+							onClick={() => handleDownloadTemplate("csv")}
+						>
+							<Download className="h-4 w-4 mr-2" />
+							CSV 模板
+						</Button>
+					</div>
 				</div>
 
 				{/* 上传文件 */}
@@ -203,7 +320,7 @@ export function BatchImportDialog({
 					<div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors">
 						<input
 							type="file"
-							accept=".xlsx,.xls"
+							accept=".xlsx,.xls,.csv"
 							onChange={handleFileChange}
 							className="hidden"
 							id="file-upload"
@@ -218,7 +335,7 @@ export function BatchImportDialog({
 									点击上传或拖拽文件到此处
 								</p>
 								<p className="text-xs text-muted-foreground mt-1">
-									支持 .xlsx 和 .xls 格式
+									支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式
 								</p>
 							</div>
 						</label>
@@ -253,8 +370,10 @@ export function BatchImportDialog({
 									<tr>
 										<th className="px-3 py-2 text-left">姓名</th>
 										<th className="px-3 py-2 text-left">手机号</th>
+										<th className="px-3 py-2 text-left">深圳义工号</th>
 										<th className="px-3 py-2 text-left">性别</th>
-										<th className="px-3 py-2 text-left">邮箱</th>
+										<th className="px-3 py-2 text-left">出生日期</th>
+										<th className="px-3 py-2 text-left">地址</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -262,6 +381,7 @@ export function BatchImportDialog({
 										<tr key={index} className="border-t">
 											<td className="px-3 py-2">{row.name}</td>
 											<td className="px-3 py-2">{row.phone}</td>
+											<td className="px-3 py-2">{row.volunteerId || "-"}</td>
 											<td className="px-3 py-2">
 												{row.gender === "male"
 													? "男"
@@ -269,7 +389,8 @@ export function BatchImportDialog({
 													? "女"
 													: "其他"}
 											</td>
-											<td className="px-3 py-2">{row.email || "-"}</td>
+											<td className="px-3 py-2">{row.birthDate || "-"}</td>
+											<td className="px-3 py-2 max-w-xs truncate">{row.address || "-"}</td>
 										</tr>
 									))}
 								</tbody>
@@ -309,8 +430,14 @@ export function BatchImportDialog({
 						<p className="font-medium mb-1">注意事项：</p>
 						<ul className="list-disc list-inside space-y-1 text-xs">
 							<li>姓名、手机号、身份证号为必填项</li>
-							<li>手机号和身份证号不能重复</li>
-							<li>性别只能填写：男、女、其他</li>
+							<li>手机号、身份证号、深圳义工号不能重复</li>
+							<li>性别填写：男、女、其他</li>
+							<li>学历填写：小学、初中、高中、中专、专科、本科、硕士、博士</li>
+							<li>宗教背景填写：佛教、无</li>
+							<li>皈依状态填写：皈依、无</li>
+							<li>健康状况填写：很好、一般、较差</li>
+							<li>出生日期格式：YYYY-MM-DD（如：1990-01-01）</li>
+							<li>支持 Excel 和 CSV 格式文件</li>
 							<li>建议每次导入不超过 100 条数据</li>
 						</ul>
 					</div>
