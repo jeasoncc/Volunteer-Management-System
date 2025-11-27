@@ -11,6 +11,7 @@ import {
   PermissionUpdateDto,
   PromoteVolunteerDto,
 } from './model'
+import { validatePaginationParams } from '../../lib/validation/pagination'
 
 export class AdminService {
   // ============== 创建管理员 ==============
@@ -267,8 +268,16 @@ export class AdminService {
 
   // ============== 获取管理员列表 ==============
   static async getList(query: AdminListQuery) {
-    const { page = 1, limit = 10, ...filters } = query
-    const offset = (page - 1) * limit
+    const { ...filters } = query
+    
+    // 🔒 验证分页参数
+    const { page, pageSize: limit, offset } = validatePaginationParams({
+      page: query.page,
+      pageSize: query.limit,
+    }, {
+      defaultPageSize: 10,
+      maxPageSize: 1000,
+    })
 
     // 构建筛选条件
     const whereConditions = []

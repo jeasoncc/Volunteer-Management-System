@@ -9,6 +9,7 @@ import { volunteer } from '../../db/schema'
 import { eq, and, or, count } from 'drizzle-orm'
 import { jwtPlugin } from '../../lib/middleware/auth'
 import { errorHandler } from '../../lib/middleware/error-handler'
+import { validatePaginationParams } from '../../lib/validation/pagination'
 
 // 审批请求 Schema
 const ApprovalRequestSchema = t.Object({
@@ -72,8 +73,14 @@ export const approvalModule = new Elysia({ prefix: '/api/volunteer/approval' })
   .get(
     '/pending',
     async ({ query }) => {
-      const { page = 1, limit = 20 } = query
-      const offset = (page - 1) * limit
+      // 🔒 验证分页参数
+      const { page, pageSize: limit, offset } = validatePaginationParams({
+        page: query.page,
+        pageSize: query.limit,
+      }, {
+        defaultPageSize: 20,
+        maxPageSize: 1000,
+      })
 
       const [volunteers, totalResult] = await Promise.all([
         db
@@ -258,8 +265,14 @@ export const approvalModule = new Elysia({ prefix: '/api/volunteer/approval' })
   .get(
     '/history',
     async ({ query }) => {
-      const { page = 1, limit = 20 } = query
-      const offset = (page - 1) * limit
+      // 🔒 验证分页参数
+      const { page, pageSize: limit, offset } = validatePaginationParams({
+        page: query.page,
+        pageSize: query.limit,
+      }, {
+        defaultPageSize: 20,
+        maxPageSize: 1000,
+      })
 
       const [volunteers, totalResult] = await Promise.all([
         db

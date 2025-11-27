@@ -2,6 +2,7 @@ import { eq, and, like, or, gte, lte, desc } from 'drizzle-orm'
 import { db } from '../../db'
 import { deceased } from '../../db/schema'
 import type { CreateDeceasedDTO, UpdateDeceasedDTO, DeceasedListQuery } from './types'
+import { validatePaginationParams } from '../../lib/validation/pagination'
 
 export class DeceasedService {
   /**
@@ -9,8 +10,6 @@ export class DeceasedService {
    */
   async getList(query: DeceasedListQuery) {
     const {
-      page = 1,
-      limit = 20,
       keyword,
       gender,
       chantPosition,
@@ -18,7 +17,14 @@ export class DeceasedService {
       endDate,
     } = query
 
-    const offset = (page - 1) * limit
+    // 🔒 验证分页参数
+    const { page, pageSize: limit, offset } = validatePaginationParams({
+      page: query.page,
+      pageSize: query.limit,
+    }, {
+      defaultPageSize: 20,
+      maxPageSize: 1000,
+    })
 
     // 构建查询条件
     const conditions = []

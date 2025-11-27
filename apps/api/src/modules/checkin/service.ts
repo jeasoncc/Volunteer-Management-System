@@ -1,6 +1,6 @@
 import { db } from '../../db'
 import { strangerCheckIn, volunteer, volunteerCheckIn } from '../../db/schema'
-import { and, eq, gte, lte } from 'drizzle-orm'
+import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -352,6 +352,18 @@ export class CheckInService {
   }) {
     const { startDate, endDate, deviceSn, page = 1, pageSize = 50 } = params
 
+    // 🔒 验证分页参数
+    const pageNum = typeof page === 'number' ? page : parseInt(page as any, 10)
+    const pageSizeNum = typeof pageSize === 'number' ? pageSize : parseInt(pageSize as any, 10)
+    
+    if (isNaN(pageNum) || pageNum < 1) {
+      throw new Error('无效的页码参数')
+    }
+    
+    if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 1000) {
+      throw new Error('无效的每页数量参数（范围: 1-1000）')
+    }
+
     const conditions = [] as any[]
 
     if (startDate) {
@@ -366,8 +378,17 @@ export class CheckInService {
       conditions.push(eq(strangerCheckIn.deviceSn, deviceSn))
     }
 
-    const limit = pageSize
-    const offset = (page - 1) * pageSize
+    const limit = pageSizeNum
+    const offset = (pageNum - 1) * pageSizeNum
+
+    // 先获取总数
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(strangerCheckIn)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+
+    const totalCount = Number(count)
+    const totalPages = Math.ceil(totalCount / pageSizeNum)
 
     const records = await db
       .select()
@@ -379,11 +400,12 @@ export class CheckInService {
 
     return {
       success: true,
-      data: records,
-      pagination: {
-        page,
-        pageSize,
-        total: records.length,
+      data: {
+        records,
+        total: totalCount,
+        page: pageNum,
+        pageSize: pageSizeNum,
+        totalPages,
       },
     }
   }

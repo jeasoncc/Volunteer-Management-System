@@ -32,6 +32,13 @@ export class WebSocketService {
   private static buildAddUserCommand(user: any): any {
     const photoUrl = user.avatar ? `${this.BASE_URL}${user.avatar}` : ''
     
+    // 🔍 打印照片URL用于调试
+    if (photoUrl) {
+      logger.info(`📸 ${user.name}(${user.lotusId}) 照片URL: ${photoUrl}`)
+    } else {
+      logger.warn(`⚠️  ${user.name}(${user.lotusId}) 没有照片`)
+    }
+    
     return {
       cmd:           'addUser',
       mode:          0,
@@ -162,6 +169,12 @@ export class WebSocketService {
     logger.info(`📊 共查询到 ${users.length} 个义工用于同步考勤机`)
     logger.info(`🌐 照片服务器地址: ${this.BASE_URL}`)
     logger.info(`💡 提示: 请确保考勤机能访问此地址`)
+    logger.info(`💡 照片URL格式示例: ${this.BASE_URL}/upload/avatar/xxx.jpg`)
+    logger.info(`💡 如果考勤机报"照片下载错误"，可能原因：`)
+    logger.info(`   1. 考勤机无法访问服务器地址 ${this.BASE_URL}`)
+    logger.info(`   2. 照片文件不存在或已被删除`)
+    logger.info(`   3. 照片格式不符合考勤机要求（建议使用JPG格式）`)
+    logger.info(`   4. 网络防火墙阻止了考勤机访问`)
 
     // 初始化进度管理器
     syncProgressManager.startSync(users.length)
@@ -424,7 +437,20 @@ export class WebSocketService {
       } else {
         // 同步失败，记录详细错误
         syncProgressManager.incrementFailed(userId, userName, errorMessage)
-        logger.error(`❌ 考勤机返回失败: ${userId} - [${code}] ${errorMessage}`)
+        logger.error(`❌ 考勤机返回失败: ${userName}(${userId}) - [错误码:${code}] ${errorMessage}`)
+        
+        // 🔍 如果是照片相关错误，打印用户的照片URL
+        if (code === 1 || errorMessage.includes('照片') || errorMessage.includes('人脸')) {
+          const [user] = await db.select().from(volunteer).where(eq(volunteer.lotusId, userId))
+          if (user?.avatar) {
+            const photoUrl = `${this.BASE_URL}${user.avatar}`
+            logger.error(`🔗 照片URL: ${photoUrl}`)
+            logger.error(`💡 请在浏览器中访问此URL检查照片是否可访问`)
+            logger.error(`💡 请确保考勤机能访问服务器地址: ${this.BASE_URL}`)
+          } else {
+            logger.error(`⚠️  用户没有照片记录`)
+          }
+        }
       }
     } catch (error) {
       logger.error(`处理考勤机返回结果失败:`, error)

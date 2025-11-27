@@ -3,6 +3,7 @@ import { volunteer, volunteerCheckIn, volunteerCheckInSummary } from '../../db/s
 import { eq, and, gte, lte, sql, desc, asc } from 'drizzle-orm'
 import dayjs from 'dayjs'
 import { createLogger } from '../../log'
+import { validatePaginationParams } from '../../lib/validation/pagination'
 
 const logger = createLogger()
 
@@ -28,8 +29,6 @@ export class CheckInSummaryService {
     const { userId, lotusId, date } = params
 
     // 1. 查询当天所有打卡记录
-    logger.debug(`查询考勤记录: lotusId=${lotusId}, date=${date}`)
-    
     const records = await db
       .select()
       .from(volunteerCheckIn)
@@ -40,8 +39,6 @@ export class CheckInSummaryService {
         )
       )
       .orderBy(volunteerCheckIn.checkIn)
-    
-    logger.debug(`找到 ${records.length} 条记录`)
 
     if (records.length === 0) {
       return {
@@ -429,7 +426,8 @@ export class CheckInSummaryService {
     const startDate = dayjs(`${year}-${month}-01`).format('YYYY-MM-DD')
     const endDate = dayjs(`${year}-${month}-01`).endOf('month').format('YYYY-MM-DD')
 
-    logger.info(`📊 生成 ${year}年${month}月 考勤报表...`)
+    // 改为 debug 级别，避免频繁输出
+    logger.debug(`📊 查询 ${year}年${month}月 考勤报表...`)
 
     // 查询该月所有有打卡记录的用户
     const users = await db
@@ -494,11 +492,17 @@ export class CheckInSummaryService {
       lotusId,
       startDate,
       endDate,
-      page = 1,
-      limit = 20,
     } = params
 
-    const offset = (page - 1) * limit
+    // 🔒 验证分页参数
+    const { page, pageSize: limit, offset } = validatePaginationParams({
+      page: params.page,
+      pageSize: params.limit,
+    }, {
+      defaultPageSize: 20,
+      maxPageSize: 1000,
+    })
+
     const conditions = []
 
     if (lotusId) {

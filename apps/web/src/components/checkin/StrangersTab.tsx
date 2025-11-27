@@ -25,8 +25,8 @@ export function StrangersTab() {
 		queryKey: ["stranger-records", startDate, endDate, page, pageSize],
 		queryFn: () =>
 			checkinService.getStrangerRecords({
-				page,
-				pageSize,
+				page: Number(page),
+				pageSize: Number(pageSize),
 				startDate,
 				endDate,
 			}),

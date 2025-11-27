@@ -9,6 +9,7 @@ import { checkUniqueFields } from './utils/checkUniqueFields'
 import { mapToInsertData } from './utils/mapToInsertData'
 import { mapToUpdateData } from './utils/mapToUpdateData'
 import { hashPassword, verifyPassword } from '../../lib/auth'
+import { validatePaginationParams } from '../../lib/validation/pagination'
 
 export class VolunteerService {
   static checkIn(arg0: number) {
@@ -340,8 +341,16 @@ export class VolunteerService {
    * 获取义工列表
    */
   static async getList(query: VolunteerListQuery) {
-    const { page = 1, limit = 10, keyword, ...filters } = query
-    const offset = (page - 1) * limit
+    const { keyword, ...filters } = query
+    
+    // 🔒 验证分页参数
+    const { page, pageSize: limit, offset } = validatePaginationParams({
+      page: query.page,
+      pageSize: query.limit,
+    }, {
+      defaultPageSize: 10,
+      maxPageSize: 1000,
+    })
 
     // 构建筛选条件 - 完全类型安全
     const whereConditions = (Object.entries(filters) as Array<[keyof typeof filterableFields, any]>)

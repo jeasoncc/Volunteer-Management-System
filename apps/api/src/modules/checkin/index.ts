@@ -44,9 +44,27 @@ export const checkinModule = new Elysia({ prefix: '/api/v1' })
     async ({ query }) => {
       const { startDate, endDate, deviceSn, page = 1, pageSize = 50 } = query as any
 
+      // 验证分页参数
+      const pageNum = parseInt(page as any, 10)
+      const pageSizeNum = parseInt(pageSize as any, 10)
+      
+      if (isNaN(pageNum) || pageNum < 1) {
+        return {
+          success: false,
+          message: '无效的页码参数',
+        }
+      }
+      
+      if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 1000) {
+        return {
+          success: false,
+          message: '无效的每页数量参数（范围: 1-1000）',
+        }
+      }
+
       const filters: any = {
-        page:     parseInt(page as any, 10) || 1,
-        pageSize: parseInt(pageSize as any, 10) || 50,
+        page: pageNum,
+        pageSize: pageSizeNum,
       }
 
       if (startDate) filters.startDate = startDate
@@ -248,7 +266,33 @@ export const checkinModule = new Elysia({ prefix: '/api/v1' })
   .get(
     '/checkin/records',
     async ({ query }) => {
-      const result = await CheckInRecordService.getList(query as any)
+      const { page = 1, pageSize = 50 } = query as any
+      
+      // 验证分页参数
+      const pageNum = parseInt(page as any, 10)
+      const pageSizeNum = parseInt(pageSize as any, 10)
+      
+      if (isNaN(pageNum) || pageNum < 1) {
+        return {
+          success: false,
+          message: '无效的页码参数',
+        }
+      }
+      
+      if (isNaN(pageSizeNum) || pageSizeNum < 1 || pageSizeNum > 1000) {
+        return {
+          success: false,
+          message: '无效的每页数量参数（范围: 1-1000）',
+        }
+      }
+      
+      const validatedQuery = {
+        ...query,
+        page: pageNum,
+        pageSize: pageSizeNum,
+      }
+      
+      const result = await CheckInRecordService.getList(validatedQuery as any)
       return result
     },
   )

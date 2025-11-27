@@ -20,20 +20,22 @@ export class CheckInRecordService {
     status?: string
     recordType?: string
   }) {
-    const {
-      page = 1,
-      pageSize = 20,
-      lotusId,
-      startDate,
-      endDate,
-      status,
-      recordType,
-    } = params
+    // ✅ 修复：将字符串参数转换为数字并验证
+    const page = parseInt(params.page as any) || 1
+    const pageSize = parseInt(params.pageSize as any) || 20
+    
+    // 🔒 验证：确保参数有效
+    if (isNaN(page) || page < 1) {
+      throw new Error('无效的页码参数')
+    }
+    
+    if (isNaN(pageSize) || pageSize < 1 || pageSize > 1000) {
+      throw new Error('无效的每页数量参数（范围: 1-1000）')
+    }
+    
+    const { lotusId, startDate, endDate, status, recordType } = params
 
     const offset = (page - 1) * pageSize
-
-    // 调试日志
-    logger.info(`📝 查询打卡记录: page=${page}, pageSize=${pageSize}, offset=${offset}, startDate=${startDate}, endDate=${endDate}, lotusId=${lotusId}`)
 
     // 构建查询条件
     const conditions: any[] = []
@@ -61,20 +63,17 @@ export class CheckInRecordService {
       conditions.push(eq(volunteerCheckIn.lotusId, lotusId))
     }
 
-    logger.info(`📝 准备查询: LIMIT=${pageSize}, OFFSET=${offset}`)
-
     // 先获取总数
-    const countQuery = db
+    const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(volunteerCheckIn)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
 
-    const [{ count }] = await countQuery
     const totalCount = Number(count)
     const totalPages = Math.ceil(totalCount / pageSize)
 
-    // 尝试使用数据库分页
-    let allRecords = await db
+    // 按照 Drizzle 文档的标准方式进行分页
+    const records = await db
       .select({
         id: volunteerCheckIn.id,
         userId: volunteerCheckIn.userId,
@@ -86,7 +85,6 @@ export class CheckInRecordService {
         originTime: volunteerCheckIn.originTime,
         recordType: volunteerCheckIn.recordType,
         createdAt: volunteerCheckIn.createdAt,
-        // 直接从 volunteerCheckIn 表获取
         lotusId: volunteerCheckIn.lotusId,
         name: volunteerCheckIn.name,
       })
@@ -95,19 +93,6 @@ export class CheckInRecordService {
       .orderBy(desc(volunteerCheckIn.date), desc(volunteerCheckIn.checkIn))
       .limit(pageSize)
       .offset(offset)
-    
-    logger.info(`📝 数据库返回: ${allRecords.length} 条记录`)
-    
-    // 如果数据库 LIMIT 未生效，使用应用层分页
-    let records = allRecords
-    if (allRecords.length > pageSize) {
-      logger.warn(`⚠️ 数据库LIMIT未生效，使用应用层分页`)
-      // 应用层分页：从所有记录中取出当前页的数据
-      records = allRecords.slice(offset, offset + pageSize)
-      logger.info(`📝 应用层分页后: ${records.length} 条记录`)
-    }
-    
-    logger.info(`📝 最终返回: records=${records.length}, total=${totalCount}, totalPages=${totalPages}`)
 
     return {
       success: true,

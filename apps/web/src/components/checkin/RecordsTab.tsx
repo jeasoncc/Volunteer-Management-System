@@ -36,8 +36,8 @@ export function RecordsTab() {
 		queryKey: ["checkin-raw-records", startDate, endDate, lotusId, page, pageSize],
 		queryFn: () =>
 			checkinService.getRawRecords({
-				page,
-				pageSize,
+				page: Number(page),
+				pageSize: Number(pageSize),
 				startDate,
 				endDate,
 				lotusId: lotusId || undefined,
@@ -67,39 +67,10 @@ export function RecordsTab() {
 		},
 	});
 
-	// 调试：打印返回的数据
-	console.log('📝 打卡记录 - 完整响应:', data);
-	console.log('📝 打卡记录 - 查询参数:', { startDate, endDate, lotusId, page, pageSize });
-	
 	const paginationData = data?.data as any;
 	const records = paginationData?.records || [];
 	const total = paginationData?.total || 0;
 	const totalPages = paginationData?.totalPages || 1;
-	
-	console.log('📝 打卡记录 - records 数量:', records.length);
-	console.log('📝 打卡记录 - 期望数量:', pageSize);
-	console.log('📝 打卡记录 - total:', total);
-	console.log('📝 打卡记录 - totalPages:', totalPages);
-	console.log('📝 打卡记录 - 当前页:', page);
-	
-	// 🚨 警告：如果记录数不等于 pageSize
-	if (records.length > 0 && records.length !== pageSize && page < totalPages) {
-		console.warn('⚠️ 警告：返回的记录数与期望不符！', {
-			返回: records.length,
-			期望: pageSize,
-			差异: records.length - pageSize
-		});
-	}
-	
-	// 统计日期分布
-	if (records.length > 0) {
-		const dateCount = records.reduce((acc: any, record: any) => {
-			const date = dayjs(record.date).format("YYYY-MM-DD");
-			acc[date] = (acc[date] || 0) + 1;
-			return acc;
-		}, {});
-		console.log('📝 打卡记录 - 日期分布:', dateCount);
-	}
 
 	const handleQuickFilter = (filter: string) => {
 		setQuickFilter(filter);
@@ -239,22 +210,12 @@ export function RecordsTab() {
 
 			{/* 数据统计 */}
 			{!isLoading && records.length > 0 && (
-				<div className={`border rounded-lg p-3 text-sm ${
-					records.length !== pageSize && page < totalPages
-						? 'bg-yellow-50 border-yellow-300'
-						: 'bg-blue-50 border-blue-200'
-				}`}>
-					<div className={`flex items-center gap-4 ${
-						records.length !== pageSize && page < totalPages
-							? 'text-yellow-900'
-							: 'text-blue-900'
-					}`}>
-						<span>📊 当前页显示: {records.length} 条 {records.length !== pageSize && `(期望 ${pageSize} 条)`}</span>
+				<div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+					<div className="flex items-center gap-4 text-blue-900">
+						<span>📊 当前页: {records.length} 条</span>
 						<span>📅 日期范围: {startDate} 至 {endDate}</span>
-						<span>📈 总记录数: {total} 条</span>
-						{records.length !== pageSize && page < totalPages && (
-							<span className="font-semibold">⚠️ 分页异常</span>
-						)}
+						<span>📈 总记录: {total} 条</span>
+						<span>📄 第 {page}/{totalPages} 页</span>
 					</div>
 				</div>
 			)}

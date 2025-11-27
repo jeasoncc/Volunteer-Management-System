@@ -2,6 +2,7 @@ import { eq, and, gte, lte, desc } from 'drizzle-orm'
 import { db } from '../../db'
 import { chantingSchedule, volunteer, deceased } from '../../db/schema'
 import type { CreateChantingScheduleDTO, UpdateChantingScheduleDTO, ChantingScheduleListQuery } from './types'
+import { validatePaginationParams } from '../../lib/validation/pagination'
 
 export class ChantingService {
   /**
@@ -9,8 +10,6 @@ export class ChantingService {
    */
   async getList(query: ChantingScheduleListQuery) {
     const {
-      page = 1,
-      limit = 20,
       startDate,
       endDate,
       location,
@@ -18,7 +17,14 @@ export class ChantingService {
       deceasedId,
     } = query
 
-    const offset = (page - 1) * limit
+    // 🔒 验证分页参数
+    const { page, pageSize: limit, offset } = validatePaginationParams({
+      page: query.page,
+      pageSize: query.limit,
+    }, {
+      defaultPageSize: 20,
+      maxPageSize: 1000,
+    })
 
     // 构建查询条件
     const conditions = []
