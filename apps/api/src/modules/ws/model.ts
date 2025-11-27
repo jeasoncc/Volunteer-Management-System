@@ -64,6 +64,13 @@ export interface AddUserCommand {
   user_id_card:  string
   face_template: string
   phone:         string
+  id_valid:      string  // 必填：有效期，空字符串表示永久
+  user_type?:    number  // 可选：0=正常, 2=访客, 10=黑名单, 20=只测温
+  effect_time?:  string  // 可选：生效时间
+  tts_name?:     string  // 可选：播报名称（多音字）
+  Ic?:           string  // 可选：IC卡号
+  confidence_level?: number  // 可选：置信度
+  valid_cycle?:  Array<{ start_time: string; end_time: string }>  // 可选：通行周期
 }
 
 /**

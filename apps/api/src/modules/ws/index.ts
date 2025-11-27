@@ -29,7 +29,7 @@ export const wsModule = new Elysia()
       console.error('❌ WebSocket 错误:', error)
     },
 
-    message(ws, message: any) {
+    async message(ws, message: any) {
       try {
         console.log('📨 收到设备消息:', message)
 
@@ -47,6 +47,17 @@ export const wsModule = new Elysia()
           console.log(`💓 收到设备 ${deviceSn} 的心跳包`)
           ws.send(JSON.stringify({ cmd: 'pong' }))
           return
+        }
+
+        // 处理考勤机返回的消息
+        if (message.cmd === 'to_client' && message.data) {
+          const { cmd: dataCmd, code, msg, user_id } = message.data
+          
+          // 处理添加用户的返回结果
+          if (dataCmd === 'addUserRet') {
+            await WebSocketService.handleAddUserResult(user_id, code, msg)
+            return
+          }
         }
 
         // 处理其他消息
@@ -75,11 +86,19 @@ export const wsModule = new Elysia()
    */
   .post(
     '/send/addAllUser',
-    async () => {
-      return await WebSocketService.addAllUsers()
+    async ({ body }) => {
+      return await WebSocketService.addAllUsers(body as any)
     },
     WebSocketConfig.addAllUsers,
   )
+
+  /**
+   * 重试失败的用户
+   */
+  .post('/send/retryFailed', async ({ body }) => {
+    const { failedUsers } = body as any
+    return await WebSocketService.retryFailedUsers(failedUsers)
+  })
 
   /**
    * 删除所有用户
@@ -135,6 +154,16 @@ export const wsModule = new Elysia()
     },
     WebSocketConfig.getDeviceStatus,
   )
+
+  /**
+   * 获取同步进度
+   */
+  .get('/sync/progress', () => {
+    return {
+      success: true,
+      data: WebSocketService.getSyncProgress(),
+    }
+  })
 
   /**
    * 测试接口
