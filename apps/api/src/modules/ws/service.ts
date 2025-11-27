@@ -13,17 +13,15 @@ import {
 import { DeviceNotConnectedError, UserNotFoundError, FileNotFoundError } from './errors'
 import { logger } from '../../lib/logger'
 import { syncProgressManager } from './sync-progress-manager'
+import { getBackendUrl } from '../../config/network'
 
 /**
  * WebSocket 服务类
  * 处理设备命令和业务逻辑
  */
 export class WebSocketService {
-  // 从环境变量读取BASE_URL，支持多环境部署
-  private static readonly BASE_URL = 
-    process.env.ATTENDANCE_DEVICE_BASE_URL || 
-    process.env.PUBLIC_URL || 
-    'http://192.168.101.100:3001'
+  // 从统一配置读取BASE_URL，确保与前端一致
+  private static readonly BASE_URL = getBackendUrl()
 
   /**
    * 添加单个用户到考勤设备
@@ -36,17 +34,18 @@ export class WebSocketService {
       throw new UserNotFoundError(lotusId)
     }
 
-    // 构建命令
-    const command: AddUserCommand = {
+    // 构建命令 - 只包含必要字段
+    const command: any = {
       cmd:           'addUser',
       mode:          0,
       name:          user.name,
       user_id:       user.lotusId!,
-      user_id_card:  user.idNumber,
+      user_id_card:  user.idNumber || '',
       face_template: user.avatar ? `${this.BASE_URL}${user.avatar}` : '',
-      phone:         user.phone,
-      id_valid:      '',  // 空字符串表示永久有效
+      phone:         user.phone || '',
     }
+    
+    logger.info(`📋 单个下发命令:`, JSON.stringify(command, null, 2))
 
     // 发送命令
     const success = ConnectionManager.sendToAttendanceDevice(command)
@@ -164,18 +163,19 @@ export class WebSocketService {
         }
       }
       
-      const command: AddUserCommand = {
+      // 构建命令 - 只包含必要字段
+      const command: any = {
         cmd:           'addUser',
         mode:          0,
         name:          user.name,
         user_id:       user.lotusId!,
-        user_id_card:  user.idNumber,
+        user_id_card:  user.idNumber || '',
         face_template: photoUrl,
-        phone:         user.phone,
-        id_valid:      '',  // 空字符串表示永久有效
+        phone:         user.phone || '',
       }
 
       logger.info(`📸 ${user.name} 照片URL: ${photoUrl}`)
+      logger.info(`📋 完整命令:`, JSON.stringify(command, null, 2))
 
       if (ConnectionManager.sendToAttendanceDevice(command)) {
         successCount++

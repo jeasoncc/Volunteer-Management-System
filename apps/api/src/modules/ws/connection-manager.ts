@@ -96,7 +96,7 @@ export class ConnectionManager {
   private static formatMessage(deviceSn: string, command: any) {
     // 如果是字符串命令，转换为对象
     if (typeof command === 'string') {
-      return {
+      const message = {
         cmd:  'to_device',
         from: 'server',
         to:   deviceSn,
@@ -104,15 +104,19 @@ export class ConnectionManager {
           cmd: command,
         },
       }
+      console.log(`📦 格式化消息（字符串）:`, JSON.stringify(message, null, 2))
+      return message
     }
 
     // 如果是对象命令，直接包装
-    return {
+    const message = {
       cmd:  'to_device',
       from: 'server',
       to:   deviceSn,
       data: command,
     }
+    console.log(`📦 格式化消息（对象）:`, JSON.stringify(message, null, 2))
+    return message
   }
 
   /**
