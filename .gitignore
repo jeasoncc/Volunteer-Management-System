@@ -380,3 +380,9 @@ secrets/
 credentials.json
 service-account.json
 firebase-adminsdk-*.json
+
+# Data files (not committed)
+data/
+*.csv
+*.xlsx
+cookies.txt
