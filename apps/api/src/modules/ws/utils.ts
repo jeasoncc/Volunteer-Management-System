@@ -1,4 +1,5 @@
 import { ElysiaWS } from 'elysia/dist/ws'
+import { logger } from '../../lib/logger'
 
 export const commandFn = (attendanceDevice: ElysiaWS | null, command: any) => {
   const sendMessage = (command: any) => {
@@ -12,7 +13,6 @@ export const commandFn = (attendanceDevice: ElysiaWS | null, command: any) => {
         },
       }
     }
-    console.log('cmming')
     return {
       'cmd':  'to_device',
       'from': 'archLinux',
@@ -23,7 +23,7 @@ export const commandFn = (attendanceDevice: ElysiaWS | null, command: any) => {
 
   if (!attendanceDevice) return 'not connect!'
   const message = sendMessage(command)
-  console.log(message)
+  logger.debug('发送设备命令:', message)
   attendanceDevice.send(message)
   return {
     message: 'coming',

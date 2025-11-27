@@ -147,7 +147,7 @@ class SyncProgressManager {
       try {
         callback(this.getProgress())
       } catch (error) {
-        console.error('进度回调执行失败:', error)
+        // 静默处理回调错误，避免日志污染
       }
     })
   }

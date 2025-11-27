@@ -116,7 +116,7 @@ export class LatexGenerator {
         }
       })
       
-      console.log(`✅ 关怀登记表已生成: ${pdfPath}`)
+      logger.success(`关怀登记表已生成: ${pdfPath}`)
       
       return {
         success: true,
@@ -239,7 +239,7 @@ export class LatexGenerator {
         } catch (e) {}
       })
       
-      console.log(`✅ 助念邀请承诺书已生成: ${pdfPath}`)
+      logger.success(`助念邀请承诺书已生成: ${pdfPath}`)
       
       return {
         success: true,

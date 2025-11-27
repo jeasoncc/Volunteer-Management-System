@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,9 @@ interface SyncLog {
 
 function DevicesPage() {
 	const { isAuthenticated, isLoading: authLoading } = useAuth();
+	const queryClient = useQueryClient();
 	const [lotusId, setLotusId] = useState("");
-	const [syncStrategy, setSyncStrategy] = useState<'all' | 'unsynced' | 'changed'>('all');
+	const [syncStrategy, setSyncStrategy] = useState<'all' | 'unsynced' | 'changed'>('unsynced');
 	const [validatePhotos, setValidatePhotos] = useState(false);
 	const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +77,23 @@ function DevicesPage() {
 					logs: data.logs || [],
 					failedUsers: data.failedUsers || [],
 				});
+				
+				// 同步完成后刷新义工列表，显示最新的同步状态
+				queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+				
+				// 显示完成提示
+				const successCount = data.confirmed;
+				const failedCount = data.failed;
+				const skippedCount = data.skipped;
+				
+				if (failedCount === 0 && skippedCount === 0) {
+					toast.success(`🎉 同步完成！成功 ${successCount} 个`);
+				} else if (failedCount > 0) {
+					toast.warning(`同步完成：成功 ${successCount}，失败 ${failedCount}，跳过 ${skippedCount}`);
+				} else {
+					toast.success(`同步完成：成功 ${successCount}，跳过 ${skippedCount}`);
+				}
+				
 				// 5秒后隐藏进度条（但保留日志）
 				setTimeout(() => {
 					if (data.logs && data.logs.length > 0) {
@@ -96,7 +114,7 @@ function DevicesPage() {
 				});
 			}
 		}
-	}, [progressData]);
+	}, [progressData, queryClient]);
 
 	// 自动滚动到日志底部（只在容器内滚动）
 	useEffect(() => {
@@ -148,8 +166,8 @@ function DevicesPage() {
 				failedUsers: [],
 			});
 		},
-		onSuccess: (res: any) => {
-			toast.success(res?.message || "批量同步完成");
+		onSuccess: () => {
+			// 不在这里显示 toast，等待同步完成后再显示
 			refetchStatus();
 		},
 		onError: (error: any) => {
@@ -185,7 +203,9 @@ function DevicesPage() {
 	const syncOneMutation = useMutation({
 		mutationFn: (id: string) => deviceService.syncUser(id),
 		onSuccess: (res: any) => {
-			toast.success(res?.message || "单个同步成功");
+			// 刷新义工列表
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			toast.success(res?.message || "已发送同步命令，等待考勤机确认");
 		},
 		onError: (error: any) => {
 			toast.error(error.message || "单个同步失败");
@@ -197,7 +217,9 @@ function DevicesPage() {
 	const clearMutation = useMutation({
 		mutationFn: () => deviceService.clearAllUsers(),
 		onSuccess: (res: any) => {
-			toast.success(res?.message || "清空设备用户成功");
+			// 刷新义工列表，清除同步标志
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			toast.success(res?.message || "清空设备用户成功，已清除所有同步标志");
 			setShowClearDialog(false);
 			refetchStatus();
 		},
@@ -341,13 +363,17 @@ function DevicesPage() {
 							<Button
 								className="w-full"
 								onClick={() => syncAllMutation.mutate()}
-								disabled={syncAllMutation.isPending || retryFailedMutation.isPending}
+								disabled={
+									syncAllMutation.isPending || 
+									retryFailedMutation.isPending ||
+									syncProgress?.status === 'syncing'
+								}
 							>
-								{syncAllMutation.isPending && (
+								{(syncAllMutation.isPending || syncProgress?.status === 'syncing') && (
 									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
 								)}
 								<UploadCloud className="h-4 w-4 mr-2" />
-								开始同步
+								{syncProgress?.status === 'syncing' ? '同步进行中...' : '开始同步'}
 							</Button>
 							{syncProgress?.status === 'syncing' && (
 								<p className="text-xs text-muted-foreground text-center">

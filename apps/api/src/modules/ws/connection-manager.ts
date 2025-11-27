@@ -1,4 +1,5 @@
 import { ElysiaWS } from 'elysia/dist/ws'
+import { logger } from '../../lib/logger'
 
 /**
  * WebSocket 连接管理器
@@ -13,7 +14,7 @@ export class ConnectionManager {
    */
   static register(deviceSn: string, ws: ElysiaWS): void {
     this.connections.set(deviceSn, ws)
-    console.log(`✅ 设备 ${deviceSn} 已连接，当前连接数: ${this.connections.size}`)
+    logger.success(`设备 ${deviceSn} 已连接，当前连接数: ${this.connections.size}`)
   }
 
   /**
@@ -22,7 +23,7 @@ export class ConnectionManager {
   static unregister(deviceSn: string): void {
     const removed = this.connections.delete(deviceSn)
     if (removed) {
-      console.log(`❌ 设备 ${deviceSn} 已断开，当前连接数: ${this.connections.size}`)
+      logger.info(`设备 ${deviceSn} 已断开，当前连接数: ${this.connections.size}`)
     }
   }
 
@@ -68,17 +69,17 @@ export class ConnectionManager {
     const ws = this.getConnection(deviceSn)
 
     if (!ws) {
-      console.error(`❌ 设备 ${deviceSn} 未连接`)
+      logger.error(`设备 ${deviceSn} 未连接`)
       return false
     }
 
     try {
       const message = this.formatMessage(deviceSn, command)
       ws.send(JSON.stringify(message))
-      console.log(`📤 发送命令到设备 ${deviceSn}:`, command.cmd || command)
+      logger.info(`发送命令到设备 ${deviceSn}:`, command.cmd || command)
       return true
     } catch (error) {
-      console.error(`❌ 发送命令失败:`, error)
+      logger.error(`发送命令失败:`, error)
       return false
     }
   }
@@ -104,7 +105,7 @@ export class ConnectionManager {
           cmd: command,
         },
       }
-      console.log(`📦 格式化消息（字符串）:`, JSON.stringify(message, null, 2))
+      logger.debug(`格式化消息（字符串）:`, JSON.stringify(message, null, 2))
       return message
     }
 
@@ -115,7 +116,7 @@ export class ConnectionManager {
       to:   deviceSn,
       data: command,
     }
-    console.log(`📦 格式化消息（对象）:`, JSON.stringify(message, null, 2))
+    logger.debug(`格式化消息（对象）:`, JSON.stringify(message, null, 2))
     return message
   }
 
@@ -139,6 +140,6 @@ export class ConnectionManager {
    */
   static clear(): void {
     this.connections.clear()
-    console.log('🧹 已清空所有连接')
+    logger.info('已清空所有连接')
   }
 }

@@ -22,6 +22,44 @@ import { getBackendUrl } from '../../config/network'
 export class WebSocketService {
   // 从统一配置读取BASE_URL，确保与前端一致
   private static readonly BASE_URL = getBackendUrl()
+  
+  // 同步锁，防止并发同步
+  private static isSyncing = false
+
+  /**
+   * 构建添加用户命令（公共方法）
+   */
+  private static buildAddUserCommand(user: any): any {
+    const photoUrl = user.avatar ? `${this.BASE_URL}${user.avatar}` : ''
+    
+    return {
+      cmd:           'addUser',
+      mode:          0,
+      name:          user.name,
+      user_id:       user.lotusId!,
+      user_id_card:  user.idNumber || '',
+      face_template: photoUrl,
+      phone:         user.phone || '',
+    }
+  }
+
+  /**
+   * 发送添加用户命令（公共方法）
+   */
+  private static sendAddUserCommand(command: any, user: any): boolean {
+    logger.info(`📋 下发命令:`, JSON.stringify(command, null, 2))
+    
+    const success = ConnectionManager.sendToAttendanceDevice(command)
+    
+    if (success) {
+      syncProgressManager.incrementSent(user.lotusId!, user.name)
+      logger.info(`📤 已发送: ${user.name}(${user.lotusId})，等待考勤机确认...`)
+    } else {
+      logger.error(`❌ 发送失败: ${user.name}(${user.lotusId})`)
+    }
+    
+    return success
+  }
 
   /**
    * 添加单个用户到考勤设备
@@ -34,21 +72,14 @@ export class WebSocketService {
       throw new UserNotFoundError(lotusId)
     }
 
-    // 构建命令 - 只包含必要字段
-    const command: any = {
-      cmd:           'addUser',
-      mode:          0,
-      name:          user.name,
-      user_id:       user.lotusId!,
-      user_id_card:  user.idNumber || '',
-      face_template: user.avatar ? `${this.BASE_URL}${user.avatar}` : '',
-      phone:         user.phone || '',
-    }
-    
-    logger.info(`📋 单个下发命令:`, JSON.stringify(command, null, 2))
+    // 初始化进度管理器（单个用户）
+    syncProgressManager.startSync(1)
+
+    // 构建命令
+    const command = this.buildAddUserCommand(user)
 
     // 发送命令
-    const success = ConnectionManager.sendToAttendanceDevice(command)
+    const success = this.sendAddUserCommand(command, user)
 
     if (!success) {
       throw new DeviceNotConnectedError('YET88476')
@@ -100,12 +131,20 @@ export class WebSocketService {
    * @param validatePhotos 是否预检查照片
    */
   static async addAllUsers(options?: { strategy?: 'all' | 'unsynced' | 'changed'; validatePhotos?: boolean }) {
-    const { strategy = 'all', validatePhotos = false } = options || {}
+    // 检查是否正在同步
+    if (this.isSyncing) {
+      throw new Error('同步正在进行中，请稍后再试')
+    }
 
-    // 根据策略查询用户
-    let query = db.select().from(volunteer).where(eq(volunteer.status, 'active'))
-    
-    let users = await query
+    try {
+      this.isSyncing = true
+      
+      const { strategy = 'all', validatePhotos = false } = options || {}
+
+      // 根据策略查询用户
+      let query = db.select().from(volunteer).where(eq(volunteer.status, 'active'))
+      
+      let users = await query
 
     // 应用同步策略
     if (strategy === 'unsynced') {
@@ -145,10 +184,9 @@ export class WebSocketService {
         continue
       }
 
-      const photoUrl = `${this.BASE_URL}${user.avatar}`
-
       // 照片预检查
-      if (validatePhotos) {
+      if (validatePhotos && user.avatar) {
+        const photoUrl = `${this.BASE_URL}${user.avatar}`
         const validation = await this.validatePhoto(photoUrl)
         if (!validation.valid) {
           logger.warn(`⏭️  跳过 ${user.name}(${user.lotusId}): 照片无法访问`)
@@ -163,44 +201,35 @@ export class WebSocketService {
         }
       }
       
-      // 构建命令 - 只包含必要字段
-      const command: any = {
-        cmd:           'addUser',
-        mode:          0,
-        name:          user.name,
-        user_id:       user.lotusId!,
-        user_id_card:  user.idNumber || '',
-        face_template: photoUrl,
-        phone:         user.phone || '',
-      }
+      // 使用公共方法构建命令
+      const command = this.buildAddUserCommand(user)
 
-      logger.info(`📸 ${user.name} 照片URL: ${photoUrl}`)
-      logger.info(`📋 完整命令:`, JSON.stringify(command, null, 2))
-
-      if (ConnectionManager.sendToAttendanceDevice(command)) {
+      // 使用公共方法发送命令
+      if (this.sendAddUserCommand(command, user)) {
         successCount++
-        syncProgressManager.incrementSent(user.lotusId!, user.name)
-        logger.info(`📤 已发送: ${user.name}(${user.lotusId})，等待考勤机确认...`)
       } else {
         failCount++
         failedUsers.push({ lotusId: user.lotusId || null, name: user.name, reason: '设备未连接' })
-        logger.error(`❌ 发送失败: ${user.name}(${user.lotusId})`)
       }
     }
 
-    logger.success(`📊 同步完成: 成功 ${successCount}, 失败 ${failCount}, 跳过 ${skippedCount}`)
+      logger.success(`📊 同步完成: 成功 ${successCount}, 失败 ${failCount}, 跳过 ${skippedCount}`)
 
-    return {
-      success: true,
-      message: `批量添加完成`,
-      data:    {
-        total:        users.length,
-        successCount,
-        failCount,
-        skippedCount,
-        failedUsers,
-        skippedUsers,
-      },
+      return {
+        success: true,
+        message: `批量添加完成`,
+        data:    {
+          total:        users.length,
+          successCount,
+          failCount,
+          skippedCount,
+          failedUsers,
+          skippedUsers,
+        },
+      }
+    } finally {
+      // 释放同步锁
+      this.isSyncing = false
     }
   }
 

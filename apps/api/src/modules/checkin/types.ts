@@ -131,6 +131,7 @@ export class CheckInRecord {
       置信度: ${this.confidence}
       通过状态: ${this.pass_status}`
 
-    console.log(message)
+    // 使用 logger 而不是 console
+    // logger.debug(message)
   }
 }

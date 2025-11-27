@@ -3,6 +3,7 @@ import { WebSocketService } from './service'
 import { WebSocketConfig } from './config'
 import { ConnectionManager } from './connection-manager'
 import { errorHandler } from '../../lib/middleware/error-handler'
+import { logger } from '../../lib/logger'
 
 /**
  * WebSocket 模块
@@ -15,36 +16,34 @@ export const wsModule = new Elysia()
   // ==================== WebSocket 连接 ====================
   .ws('/ws', {
     open(ws) {
-      console.log('🔌 WebSocket 连接已建立')
+      logger.info('WebSocket 连接已建立')
       ws.send('Connection established')
       // 注意：设备 SN 需要在 declare 消息中获取
     },
 
     close(_ws, code, reason) {
-      console.log(`🔌 WebSocket 连接已关闭: ${code} - ${reason}`)
+      logger.info(`WebSocket 连接已关闭: ${code} - ${reason}`)
       // 清理连接（如果有设备 SN 的话）
     },
 
     error(error) {
-      console.error('❌ WebSocket 错误:', error)
+      logger.error('WebSocket 错误:', error)
     },
 
     async message(ws, message: any) {
       try {
-        console.log('📨 收到设备消息:', message)
-
         // 处理设备声明
         if (message.cmd === 'declare' && message.type === 'device') {
           const deviceSn = message.sn
           ConnectionManager.register(deviceSn, ws)
-          console.log(`✅ 设备 ${deviceSn} 已注册`)
+          logger.success(`设备 ${deviceSn} 已注册`)
           return
         }
 
-        // 处理心跳包
+        // 处理心跳包 - 静默处理，不输出日志
         if (message.cmd === 'ping') {
           const deviceSn = message.sn
-          console.log(`💓 收到设备 ${deviceSn} 的心跳包`)
+          // 静默处理心跳包，避免日志污染
           ws.send(JSON.stringify({ cmd: 'pong' }))
           return
         }
@@ -55,15 +54,16 @@ export const wsModule = new Elysia()
           
           // 处理添加用户的返回结果
           if (dataCmd === 'addUserRet') {
+            logger.info(`处理用户添加结果: ${user_id}, code: ${code}`)
             await WebSocketService.handleAddUserResult(user_id, code, msg)
             return
           }
         }
 
-        // 处理其他消息
-        console.log('📩 收到其他消息:', message)
+        // 处理其他消息（非心跳包）
+        logger.debug('收到其他消息:', message)
       } catch (error) {
-        console.error('❌ 处理消息失败:', error)
+        logger.error('处理消息失败:', error)
       }
     },
   })

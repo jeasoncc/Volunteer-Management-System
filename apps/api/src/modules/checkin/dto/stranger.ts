@@ -90,7 +90,8 @@ export class CheckIn {
             反射率: ${this.reflectivity}
             室温: ${this.room_temperature}
             通过状态: ${this.pass_status}`
-    console.log(message)
+    // 使用 logger 而不是 console
+    // logger.debug(message)
     return ''
   }
 }

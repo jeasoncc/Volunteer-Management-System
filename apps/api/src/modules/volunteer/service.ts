@@ -563,14 +563,10 @@ export class VolunteerService {
     const monthStart = new Date(thisYear, thisMonth, 1)
     const monthEnd = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
 
-    console.log('📅 统计时间范围:', { monthStart, monthEnd, thisYear, thisMonth })
-
     // 获取总数
     const [totalResult] = await db
       .select({ count: count() })
       .from(volunteer)
-
-    console.log('📊 总数查询结果:', totalResult)
 
     // 获取本月新增（使用日期范围查询，使用 SQL 函数）
     const [newThisMonthResult] = await db
@@ -580,23 +576,17 @@ export class VolunteerService {
         sql`YEAR(${volunteer.createdAt}) = ${thisYear} AND MONTH(${volunteer.createdAt}) = ${thisMonth + 1}`
       )
 
-    console.log('📊 本月新增查询结果:', newThisMonthResult)
-
     // 获取活跃义工（已注册状态）
     const [activeResult] = await db
       .select({ count: count() })
       .from(volunteer)
       .where(eq(volunteer.volunteerStatus, 'registered'))
 
-    console.log('📊 活跃义工查询结果:', activeResult)
-
     const result = {
       total:            Number(totalResult?.count) || 0,
       newThisMonth:     Number(newThisMonthResult?.count) || 0,
       activeVolunteers: Number(activeResult?.count) || 0,
     }
-
-    console.log('📊 最终统计结果:', result)
 
     return result
   }
