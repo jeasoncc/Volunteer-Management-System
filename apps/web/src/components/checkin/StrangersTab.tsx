@@ -19,7 +19,7 @@ export function StrangersTab() {
 	const [startDate, setStartDate] = useState(dayjs().subtract(7, "day").format("YYYY-MM-DD"));
 	const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
 	const [page, setPage] = useState(1);
-	const [pageSize, setPageSize] = useState(20);
+	const [pageSize, setPageSize] = useState(10);
 
 	const { data, isLoading, refetch } = useQuery({
 		queryKey: ["stranger-records", startDate, endDate, page, pageSize],

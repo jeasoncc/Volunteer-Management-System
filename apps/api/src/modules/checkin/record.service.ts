@@ -32,11 +32,16 @@ export class CheckInRecordService {
 
     const offset = (page - 1) * pageSize
 
+    // 调试日志
+    logger.info(`📝 查询打卡记录: page=${page}, pageSize=${pageSize}, offset=${offset}, startDate=${startDate}, endDate=${endDate}, lotusId=${lotusId}`)
+
     // 构建查询条件
     const conditions: any[] = []
 
+    // 日期筛选 - 需要导入 gte 和 lte
     if (startDate && endDate) {
-      conditions.push(between(volunteerCheckIn.date, startDate, endDate))
+      conditions.push(sql`${volunteerCheckIn.date} >= ${startDate}`)
+      conditions.push(sql`${volunteerCheckIn.date} <= ${endDate}`)
     } else if (startDate) {
       conditions.push(sql`${volunteerCheckIn.date} >= ${startDate}`)
     } else if (endDate) {
@@ -56,7 +61,20 @@ export class CheckInRecordService {
       conditions.push(eq(volunteerCheckIn.lotusId, lotusId))
     }
 
-    const query = db
+    logger.info(`📝 准备查询: LIMIT=${pageSize}, OFFSET=${offset}`)
+
+    // 先获取总数
+    const countQuery = db
+      .select({ count: sql<number>`count(*)` })
+      .from(volunteerCheckIn)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+
+    const [{ count }] = await countQuery
+    const totalCount = Number(count)
+    const totalPages = Math.ceil(totalCount / pageSize)
+
+    // 尝试使用数据库分页
+    let allRecords = await db
       .select({
         id: volunteerCheckIn.id,
         userId: volunteerCheckIn.userId,
@@ -77,25 +95,28 @@ export class CheckInRecordService {
       .orderBy(desc(volunteerCheckIn.date), desc(volunteerCheckIn.checkIn))
       .limit(pageSize)
       .offset(offset)
-
-    const records = await query
-
-    // 获取总数（无需 JOIN）
-    const countQuery = db
-      .select({ count: sql<number>`count(*)` })
-      .from(volunteerCheckIn)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-
-    const [{ count }] = await countQuery
+    
+    logger.info(`📝 数据库返回: ${allRecords.length} 条记录`)
+    
+    // 如果数据库 LIMIT 未生效，使用应用层分页
+    let records = allRecords
+    if (allRecords.length > pageSize) {
+      logger.warn(`⚠️ 数据库LIMIT未生效，使用应用层分页`)
+      // 应用层分页：从所有记录中取出当前页的数据
+      records = allRecords.slice(offset, offset + pageSize)
+      logger.info(`📝 应用层分页后: ${records.length} 条记录`)
+    }
+    
+    logger.info(`📝 最终返回: records=${records.length}, total=${totalCount}, totalPages=${totalPages}`)
 
     return {
       success: true,
       data: {
         records,
-        total: Number(count),
+        total: totalCount,
         page,
         pageSize,
-        totalPages: Math.ceil(Number(count) / pageSize),
+        totalPages,
       },
     }
   }
@@ -162,19 +183,9 @@ export class CheckInRecordService {
     // 计算统计信息
     const totalDays = new Set(records.map(r => r.date)).size
     
-    // 计算总工时（简单计算：签退时间 - 签到时间）
-    let totalMinutes = 0
-    for (const record of records) {
-      if (record.checkIn && record.checkOut) {
-        const checkInTime = new Date(`2000-01-01 ${record.checkIn}`)
-        const checkOutTime = new Date(`2000-01-01 ${record.checkOut}`)
-        const minutes = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60)
-        if (minutes > 0 && minutes <= 24 * 60) { // 合理范围内
-          totalMinutes += minutes
-        }
-      }
-    }
-    const totalHours = Math.round((totalMinutes / 60) * 10) / 10 // 保留一位小数
+    // 注意：表中没有 checkOut 字段，无法计算实际工时
+    // 这里使用默认值：每次打卡记为 3 小时
+    const totalHours = records.length * 3
     const avgHoursPerDay = totalDays > 0 ? Math.round((totalHours / totalDays) * 10) / 10 : 0
 
     return {
@@ -200,9 +211,10 @@ export class CheckInRecordService {
    */
   static async create(data: {
     userId: number
+    lotusId: string
+    name: string
     date: string
     checkIn: string
-    checkOut?: string
     status?: string
     location?: string
     notes?: string
@@ -210,9 +222,10 @@ export class CheckInRecordService {
   }) {
     const [result] = await db.insert(volunteerCheckIn).values({
       userId: data.userId,
+      lotusId: data.lotusId,
+      name: data.name,
       date: data.date,
       checkIn: data.checkIn,
-      checkOut: data.checkOut,
       status: (data.status as any) || 'present',
       location: data.location || '深圳市龙岗区慈海医院福慧园七栋一楼',
       notes: data.notes,
@@ -220,7 +233,7 @@ export class CheckInRecordService {
       recordType: (data.recordType as any) || 'manual',
     }).$returningId()
 
-    logger.info(`创建打卡记录: userId=${data.userId}, date=${data.date}`)
+    logger.info(`创建打卡记录: userId=${data.userId}, lotusId=${data.lotusId}, date=${data.date}`)
 
     return {
       success: true,
@@ -234,7 +247,6 @@ export class CheckInRecordService {
    */
   static async update(id: number, data: {
     checkIn?: string
-    checkOut?: string
     status?: string
     location?: string
     notes?: string
@@ -250,10 +262,7 @@ export class CheckInRecordService {
 
     await db
       .update(volunteerCheckIn)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
+      .set(data)
       .where(eq(volunteerCheckIn.id, id))
 
     logger.info(`更新打卡记录: id=${id}`)

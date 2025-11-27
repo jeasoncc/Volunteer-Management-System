@@ -30,7 +30,7 @@ export function RecordsTab() {
 	const [selectedIds, setSelectedIds] = useState<number[]>([]);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [quickFilter, setQuickFilter] = useState<string>("last7days");
-	const [pageSize, setPageSize] = useState(20);
+	const [pageSize, setPageSize] = useState(10);
 
 	const { data, isLoading, refetch } = useQuery({
 		queryKey: ["checkin-raw-records", startDate, endDate, lotusId, page, pageSize],
@@ -68,16 +68,38 @@ export function RecordsTab() {
 	});
 
 	// 调试：打印返回的数据
-	console.log('📝 打卡记录数据:', data);
-	console.log('📝 查询参数:', { startDate, endDate, lotusId, page, pageSize });
+	console.log('📝 打卡记录 - 完整响应:', data);
+	console.log('📝 打卡记录 - 查询参数:', { startDate, endDate, lotusId, page, pageSize });
 	
 	const paginationData = data?.data as any;
 	const records = paginationData?.records || [];
 	const total = paginationData?.total || 0;
 	const totalPages = paginationData?.totalPages || 1;
 	
-	console.log('📝 records:', records);
-	console.log('📝 total:', total);
+	console.log('📝 打卡记录 - records 数量:', records.length);
+	console.log('📝 打卡记录 - 期望数量:', pageSize);
+	console.log('📝 打卡记录 - total:', total);
+	console.log('📝 打卡记录 - totalPages:', totalPages);
+	console.log('📝 打卡记录 - 当前页:', page);
+	
+	// 🚨 警告：如果记录数不等于 pageSize
+	if (records.length > 0 && records.length !== pageSize && page < totalPages) {
+		console.warn('⚠️ 警告：返回的记录数与期望不符！', {
+			返回: records.length,
+			期望: pageSize,
+			差异: records.length - pageSize
+		});
+	}
+	
+	// 统计日期分布
+	if (records.length > 0) {
+		const dateCount = records.reduce((acc: any, record: any) => {
+			const date = dayjs(record.date).format("YYYY-MM-DD");
+			acc[date] = (acc[date] || 0) + 1;
+			return acc;
+		}, {});
+		console.log('📝 打卡记录 - 日期分布:', dateCount);
+	}
 
 	const handleQuickFilter = (filter: string) => {
 		setQuickFilter(filter);
@@ -105,19 +127,13 @@ export function RecordsTab() {
 		setPage(1);
 	};
 
-	const filteredRecords = records.filter((record: any) => {
-		if (!searchText) return true;
-		const searchLower = searchText.toLowerCase();
-		return (
-			(record.name && record.name.toLowerCase().includes(searchLower)) ||
-			(record.lotusId && record.lotusId.toLowerCase().includes(searchLower)) ||
-			(record.location && record.location.toLowerCase().includes(searchLower))
-		);
-	});
+	// 暂时移除客户端过滤，避免分页问题
+	// TODO: 将搜索功能移到后端实现
+	const filteredRecords = records;
 
 	const handleSelectAll = (checked: boolean) => {
 		if (checked) {
-			setSelectedIds(filteredRecords.map((r: any) => r.id));
+			setSelectedIds(records.map((r: any) => r.id));
 		} else {
 			setSelectedIds([]);
 		}
@@ -141,7 +157,12 @@ export function RecordsTab() {
 			{/* 筛选器 */}
 			<Card>
 				<CardHeader className="pb-3">
-					<CardTitle className="text-base">筛选条件</CardTitle>
+					<div className="flex items-center justify-between">
+						<CardTitle className="text-base">筛选条件</CardTitle>
+						<div className="text-sm text-muted-foreground">
+							查询范围: {startDate} 至 {endDate}
+						</div>
+					</div>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="flex flex-wrap gap-2">
@@ -216,6 +237,28 @@ export function RecordsTab() {
 				</CardContent>
 			</Card>
 
+			{/* 数据统计 */}
+			{!isLoading && records.length > 0 && (
+				<div className={`border rounded-lg p-3 text-sm ${
+					records.length !== pageSize && page < totalPages
+						? 'bg-yellow-50 border-yellow-300'
+						: 'bg-blue-50 border-blue-200'
+				}`}>
+					<div className={`flex items-center gap-4 ${
+						records.length !== pageSize && page < totalPages
+							? 'text-yellow-900'
+							: 'text-blue-900'
+					}`}>
+						<span>📊 当前页显示: {records.length} 条 {records.length !== pageSize && `(期望 ${pageSize} 条)`}</span>
+						<span>📅 日期范围: {startDate} 至 {endDate}</span>
+						<span>📈 总记录数: {total} 条</span>
+						{records.length !== pageSize && page < totalPages && (
+							<span className="font-semibold">⚠️ 分页异常</span>
+						)}
+					</div>
+				</div>
+			)}
+
 			{/* 操作栏 */}
 			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
 				<div className="flex items-center gap-2">
@@ -250,10 +293,12 @@ export function RecordsTab() {
 					<div className="relative">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 						<Input
-							placeholder="搜索姓名、ID或地点..."
+							placeholder="使用上方筛选器查询..."
 							value={searchText}
 							onChange={(e) => setSearchText(e.target.value)}
 							className="pl-10 w-64"
+							disabled
+							title="请使用上方的日期和ID筛选器"
 						/>
 					</div>
 					<Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -311,7 +356,7 @@ export function RecordsTab() {
 													/>
 												</TableCell>
 												<TableCell className="font-medium">
-													{dayjs(record.date).format("MM-DD")}
+													{dayjs(record.date).format("YYYY-MM-DD")}
 												</TableCell>
 												<TableCell>{record.name || "-"}</TableCell>
 												<TableCell>
