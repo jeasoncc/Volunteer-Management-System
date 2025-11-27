@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import { CheckInService } from './service'
 import { CheckInSummaryService } from './summary.service'
+import { CheckInRecordService } from './record.service'
 import { CheckInExportService } from './export.service'
 import { CheckInConfig } from './config'
 import { DuplicateCheckInError } from './errors'
@@ -237,6 +238,97 @@ export const checkinModule = new Elysia({ prefix: '/api/v1' })
       }
 
       const result = await CheckInSummaryService.recalculate({ userId, date })
+      return result
+    },
+  )
+
+  // ==================== 原始打卡记录接口 ====================
+
+  // 查询原始打卡记录列表
+  .get(
+    '/checkin/records',
+    async ({ query }) => {
+      const result = await CheckInRecordService.getList(query as any)
+      return result
+    },
+  )
+
+  // 根据 ID 查询单条打卡记录
+  .get(
+    '/checkin/records/:id',
+    async ({ params }) => {
+      const id = parseInt(params.id)
+      const result = await CheckInRecordService.getById(id)
+      return result
+    },
+  )
+
+  // 查询用户的打卡记录（带统计）
+  .get(
+    '/checkin/records/user/:lotusId',
+    async ({ params, query }) => {
+      const { lotusId } = params
+      const { startDate, endDate } = query as any
+      
+      if (!startDate || !endDate) {
+        return {
+          success: false,
+          message: '缺少必要参数: startDate, endDate',
+        }
+      }
+
+      const result = await CheckInRecordService.getUserRecords({
+        lotusId,
+        startDate,
+        endDate,
+      })
+      return result
+    },
+  )
+
+  // 创建打卡记录
+  .post(
+    '/checkin/records',
+    async ({ body }) => {
+      const result = await CheckInRecordService.create(body as any)
+      return result
+    },
+  )
+
+  // 更新打卡记录
+  .put(
+    '/checkin/records/:id',
+    async ({ params, body }) => {
+      const id = parseInt(params.id)
+      const result = await CheckInRecordService.update(id, body as any)
+      return result
+    },
+  )
+
+  // 删除打卡记录
+  .delete(
+    '/checkin/records/:id',
+    async ({ params }) => {
+      const id = parseInt(params.id)
+      const result = await CheckInRecordService.delete(id)
+      return result
+    },
+  )
+
+  // 批量删除打卡记录
+  .post(
+    '/checkin/records/batch-delete',
+    async ({ body }) => {
+      const { ids } = body as any
+      
+      if (!ids || !Array.isArray(ids)) {
+        return {
+          success: false,
+          message: '缺少必要参数: ids (数组)',
+        }
+      }
+
+      const result = await CheckInRecordService.batchDelete(ids)
       return result
     },
   )

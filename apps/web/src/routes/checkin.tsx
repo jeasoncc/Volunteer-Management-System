@@ -179,20 +179,18 @@ function CheckinPage() {
 				<div className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold">考勤管理</h1>
 					<div className="flex gap-2">
-						<Button
-							variant="outline"
-							onClick={() => window.location.hash = '#/checkin/records'}
-						>
-							<List className="h-4 w-4 mr-2" />
-							原始记录
-						</Button>
-						<Button
-							variant="outline"
-							onClick={() => window.location.hash = '#/checkin/strangers'}
-						>
-							<List className="h-4 w-4 mr-2" />
-							陌生人记录
-						</Button>
+						<Link to="/checkin/details">
+							<Button variant="outline">
+								<List className="h-4 w-4 mr-2" />
+								原始记录
+							</Button>
+						</Link>
+						<Link to="/checkin/strangers">
+							<Button variant="outline">
+								<List className="h-4 w-4 mr-2" />
+								陌生人记录
+							</Button>
+						</Link>
 						<Button
 							variant={viewMode === "summary" ? "default" : "outline"}
 							onClick={() => setViewMode("summary")}

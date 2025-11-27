@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
 import { Route as CheckinStrangersRouteImport } from './routes/checkin.strangers'
 import { Route as CheckinRecordsRouteImport } from './routes/checkin.records'
+import { Route as CheckinDetailsRouteImport } from './routes/checkin.details'
 import { Route as VolunteersLotusIdEditRouteImport } from './routes/volunteers.$lotusId.edit'
 
 const VolunteersRoute = VolunteersRouteImport.update({
@@ -101,6 +102,11 @@ const CheckinRecordsRoute = CheckinRecordsRouteImport.update({
   path: '/records',
   getParentRoute: () => CheckinRoute,
 } as any)
+const CheckinDetailsRoute = CheckinDetailsRouteImport.update({
+  id: '/details',
+  path: '/details',
+  getParentRoute: () => CheckinRoute,
+} as any)
 const VolunteersLotusIdEditRoute = VolunteersLotusIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
+  '/checkin/details': typeof CheckinDetailsRoute
   '/checkin/records': typeof CheckinRecordsRoute
   '/checkin/strangers': typeof CheckinStrangersRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
+  '/checkin/details': typeof CheckinDetailsRoute
   '/checkin/records': typeof CheckinRecordsRoute
   '/checkin/strangers': typeof CheckinStrangersRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
   '/volunteers': typeof VolunteersRouteWithChildren
+  '/checkin/details': typeof CheckinDetailsRoute
   '/checkin/records': typeof CheckinRecordsRoute
   '/checkin/strangers': typeof CheckinStrangersRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/mobile-upload'
     | '/settings'
     | '/volunteers'
+    | '/checkin/details'
     | '/checkin/records'
     | '/checkin/strangers'
     | '/volunteers/$lotusId'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/mobile-upload'
     | '/settings'
     | '/volunteers'
+    | '/checkin/details'
     | '/checkin/records'
     | '/checkin/strangers'
     | '/volunteers/$lotusId'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/mobile-upload'
     | '/settings'
     | '/volunteers'
+    | '/checkin/details'
     | '/checkin/records'
     | '/checkin/strangers'
     | '/volunteers/$lotusId'
@@ -341,6 +353,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckinRecordsRouteImport
       parentRoute: typeof CheckinRoute
     }
+    '/checkin/details': {
+      id: '/checkin/details'
+      path: '/details'
+      fullPath: '/checkin/details'
+      preLoaderRoute: typeof CheckinDetailsRouteImport
+      parentRoute: typeof CheckinRoute
+    }
     '/volunteers/$lotusId/edit': {
       id: '/volunteers/$lotusId/edit'
       path: '/edit'
@@ -352,11 +371,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface CheckinRouteChildren {
+  CheckinDetailsRoute: typeof CheckinDetailsRoute
   CheckinRecordsRoute: typeof CheckinRecordsRoute
   CheckinStrangersRoute: typeof CheckinStrangersRoute
 }
 
 const CheckinRouteChildren: CheckinRouteChildren = {
+  CheckinDetailsRoute: CheckinDetailsRoute,
   CheckinRecordsRoute: CheckinRecordsRoute,
   CheckinStrangersRoute: CheckinStrangersRoute,
 }
