@@ -127,6 +127,10 @@ export interface Volunteer {
 	memberStatus?: "volunteer" | "resident";
 	roomId?: number;
 
+	// 考勤配置
+	syncToAttendance?: boolean; // 是否同步到考勤机
+	requireFullAttendance?: boolean; // 是否需要考勤全勤配置
+
 	// 系统字段
 	createdAt?: string;
 	updatedAt?: string;

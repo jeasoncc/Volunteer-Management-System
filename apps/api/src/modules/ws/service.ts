@@ -17,7 +17,11 @@ import { DeviceNotConnectedError, UserNotFoundError, FileNotFoundError } from '.
  * 处理设备命令和业务逻辑
  */
 export class WebSocketService {
-  private static readonly BASE_URL = 'http://192.168.101.100:3001'
+  // 从环境变量读取BASE_URL，支持多环境部署
+  private static readonly BASE_URL = 
+    process.env.ATTENDANCE_DEVICE_BASE_URL || 
+    process.env.PUBLIC_URL || 
+    'http://192.168.101.100:3001'
 
   /**
    * 添加单个用户到考勤设备
@@ -48,6 +52,12 @@ export class WebSocketService {
       throw new DeviceNotConnectedError('YET88476')
     }
 
+    // 同步成功后，将 syncToAttendance 标记为 true
+    await db
+      .update(volunteer)
+      .set({ syncToAttendance: true })
+      .where(eq(volunteer.lotusId, lotusId))
+
     return {
       success: true,
       message: '用户添加成功',
@@ -69,6 +79,8 @@ export class WebSocketService {
       .where(eq(volunteer.status, 'active'))
 
     console.log(`📊 共查询到 ${users.length} 个激活义工用于同步考勤机`)
+    console.log(`🌐 照片服务器地址: ${this.BASE_URL}`)
+    console.log(`💡 提示: 请确保考勤机能访问此地址`)
 
     let successCount = 0
     let failCount = 0
@@ -87,19 +99,29 @@ export class WebSocketService {
         continue
       }
 
+      const photoUrl = `${this.BASE_URL}${user.avatar}`
+      
       const command: AddUserCommand = {
         cmd:           'addUser',
         mode:          0,
         name:          user.name,
         user_id:       user.lotusId!,
         user_id_card:  user.idNumber,
-        face_template: `${this.BASE_URL}${user.avatar}`,
+        face_template: photoUrl,
         phone:         user.phone,
       }
+
+      console.log(`📸 ${user.name} 照片URL: ${photoUrl}`)
 
       if (ConnectionManager.sendToAttendanceDevice(command)) {
         successCount++
         console.log(`✅ 添加成功: ${user.name}(${user.lotusId})`)
+        
+        // 同步成功后，将 syncToAttendance 标记为 true
+        await db
+          .update(volunteer)
+          .set({ syncToAttendance: true })
+          .where(eq(volunteer.lotusId, user.lotusId!))
       } else {
         failCount++
         failedUsers.push({ lotusId: user.lotusId || null, name: user.name })

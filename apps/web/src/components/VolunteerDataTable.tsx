@@ -109,7 +109,19 @@ export function VolunteerDataTable({
 						</AvatarFallback>
 					</Avatar>
 					<div className="flex flex-col gap-0.5">
-						<span className="font-serif font-medium text-sm text-foreground tracking-wide">{row.original.name}</span>
+						<div className="flex items-center gap-1.5">
+							<span className="font-serif font-medium text-sm text-foreground tracking-wide">{row.original.name}</span>
+							{row.original.syncToAttendance && (
+								<Badge 
+									variant="outline" 
+									className="h-4 px-1 text-[9px] bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+									title="已同步到考勤机"
+								>
+									<CheckCircle className="h-2.5 w-2.5 mr-0.5" />
+									考勤
+								</Badge>
+							)}
+						</div>
 						<div 
 							className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono cursor-pointer hover:text-primary transition-colors"
 							onClick={(e) => {
