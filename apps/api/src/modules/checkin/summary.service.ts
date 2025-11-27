@@ -467,12 +467,14 @@ export class CheckInSummaryService {
 
     return {
       success: true,
-      year,
-      month,
-      startDate,
-      endDate,
-      totalUsers: reports.length,
-      reports,
+      data: {
+        year,
+        month,
+        startDate,
+        endDate,
+        totalUsers: reports.length,
+        volunteers: reports,  // 使用 volunteers 字段名，与前端保持一致
+      },
     }
   }
 

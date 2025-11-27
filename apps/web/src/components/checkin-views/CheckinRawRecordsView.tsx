@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,17 +15,13 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { checkinService } from "@/services/checkin";
-import { ArrowLeft, Edit, Trash2, Clock, MapPin } from "lucide-react";
+import { Trash2, Clock, MapPin, Search } from "lucide-react";
 import { toast } from "@/lib/toast";
 import dayjs from "dayjs";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
-export const Route = createFileRoute("/checkin/details")({
-	component: CheckinDetailsPage,
-} as any);
-
-function CheckinDetailsPage() {
-	const { isAuthenticated, isLoading: authLoading } = useAuth();
+export function CheckinRawRecordsView() {
+	const { isAuthenticated } = useAuth();
 	const queryClient = useQueryClient();
 	const [startDate, setStartDate] = useState(
 		dayjs().subtract(7, "day").format("YYYY-MM-DD"),
@@ -61,18 +57,6 @@ function CheckinDetailsPage() {
 
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [deletingRecord, setDeletingRecord] = useState<any>(null);
-
-	if (authLoading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="text-muted-foreground">加载中...</div>
-			</div>
-		);
-	}
-
-	if (!isAuthenticated) {
-		return <Navigate to="/login" />;
-	}
 
 	const records = data?.data?.records || [];
 	const total = data?.data?.total || 0;
@@ -114,75 +98,61 @@ function CheckinDetailsPage() {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-4">
-					<Link to="/checkin">
-						<Button variant="ghost" size="sm">
-							<ArrowLeft className="h-4 w-4 mr-2" />
-							返回
-						</Button>
-					</Link>
-					<div>
-						<h1 className="text-3xl font-bold">考勤详情</h1>
-						<p className="text-muted-foreground mt-1">
-							原始打卡记录，共 {total} 条
-						</p>
+			{/* 筛选区域 */}
+			<div className="bg-card p-4 rounded-lg border shadow-sm">
+				<div className="flex flex-wrap items-end gap-4">
+					<div className="space-y-1.5">
+						<label className="text-xs font-medium text-muted-foreground">开始日期</label>
+						<Input
+							type="date"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="h-9"
+						/>
 					</div>
+					<div className="space-y-1.5">
+						<label className="text-xs font-medium text-muted-foreground">结束日期</label>
+						<Input
+							type="date"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="h-9"
+						/>
+					</div>
+					<div className="space-y-1.5 flex-1 min-w-[200px]">
+						<label className="text-xs font-medium text-muted-foreground">莲花斋ID</label>
+						<div className="relative">
+							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+							<Input
+								placeholder="搜索义工ID..."
+								value={lotusId}
+								onChange={(e) => setLotusId(e.target.value)}
+								className="pl-9 h-9"
+							/>
+						</div>
+					</div>
+					<Button
+						onClick={() => {
+							setPage(1);
+							refetch();
+						}}
+						size="sm"
+						className="h-9"
+					>
+						查询
+					</Button>
 				</div>
 			</div>
 
-			{/* 筛选区域 */}
-			<Card>
-				<CardHeader>
-					<CardTitle>筛选条件</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-						<div className="space-y-2">
-							<label className="text-sm font-medium">开始日期</label>
-							<Input
-								type="date"
-								value={startDate}
-								onChange={(e) => setStartDate(e.target.value)}
-							/>
-						</div>
-						<div className="space-y-2">
-							<label className="text-sm font-medium">结束日期</label>
-							<Input
-								type="date"
-								value={endDate}
-								onChange={(e) => setEndDate(e.target.value)}
-							/>
-						</div>
-						<div className="space-y-2">
-							<label className="text-sm font-medium">莲花斋ID</label>
-							<Input
-								placeholder="输入莲花斋ID筛选"
-								value={lotusId}
-								onChange={(e) => setLotusId(e.target.value)}
-							/>
-						</div>
-						<div className="flex items-end">
-							<Button
-								onClick={() => {
-									setPage(1);
-									refetch();
-								}}
-								className="w-full"
-							>
-								查询
-							</Button>
-						</div>
-					</div>
-				</CardContent>
-			</Card>
-
 			{/* 打卡记录表格 */}
 			<Card>
-				<CardHeader>
-					<CardTitle>打卡记录</CardTitle>
+				<CardHeader className="px-6 py-4 border-b">
+					<CardTitle className="text-base flex justify-between items-center">
+						<span>原始打卡记录</span>
+						<span className="text-sm font-normal text-muted-foreground">共 {total} 条记录</span>
+					</CardTitle>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="p-0">
 					{isLoading ? (
 						<div className="text-center py-8 text-muted-foreground">
 							加载中...
@@ -193,7 +163,7 @@ function CheckinDetailsPage() {
 						</div>
 					) : (
 						<>
-							<div className="rounded-md border">
+							<div className="border-b">
 								<Table>
 									<TableHeader>
 										<TableRow>
@@ -219,23 +189,23 @@ function CheckinDetailsPage() {
 												<TableCell>
 													<Link
 														to={`/volunteers/${record.lotusId}`}
-														className="text-blue-600 hover:underline"
+														className="text-primary hover:underline font-mono"
 													>
 														{record.lotusId || "-"}
 													</Link>
 												</TableCell>
 												<TableCell>
-													<div className="flex items-center gap-1">
-														<Clock className="h-3 w-3 text-muted-foreground" />
-														<span className="text-sm">
+													<div className="flex items-center gap-1.5">
+														<Clock className="h-3.5 w-3.5 text-muted-foreground" />
+														<span className="font-mono text-sm">
 															{record.checkIn || "-"}
 														</span>
 													</div>
 												</TableCell>
 												<TableCell>
-													<div className="flex items-center gap-1">
-														<Clock className="h-3 w-3 text-muted-foreground" />
-														<span className="text-sm">
+													<div className="flex items-center gap-1.5">
+														<Clock className="h-3.5 w-3.5 text-muted-foreground" />
+														<span className="font-mono text-sm">
 															{record.checkOut || "-"}
 														</span>
 													</div>
@@ -248,8 +218,8 @@ function CheckinDetailsPage() {
 												</TableCell>
 												<TableCell>
 													<div className="flex items-center gap-1 max-w-[200px]">
-														<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-														<span className="text-xs truncate">
+														<MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+														<span className="text-xs truncate" title={record.location}>
 															{record.location || "-"}
 														</span>
 													</div>
@@ -260,15 +230,14 @@ function CheckinDetailsPage() {
 													</span>
 												</TableCell>
 												<TableCell className="text-right">
-													<div className="flex justify-end gap-2">
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() => handleDelete(record)}
-														>
-															<Trash2 className="h-4 w-4" />
-														</Button>
-													</div>
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={() => handleDelete(record)}
+														className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
 												</TableCell>
 											</TableRow>
 										))}
@@ -277,9 +246,9 @@ function CheckinDetailsPage() {
 							</div>
 
 							{/* 分页 */}
-							<div className="flex items-center justify-between mt-4">
+							<div className="flex items-center justify-between p-4">
 								<div className="text-sm text-muted-foreground">
-									共 {total} 条记录，第 {page} / {totalPages} 页
+									第 {page} / {totalPages} 页
 								</div>
 								<div className="flex gap-2">
 									<Button

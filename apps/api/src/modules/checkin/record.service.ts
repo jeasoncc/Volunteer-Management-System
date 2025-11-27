@@ -51,76 +51,40 @@ export class CheckInRecordService {
       conditions.push(eq(volunteerCheckIn.recordType, recordType as any))
     }
 
-    // 如果有 lotusId，需要 JOIN volunteer 表
-    let query
+    // volunteer_checkin 表已经包含 lotusId 和 name 字段，无需 JOIN
     if (lotusId) {
-      query = db
-        .select({
-          id: volunteerCheckIn.id,
-          userId: volunteerCheckIn.userId,
-          date: volunteerCheckIn.date,
-          checkIn: volunteerCheckIn.checkIn,
-          checkOut: volunteerCheckIn.checkOut,
-          status: volunteerCheckIn.status,
-          location: volunteerCheckIn.location,
-          notes: volunteerCheckIn.notes,
-          originTime: volunteerCheckIn.originTime,
-          recordType: volunteerCheckIn.recordType,
-          createdAt: volunteerCheckIn.createdAt,
-          updatedAt: volunteerCheckIn.updatedAt,
-          // 从 volunteer 表获取信息
-          lotusId: volunteer.lotusId,
-          name: volunteer.name,
-        })
-        .from(volunteerCheckIn)
-        .leftJoin(volunteer, eq(volunteerCheckIn.userId, volunteer.id))
-        .where(and(eq(volunteer.lotusId, lotusId), ...conditions))
-        .orderBy(desc(volunteerCheckIn.date), desc(volunteerCheckIn.checkIn))
-        .limit(pageSize)
-        .offset(offset)
-    } else {
-      query = db
-        .select({
-          id: volunteerCheckIn.id,
-          userId: volunteerCheckIn.userId,
-          date: volunteerCheckIn.date,
-          checkIn: volunteerCheckIn.checkIn,
-          checkOut: volunteerCheckIn.checkOut,
-          status: volunteerCheckIn.status,
-          location: volunteerCheckIn.location,
-          notes: volunteerCheckIn.notes,
-          originTime: volunteerCheckIn.originTime,
-          recordType: volunteerCheckIn.recordType,
-          createdAt: volunteerCheckIn.createdAt,
-          updatedAt: volunteerCheckIn.updatedAt,
-          // 从 volunteer 表获取信息
-          lotusId: volunteer.lotusId,
-          name: volunteer.name,
-        })
-        .from(volunteerCheckIn)
-        .leftJoin(volunteer, eq(volunteerCheckIn.userId, volunteer.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(volunteerCheckIn.date), desc(volunteerCheckIn.checkIn))
-        .limit(pageSize)
-        .offset(offset)
+      conditions.push(eq(volunteerCheckIn.lotusId, lotusId))
     }
+
+    const query = db
+      .select({
+        id: volunteerCheckIn.id,
+        userId: volunteerCheckIn.userId,
+        date: volunteerCheckIn.date,
+        checkIn: volunteerCheckIn.checkIn,
+        status: volunteerCheckIn.status,
+        location: volunteerCheckIn.location,
+        notes: volunteerCheckIn.notes,
+        originTime: volunteerCheckIn.originTime,
+        recordType: volunteerCheckIn.recordType,
+        createdAt: volunteerCheckIn.createdAt,
+        // 直接从 volunteerCheckIn 表获取
+        lotusId: volunteerCheckIn.lotusId,
+        name: volunteerCheckIn.name,
+      })
+      .from(volunteerCheckIn)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(volunteerCheckIn.date), desc(volunteerCheckIn.checkIn))
+      .limit(pageSize)
+      .offset(offset)
 
     const records = await query
 
-    // 获取总数
-    let countQuery
-    if (lotusId) {
-      countQuery = db
-        .select({ count: sql<number>`count(*)` })
-        .from(volunteerCheckIn)
-        .leftJoin(volunteer, eq(volunteerCheckIn.userId, volunteer.id))
-        .where(and(eq(volunteer.lotusId, lotusId), ...conditions))
-    } else {
-      countQuery = db
-        .select({ count: sql<number>`count(*)` })
-        .from(volunteerCheckIn)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-    }
+    // 获取总数（无需 JOIN）
+    const countQuery = db
+      .select({ count: sql<number>`count(*)` })
+      .from(volunteerCheckIn)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
 
     const [{ count }] = await countQuery
 
@@ -146,21 +110,17 @@ export class CheckInRecordService {
         userId: volunteerCheckIn.userId,
         date: volunteerCheckIn.date,
         checkIn: volunteerCheckIn.checkIn,
-        checkOut: volunteerCheckIn.checkOut,
         status: volunteerCheckIn.status,
         location: volunteerCheckIn.location,
         notes: volunteerCheckIn.notes,
         originTime: volunteerCheckIn.originTime,
         recordType: volunteerCheckIn.recordType,
         createdAt: volunteerCheckIn.createdAt,
-        updatedAt: volunteerCheckIn.updatedAt,
-        // 从 volunteer 表获取信息
-        lotusId: volunteer.lotusId,
-        name: volunteer.name,
-        phone: volunteer.phone,
+        // 直接从 volunteerCheckIn 表获取
+        lotusId: volunteerCheckIn.lotusId,
+        name: volunteerCheckIn.name,
       })
       .from(volunteerCheckIn)
-      .leftJoin(volunteer, eq(volunteerCheckIn.userId, volunteer.id))
       .where(eq(volunteerCheckIn.id, id))
 
     if (!record) {
@@ -183,27 +143,21 @@ export class CheckInRecordService {
   }) {
     const { lotusId, startDate, endDate } = params
 
-    // 获取用户信息
-    const [user] = await db
-      .select()
-      .from(volunteer)
-      .where(eq(volunteer.lotusId, lotusId))
-
-    if (!user) {
-      throw new Error('用户不存在')
-    }
-
-    // 获取打卡记录
+    // 直接用 lotusId 查询打卡记录（无需 JOIN volunteer 表）
     const records = await db
       .select()
       .from(volunteerCheckIn)
       .where(
         and(
-          eq(volunteerCheckIn.userId, user.id),
+          eq(volunteerCheckIn.lotusId, lotusId),
           between(volunteerCheckIn.date, startDate, endDate)
         )
       )
       .orderBy(desc(volunteerCheckIn.date), desc(volunteerCheckIn.checkIn))
+
+    if (records.length === 0) {
+      throw new Error('未找到打卡记录')
+    }
 
     // 计算统计信息
     const totalDays = new Set(records.map(r => r.date)).size
@@ -227,9 +181,8 @@ export class CheckInRecordService {
       success: true,
       data: {
         user: {
-          lotusId: user.lotusId,
-          name: user.name,
-          phone: user.phone,
+          lotusId: records[0].lotusId,
+          name: records[0].name,
         },
         records,
         statistics: {
