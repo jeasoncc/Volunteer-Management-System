@@ -113,6 +113,8 @@ export const volunteer = mysqlTable('volunteer', {
   ]).default('applicant'),
   memberStatus:         mysqlEnum('member_status', ['volunteer', 'resident']).default('volunteer'),
   roomId:               int('room_id').default(0),
+  syncToAttendance:     boolean('sync_to_attendance').default(false), // 是否同步到考勤机
+  requireFullAttendance: boolean('require_full_attendance').default(false), // 是否需要考勤全勤配置
   createdAt:            timestamp('created_at').defaultNow(),
   updatedAt:            timestamp('updated_at').defaultNow().onUpdateNow(),
 })
