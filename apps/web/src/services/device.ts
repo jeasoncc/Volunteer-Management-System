@@ -48,7 +48,8 @@ export const deviceService = {
 
 	syncAllUsers: async (options?: { 
 		strategy?: SyncStrategy; 
-		validatePhotos?: boolean 
+		validatePhotos?: boolean;
+		photoFormat?: 'url' | 'base64';
 	}): Promise<ApiResponse<SyncAllUsersResult>> => {
 		return api.post("/send/addAllUser", options);
 	},

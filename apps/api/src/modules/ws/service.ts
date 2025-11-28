@@ -27,6 +27,8 @@ export class WebSocketService {
   
   // 同步锁，防止并发同步
   private static isSyncing = false
+  private static syncStartTime: number | null = null
+  private static readonly SYNC_TIMEOUT = 30 * 60 * 1000 // 30分钟超时
 
   /**
    * 构建添加用户命令（公共方法）
@@ -140,17 +142,30 @@ export class WebSocketService {
    * 添加所有用户到考勤设备
    * @param strategy 同步策略: 'all' | 'unsynced' | 'changed'
    * @param validatePhotos 是否预检查照片
+   * @param photoFormat 照片格式: 'url' | 'base64'
    */
-  static async addAllUsers(options?: { strategy?: 'all' | 'unsynced' | 'changed'; validatePhotos?: boolean }) {
-    // 检查是否正在同步
+  static async addAllUsers(options?: { 
+    strategy?: 'all' | 'unsynced' | 'changed'; 
+    validatePhotos?: boolean;
+    photoFormat?: 'url' | 'base64';
+  }) {
+    // 检查是否正在同步（带超时检测）
     if (this.isSyncing) {
-      throw new Error('同步正在进行中，请稍后再试')
+      // 检查是否超时
+      if (this.syncStartTime && Date.now() - this.syncStartTime > this.SYNC_TIMEOUT) {
+        logger.warn(`⚠️  检测到同步超时，自动释放锁`)
+        this.isSyncing = false
+        this.syncStartTime = null
+      } else {
+        throw new Error('同步正在进行中，请稍后再试')
+      }
     }
 
     try {
       this.isSyncing = true
+      this.syncStartTime = Date.now()
       
-      const { strategy = 'all', validatePhotos = false } = options || {}
+      const { strategy = 'all', validatePhotos = false, photoFormat = 'url' } = options || {}
 
       // 根据策略查询用户
       let query = db.select().from(volunteer).where(eq(volunteer.status, 'active'))
@@ -160,21 +175,30 @@ export class WebSocketService {
     // 应用同步策略
     if (strategy === 'unsynced') {
       users = users.filter(u => !u.syncToAttendance)
-      logger.info(`📋 策略: 仅同步未同步的义工`)
+      logger.info(`📋 策略: 仅同步未同步的义工 (${users.length}个)`)
     } else if (strategy === 'changed') {
-      // 假设有 updatedAt 字段，同步最近24小时修改的
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-      users = users.filter(u => u.updatedAt && new Date(u.updatedAt) > oneDayAgo)
-      logger.info(`📋 策略: 仅同步最近修改的义工`)
+      // 检查是否有 updatedAt 字段
+      const hasUpdatedAt = users.length > 0 && users[0].updatedAt !== undefined
+      if (hasUpdatedAt) {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        users = users.filter(u => u.updatedAt && new Date(u.updatedAt) > oneDayAgo)
+        logger.info(`📋 策略: 仅同步最近24小时修改的义工 (${users.length}个)`)
+      } else {
+        logger.warn(`⚠️  数据库缺少 updatedAt 字段，改为全量同步`)
+        logger.info(`📋 策略: 全量同步所有激活义工`)
+      }
     } else {
       logger.info(`📋 策略: 全量同步所有激活义工`)
     }
 
     logger.info(`📊 共查询到 ${users.length} 个义工用于同步考勤机`)
-    logger.info(`🌐 照片服务器地址: ${this.BASE_URL}`)
+    logger.info(`📸 照片格式: ${photoFormat === 'base64' ? 'Base64编码' : 'HTTP URL'}`)
+    if (photoFormat === 'url') {
+      logger.info(`🌐 照片服务器地址: ${this.BASE_URL}`)
+      logger.info(`💡 提示: 请确保考勤机能访问此地址`)
+    }
     logger.info(`⏱️  同步间隔: ${SYNC_CONFIG.DELAY_BETWEEN_USERS}ms/人`)
     logger.info(`📏 图片大小限制: ${SYNC_CONFIG.MAX_IMAGE_SIZE / 1024}KB，超过将自动压缩`)
-    logger.info(`💡 提示: 请确保考勤机能访问此地址`)
 
     // 初始化进度管理器并获取批次ID
     const batchId = syncProgressManager.startSync(users.length)
@@ -217,22 +241,58 @@ export class WebSocketService {
         continue
       }
 
-      // 🔧 检查并处理图片大小
+      // 🔧 根据照片格式处理图片
       let processedAvatarPath = user.avatar
-      const imageInfo = checkImageSize(user.avatar)
+      let photoUrl = ''
+      let isBase64 = false
       
-      if (imageInfo.needsCompression) {
-        logger.info(`🔄 压缩图片: ${user.name}(${user.lotusId})`)
-        processedAvatarPath = await processUserAvatar(user.avatar)
-        if (processedAvatarPath !== user.avatar) {
-          compressedCount++
+      if (photoFormat === 'base64') {
+        // Base64 模式：转换图片为 Base64 格式
+        try {
+          const { convertImageToBase64 } = await import('./image-processor')
+          photoUrl = await convertImageToBase64(user.avatar)
+          isBase64 = true
+          
+          // 检查Base64大小（粗略估算）
+          const base64Size = photoUrl.length * 0.75 / 1024 // 转换为KB
+          if (base64Size > 500) {
+            logger.warn(`⚠️  Base64过大: ${user.name}(${user.lotusId}) - ${base64Size.toFixed(1)}KB`)
+          }
+          
+          logger.info(`📦 Base64转换: ${user.name}(${user.lotusId}) - ${base64Size.toFixed(1)}KB`)
+        } catch (error: any) {
+          logger.error(`❌ Base64转换失败: ${user.name}(${user.lotusId}) - ${error.message}`)
+          skippedCount++
+          skippedUsers.push({ lotusId: user.lotusId || null, name: user.name, reason: 'Base64转换失败' })
+          syncProgressManager.incrementSkipped(user.lotusId!, user.name, 'Base64转换失败')
+          
+          await SyncLogService.logSync({
+            batchId,
+            lotusId: user.lotusId!,
+            name: user.name,
+            photoUrl: user.avatar, // 存储原始路径
+            status: 'skipped',
+            errorMessage: 'Base64转换失败',
+          })
+          continue
         }
+      } else {
+        // URL 模式：检查并压缩图片
+        const imageInfo = checkImageSize(user.avatar)
+        
+        if (imageInfo.needsCompression) {
+          logger.info(`🔄 压缩图片: ${user.name}(${user.lotusId})`)
+          processedAvatarPath = await processUserAvatar(user.avatar)
+          if (processedAvatarPath !== user.avatar) {
+            compressedCount++
+          }
+        }
+
+        photoUrl = `${this.BASE_URL}${processedAvatarPath}`
       }
 
-      const photoUrl = `${this.BASE_URL}${processedAvatarPath}`
-
-      // 照片预检查
-      if (validatePhotos) {
+      // 照片预检查（仅URL模式）
+      if (validatePhotos && !isBase64) {
         const validation = await this.validatePhoto(photoUrl)
         if (!validation.valid) {
           logger.warn(`⏭️  跳过 ${user.name}(${user.lotusId}): 照片无法访问`)
@@ -250,7 +310,7 @@ export class WebSocketService {
             batchId,
             lotusId: user.lotusId!,
             name: user.name,
-            photoUrl,
+            photoUrl: processedAvatarPath, // 存储路径而非URL
             status: 'skipped',
             errorMessage: reason,
           })
@@ -258,15 +318,17 @@ export class WebSocketService {
         }
       }
       
-      // 使用公共方法构建命令（传入处理后的头像路径）
-      const command = this.buildAddUserCommand(user, processedAvatarPath)
+      // 构建命令：Base64模式直接使用photoUrl，URL模式使用processedAvatarPath
+      const command = isBase64 
+        ? { ...this.buildAddUserCommand(user, ''), face_template: photoUrl }
+        : this.buildAddUserCommand(user, processedAvatarPath)
 
-      // 记录待处理日志
+      // 记录待处理日志（Base64模式只存储原始路径）
       await SyncLogService.logSync({
         batchId,
         lotusId: user.lotusId!,
         name: user.name,
-        photoUrl,
+        photoUrl: isBase64 ? `${user.avatar} (Base64)` : photoUrl,
         status: 'pending',
       })
 
@@ -314,6 +376,7 @@ export class WebSocketService {
     } finally {
       // 释放同步锁
       this.isSyncing = false
+      this.syncStartTime = null
     }
   }
 
