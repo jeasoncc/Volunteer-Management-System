@@ -135,6 +135,31 @@ function DevicesPage() {
 				})
 			}
 		},
+		onClearDeviceComplete: (result) => {
+			if (result.success) {
+				toast.success(result.message);
+				addNotification({
+					type: "warning",
+					priority: "high",
+					title: "设备已清空",
+					message: result.message,
+					actionUrl: "/devices",
+					actionLabel: "去同步",
+				});
+				// 刷新设备状态
+				refetchStatus();
+			} else {
+				toast.error(`清空失败：${result.message}`);
+				addNotification({
+					type: "warning",
+					priority: "high",
+					title: "清空设备失败",
+					message: `清空设备时发生错误：${result.message}`,
+					actionUrl: "/devices",
+					actionLabel: "重试",
+				});
+			}
+		},
 	})
 
 	// 自动滚动日志
@@ -180,23 +205,32 @@ function DevicesPage() {
 	const clearMutation = useMutation({
 		mutationFn: () => deviceService.clearAllUsers(),
 		onMutate: () => {
-			toast.info("正在清空设备用户...");
+			toast.info("正在清空设备用户，等待考勤机确认...");
+			addNotification({
+				type: "system",
+				priority: "normal",
+				title: "开始清空设备",
+				message: "正在清空考勤机上的所有用户数据，等待考勤机确认...",
+				actionUrl: "/devices",
+				actionLabel: "查看详情",
+			});
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
-			toast.success("设备用户已清空，数据库同步标记已重置");
 			setShowClearDialog(false);
-			refetchStatus();
+			// 成功提示移到 WebSocket 回调中（onClearDeviceComplete）
+		},
+		onError: (error: any) => {
+			toast.error(error.message || "发送清空命令失败");
 			addNotification({
 				type: "warning",
 				priority: "high",
-				title: "设备已清空",
-				message: "考勤机用户数据已清空，数据库同步标记已重置，需要重新同步",
+				title: "发送清空命令失败",
+				message: error.message || "发送清空命令时发生错误",
 				actionUrl: "/devices",
-				actionLabel: "去同步",
-			})
+				actionLabel: "重试",
+			});
 		},
-		onError: (error: any) => toast.error(error.message || "清空失败"),
 	})
 
 	// 查询设备人脸总数
@@ -648,7 +682,7 @@ function DevicesPage() {
 									<div className="text-sm text-muted-foreground">人员ID列表</div>
 									<div className="text-sm mt-1">
 										{deviceUserIds.length > 0
-											? "已加载 ${deviceUserIds.length} 个"
+											? `已加载 ${deviceUserIds.length} 个`
 											: "点击查询"}
 									</div>
 								</div>

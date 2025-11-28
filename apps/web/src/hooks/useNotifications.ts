@@ -1,87 +1,47 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Notification, NotificationStats } from "@/types/notification";
-
-const STORAGE_KEY = "app-notifications";
-const MAX_NOTIFICATIONS = 50;
-
-// 默认空通知列表（通知由实际操作产生）
-const generateMockNotifications = (): Notification[] => {
-	return [];
-};
+import { notificationManager } from "@/lib/notification-manager";
 
 export function useNotifications() {
 	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	// 从 LocalStorage 加载通知
+	// 订阅通知更新
 	useEffect(() => {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			try {
-				setNotifications(JSON.parse(stored));
-			} catch (error) {
-				console.error("Failed to parse notifications:", error);
-				setNotifications(generateMockNotifications());
-			}
-		} else {
-			setNotifications(generateMockNotifications());
-		}
-		setLoading(false);
-	}, []);
+		const unsubscribe = notificationManager.subscribe((newNotifications) => {
+			setNotifications(newNotifications);
+			setLoading(false);
+		});
 
-	// 保存到 LocalStorage
-	const saveNotifications = useCallback((newNotifications: Notification[]) => {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(newNotifications));
-		setNotifications(newNotifications);
+		return unsubscribe;
 	}, []);
 
 	// 标记为已读
-	const markAsRead = useCallback(
-		(id: string) => {
-			const updated = notifications.map((n) =>
-				n.id === id ? { ...n, read: true } : n,
-			);
-			saveNotifications(updated);
-		},
-		[notifications, saveNotifications],
-	);
+	const markAsRead = useCallback((id: string) => {
+		notificationManager.markAsRead(id);
+	}, []);
 
 	// 标记全部为已读
 	const markAllAsRead = useCallback(() => {
-		const updated = notifications.map((n) => ({ ...n, read: true }));
-		saveNotifications(updated);
-	}, [notifications, saveNotifications]);
+		notificationManager.markAllAsRead();
+	}, []);
 
 	// 删除通知
-	const deleteNotification = useCallback(
-		(id: string) => {
-			const updated = notifications.filter((n) => n.id !== id);
-			saveNotifications(updated);
-		},
-		[notifications, saveNotifications],
-	);
+	const deleteNotification = useCallback((id: string) => {
+		notificationManager.deleteNotification(id);
+	}, []);
 
 	// 清空所有通知
 	const clearAll = useCallback(() => {
-		saveNotifications([]);
-	}, [saveNotifications]);
+		notificationManager.clearAll();
+	}, []);
 
 	// 添加新通知
 	const addNotification = useCallback(
 		(notification: Omit<Notification, "id" | "timestamp" | "read">) => {
-			const newNotification: Notification = {
-				...notification,
-				id: Date.now().toString(),
-				timestamp: new Date().toISOString(),
-				read: false,
-			};
-			const updated = [newNotification, ...notifications].slice(
-				0,
-				MAX_NOTIFICATIONS,
-			);
-			saveNotifications(updated);
+			notificationManager.addNotification(notification);
 		},
-		[notifications, saveNotifications],
+		[],
 	);
 
 	// 计算统计信息

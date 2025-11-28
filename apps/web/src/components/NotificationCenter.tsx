@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { Notification, NotificationType } from "@/types/notification";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
 const typeIcons: Record<NotificationType, React.ReactNode> = {
@@ -62,10 +62,12 @@ function NotificationItem({
 	onMarkAsRead: (id: string) => void;
 	onDelete: (id: string) => void;
 }) {
-	const timeAgo = formatDistanceToNow(new Date(notification.timestamp), {
+	const timestamp = new Date(notification.timestamp);
+	const timeAgo = formatDistanceToNow(timestamp, {
 		addSuffix: true,
 		locale: zhCN,
 	});
+	const fullTime = format(timestamp, "yyyy-MM-dd HH:mm:ss");
 
 	return (
 		<div
@@ -100,7 +102,14 @@ function NotificationItem({
 						{notification.message}
 					</p>
 					<div className="flex items-center justify-between">
-						<span className="text-xs text-muted-foreground">{timeAgo}</span>
+						<div className="flex flex-col">
+							<span className="text-xs text-muted-foreground" title={fullTime}>
+								{timeAgo}
+							</span>
+							<span className="text-xs text-muted-foreground/70">
+								{fullTime}
+							</span>
+						</div>
 						<div className="flex items-center gap-1">
 							{notification.actionUrl && (
 								<Button

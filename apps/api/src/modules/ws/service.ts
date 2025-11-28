@@ -514,17 +514,50 @@ export class WebSocketService {
       throw new DeviceNotConnectedError('YET88476')
     }
 
-    // 清空设备后，同时清除数据库中所有义工的同步标记
-    await db
-      .update(volunteer)
-      .set({ syncToAttendance: false })
-      .where(eq(volunteer.syncToAttendance, true))
-
-    logger.info(`🗑️  已清除所有义工的同步标记`)
+    logger.info(`📤 已发送清空设备命令，等待考勤机确认...`)
 
     return {
       success: true,
-      message: '删除命令已发送，已清除数据库同步标记',
+      message: '删除命令已发送，等待考勤机确认',
+    }
+  }
+
+  /**
+   * 处理考勤机返回的清空所有用户结果
+   * @param code 返回码 (0=成功)
+   * @param msg 返回消息
+   */
+  static async handleDeleteAllUsersResult(code: number, msg: string) {
+    try {
+      if (code === 0) {
+        // 清空成功，清除数据库中所有义工的同步标记
+        await db
+          .update(volunteer)
+          .set({ syncToAttendance: false })
+          .where(eq(volunteer.syncToAttendance, true))
+
+        logger.success(`✅ 考勤机确认清空成功，已清除数据库同步标记`)
+
+        // 🔔 广播清空完成到前端
+        const { broadcastClearDeviceComplete } = await import('./index')
+        broadcastClearDeviceComplete({
+          success: true,
+          code,
+          message: '设备用户已清空，数据库同步标记已重置',
+        })
+      } else {
+        logger.error(`❌ 考勤机返回清空失败: [错误码:${code}] ${msg}`)
+
+        // 🔔 广播清空失败到前端
+        const { broadcastClearDeviceComplete } = await import('./index')
+        broadcastClearDeviceComplete({
+          success: false,
+          code,
+          message: msg || '清空失败',
+        })
+      }
+    } catch (error) {
+      logger.error(`处理清空设备返回结果失败:`, error)
     }
   }
 

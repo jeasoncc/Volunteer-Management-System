@@ -87,6 +87,20 @@ export function broadcastBatchComplete(result: {
   })
 }
 
+/**
+ * 广播清空设备完成到所有前端客户端
+ */
+export function broadcastClearDeviceComplete(result: {
+  success: boolean
+  code: number
+  message: string
+}) {
+  broadcastToFrontend({
+    type: 'clear_device_complete',
+    data: result,
+  })
+}
+
 // 订阅进度更新
 syncProgressManager.subscribe((progress) => {
   broadcastProgressToFrontend(progress)
@@ -184,6 +198,13 @@ export const wsModule = new Elysia()
               total,
               userIds,
             })
+            return
+          }
+
+          // 处理清空所有用户的返回结果
+          if (dataCmd === 'delAllUserRet') {
+            logger.info(`处理清空设备结果: code=${code}, msg=${msg}`)
+            await WebSocketService.handleDeleteAllUsersResult(code, msg)
             return
           }
         }

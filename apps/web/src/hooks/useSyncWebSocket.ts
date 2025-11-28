@@ -1,4 +1,6 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
+import useWebSocket, { ReadyState } from "react-use-websocket";
+import { getBackendUrl } from "@/config/network";
 
 interface SyncProgress {
 	total: number;
@@ -44,133 +46,107 @@ interface BatchResult {
 	duration: number;
 }
 
+interface ClearDeviceResult {
+	success: boolean;
+	code: number;
+	message: string;
+}
+
 interface UseSyncWebSocketOptions {
 	onProgressUpdate?: (progress: SyncProgress) => void;
 	onUserFeedback?: (feedback: UserFeedback) => void;
 	onBatchStart?: (batch: BatchInfo) => void;
 	onBatchComplete?: (result: BatchResult) => void;
+	onClearDeviceComplete?: (result: ClearDeviceResult) => void;
 	enabled?: boolean;
 }
 
 export function useSyncWebSocket(options: UseSyncWebSocketOptions = {}) {
-	const { 
-		onProgressUpdate, 
+	const {
+		onProgressUpdate,
 		onUserFeedback,
 		onBatchStart,
 		onBatchComplete,
-		enabled = true 
+		onClearDeviceComplete,
+		enabled = true,
 	} = options;
-	const wsRef = useRef<WebSocket | null>(null);
-	const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-	const reconnectAttemptsRef = useRef<number>(0);
-	const maxReconnectAttempts = 5;
 
-	const connect = useCallback(() => {
-		if (!enabled) return;
+	// 使用 ref 存储回调函数，避免依赖变化导致重复触发
+	const callbacksRef = useRef({
+		onProgressUpdate,
+		onUserFeedback,
+		onBatchStart,
+		onBatchComplete,
+		onClearDeviceComplete,
+	});
 
-		// 从环境变量或配置获取后端地址
-		const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-		const wsUrl = backendUrl.replace("http", "ws") + "/ws/sync-progress";
-
-		try {
-			const ws = new WebSocket(wsUrl);
-			wsRef.current = ws;
-
-			ws.onopen = () => {
-				console.log("✅ 同步进度 WebSocket 已连接");
-				reconnectAttemptsRef.current = 0;
-			};
-
-			ws.onmessage = (event) => {
-				try {
-					const message = JSON.parse(event.data);
-					
-					// 处理不同类型的消息
-					switch (message.type) {
-						case "progress":
-							if (onProgressUpdate) {
-								onProgressUpdate(message.data);
-							}
-							break;
-						
-						case "user_feedback":
-							if (onUserFeedback) {
-								onUserFeedback(message.data);
-							}
-							break;
-						
-						case "batch_start":
-							if (onBatchStart) {
-								onBatchStart(message.data);
-							}
-							break;
-						
-						case "batch_complete":
-							if (onBatchComplete) {
-								onBatchComplete(message.data);
-							}
-							break;
-						
-						default:
-							console.log("收到未知消息类型:", message.type);
-					}
-				} catch (error) {
-					console.error("解析 WebSocket 消息失败:", error);
-				}
-			};
-
-			ws.onerror = (error) => {
-				console.error("WebSocket 错误:", error);
-			};
-
-			ws.onclose = () => {
-				console.log("❌ 同步进度 WebSocket 已断开");
-
-				// 如果还启用，尝试重连
-				if (enabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
-					reconnectAttemptsRef.current += 1;
-					const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-					console.log(
-						`🔄 ${delay / 1000}秒后尝试重连 (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
-					);
-					reconnectTimeoutRef.current = setTimeout(connect, delay);
-				}
-			};
-		} catch (error) {
-			console.error("创建 WebSocket 连接失败:", error);
-		}
-	}, [enabled, onProgressUpdate]);
-
+	// 更新 ref 中的回调函数
 	useEffect(() => {
-		connect();
-
-		// 清理
-		return () => {
-			if (reconnectTimeoutRef.current) {
-				clearTimeout(reconnectTimeoutRef.current);
-			}
-			if (wsRef.current) {
-				wsRef.current.close();
-				wsRef.current = null;
-			}
+		callbacksRef.current = {
+			onProgressUpdate,
+			onUserFeedback,
+			onBatchStart,
+			onBatchComplete,
+			onClearDeviceComplete,
 		};
-	}, [connect]);
+	}, [onProgressUpdate, onUserFeedback, onBatchStart, onBatchComplete, onClearDeviceComplete]);
 
-	// 发送心跳
+	// 获取 WebSocket URL
+	const backendUrl = getBackendUrl();
+	const socketUrl = enabled
+		? backendUrl.replace("http", "ws") + "/ws/sync-progress"
+		: null;
+
+	// 使用 react-use-websocket
+	const { lastJsonMessage, readyState } = useWebSocket(socketUrl, {
+		shouldReconnect: () => true, // 自动重连
+		reconnectAttempts: 10, // 最多重连 10 次
+		reconnectInterval: 3000, // 重连间隔 3 秒
+		share: false, // 不共享连接
+	});
+
+	// 处理接收到的消息 - 只依赖 lastJsonMessage
 	useEffect(() => {
-		if (!enabled) return;
+		if (!lastJsonMessage) return;
 
-		const interval = setInterval(() => {
-			if (wsRef.current?.readyState === WebSocket.OPEN) {
-				wsRef.current.send(JSON.stringify({ type: "ping" }));
-			}
-		}, 30000); // 每30秒发送一次心跳
+		const message = lastJsonMessage as any;
+		const callbacks = callbacksRef.current;
 
-		return () => clearInterval(interval);
-	}, [enabled]);
+		switch (message.type) {
+			case "progress":
+				callbacks.onProgressUpdate?.(message.data);
+				break;
+
+			case "user_feedback":
+				callbacks.onUserFeedback?.(message.data);
+				break;
+
+			case "batch_start":
+				callbacks.onBatchStart?.(message.data);
+				break;
+
+			case "batch_complete":
+				callbacks.onBatchComplete?.(message.data);
+				break;
+
+			case "clear_device_complete":
+				callbacks.onClearDeviceComplete?.(message.data);
+				break;
+		}
+	}, [lastJsonMessage]); // 只依赖 lastJsonMessage
+
+	// 连接状态
+	const connectionStatus = {
+		[ReadyState.CONNECTING]: "连接中",
+		[ReadyState.OPEN]: "已连接",
+		[ReadyState.CLOSING]: "断开中",
+		[ReadyState.CLOSED]: "已断开",
+		[ReadyState.UNINSTANTIATED]: "未初始化",
+	}[readyState];
 
 	return {
-		isConnected: wsRef.current?.readyState === WebSocket.OPEN,
-		reconnect: connect,
+		isConnected: readyState === ReadyState.OPEN,
+		connectionStatus,
+		readyState,
 	};
 }
