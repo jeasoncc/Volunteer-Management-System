@@ -254,7 +254,11 @@ function DevicesPage() {
 				failed: 0, 
 				skipped: 0, 
 				status: "syncing",
-				logs: [],
+				logs: [{
+					time: new Date().toLocaleTimeString('zh-CN'),
+					type: 'info' as const,
+					message: '正在重试失败项...'
+				}],
 				failedUsers: [],
 			});
 		},
@@ -264,6 +268,34 @@ function DevicesPage() {
 		},
 		onError: (error: any) => {
 			toast.error(error.message || "重试失败");
+		},
+	});
+
+	const retryFailedWithBase64Mutation = useMutation({
+		mutationFn: (failedUsers: Array<{ lotusId: string; name: string }>) => 
+			deviceService.retryFailedUsersWithBase64(failedUsers),
+		onMutate: () => {
+			setSyncProgress({ 
+				total: 0, 
+				sent: 0, 
+				confirmed: 0, 
+				failed: 0, 
+				skipped: 0, 
+				status: "syncing",
+				logs: [{
+					time: new Date().toLocaleTimeString('zh-CN'),
+					type: 'info' as const,
+					message: '正在使用Base64格式重试...'
+				}],
+				failedUsers: [],
+			});
+		},
+		onSuccess: (res: any) => {
+			toast.success(res?.message || "Base64重试完成");
+			refetchStatus();
+		},
+		onError: (error: any) => {
+			toast.error(error.message || "Base64重试失败");
 		},
 	});
 
@@ -549,19 +581,37 @@ function DevicesPage() {
 						
 						{/* 重试失败项按钮 */}
 						{syncProgress.failedUsers && syncProgress.failedUsers.length > 0 && (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => retryFailedMutation.mutate(syncProgress.failedUsers)}
-								disabled={retryFailedMutation.isPending}
-								className="w-full"
-							>
-								{retryFailedMutation.isPending && (
-									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-								)}
-								<RotateCcw className="h-4 w-4 mr-2" />
-								重试 {syncProgress.failedUsers.length} 个失败项
-							</Button>
+							<div className="space-y-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => retryFailedMutation.mutate(syncProgress.failedUsers)}
+									disabled={retryFailedMutation.isPending || retryFailedWithBase64Mutation.isPending}
+									className="w-full"
+								>
+									{retryFailedMutation.isPending && (
+										<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									)}
+									<RotateCcw className="h-4 w-4 mr-2" />
+									重试 {syncProgress.failedUsers.length} 个失败项
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => retryFailedWithBase64Mutation.mutate(syncProgress.failedUsers)}
+									disabled={retryFailedMutation.isPending || retryFailedWithBase64Mutation.isPending}
+									className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+								>
+									{retryFailedWithBase64Mutation.isPending && (
+										<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									)}
+									<UploadCloud className="h-4 w-4 mr-2" />
+									转Base64重试 {syncProgress.failedUsers.length} 个失败项
+								</Button>
+								<p className="text-xs text-muted-foreground">
+									💡 Base64模式会将图片压缩并转换为Base64格式后重新下发，适合照片格式问题导致的失败
+								</p>
+							</div>
 						)}
 					</Card>
 				)}

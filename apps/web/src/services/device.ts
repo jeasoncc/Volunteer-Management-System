@@ -69,6 +69,10 @@ export const deviceService = {
 		return api.post("/send/retryFailed", { failedUsers });
 	},
 
+	retryFailedUsersWithBase64: async (failedUsers: Array<{ lotusId: string; name: string }>): Promise<ApiResponse> => {
+		return api.post("/send/retryFailedWithBase64", { failedUsers });
+	},
+
 	// 同步历史相关
 	getSyncBatches: async (params?: { 
 		page?: number; 

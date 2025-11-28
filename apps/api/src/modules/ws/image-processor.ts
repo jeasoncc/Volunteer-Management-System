@@ -182,6 +182,89 @@ export function delay(ms: number): Promise<void> {
 }
 
 /**
+ * 将图片转换为Base64格式（符合设备要求）
+ * 1. 压缩图片到 300KB 以下，尺寸不超过 1280x720
+ * 2. 转换为 Base64 格式，加上前缀 "data:image/jpeg;base64,"
+ * 3. 使用 URLEncode 进行 UTF-8 编码
+ */
+export async function convertImageToBase64(avatarPath: string): Promise<string> {
+  const fullPath = join(process.cwd(), 'public', avatarPath)
+  
+  if (!existsSync(fullPath)) {
+    throw new Error(`图片不存在: ${fullPath}`)
+  }
+
+  try {
+    // 尝试使用 sharp 进行压缩和调整尺寸
+    const sharp = await import('sharp')
+    
+    // 压缩图片到符合设备要求
+    const buffer = await sharp.default(fullPath)
+      .resize(1280, 720, { 
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ 
+        quality: 85,
+        progressive: true
+      })
+      .toBuffer()
+
+    // 检查大小，如果还是太大，降低质量
+    let finalBuffer = buffer
+    if (buffer.length > TARGET_IMAGE_SIZE) {
+      logger.info(`📦 图片仍然过大 (${(buffer.length / 1024).toFixed(1)}KB)，降低质量`)
+      finalBuffer = await sharp.default(fullPath)
+        .resize(1280, 720, { 
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ 
+          quality: 70,
+          progressive: true
+        })
+        .toBuffer()
+    }
+
+    // 转换为 Base64
+    const base64 = finalBuffer.toString('base64')
+    const base64WithPrefix = `data:image/jpeg;base64,${base64}`
+    
+    // URL 编码
+    const encoded = encodeURIComponent(base64WithPrefix)
+    
+    logger.success(`✅ 图片转Base64成功: ${(finalBuffer.length / 1024).toFixed(1)}KB`)
+    
+    return encoded
+  } catch (error: any) {
+    // sharp 不可用，使用备用方案
+    if (error.code === 'MODULE_NOT_FOUND' || error.message?.includes('sharp')) {
+      logger.warn(`⚠️  sharp 库不可用，使用原图转Base64`)
+      return await convertImageToBase64Fallback(avatarPath)
+    }
+    
+    throw error
+  }
+}
+
+/**
+ * 备用Base64转换方案（不依赖 sharp）
+ */
+async function convertImageToBase64Fallback(avatarPath: string): Promise<string> {
+  const fullPath = join(process.cwd(), 'public', avatarPath)
+  
+  // 直接读取文件并转换
+  const buffer = readFileSync(fullPath)
+  const base64 = buffer.toString('base64')
+  const base64WithPrefix = `data:image/jpeg;base64,${base64}`
+  const encoded = encodeURIComponent(base64WithPrefix)
+  
+  logger.warn(`⚠️  使用原图转Base64 (${(buffer.length / 1024).toFixed(1)}KB)`)
+  
+  return encoded
+}
+
+/**
  * 同步配置
  */
 export const SYNC_CONFIG = {

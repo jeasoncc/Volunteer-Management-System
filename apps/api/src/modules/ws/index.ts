@@ -101,6 +101,14 @@ export const wsModule = new Elysia()
   })
 
   /**
+   * 使用Base64格式重试失败的用户
+   */
+  .post('/send/retryFailedWithBase64', async ({ body }) => {
+    const { failedUsers } = body as any
+    return await WebSocketService.retryFailedUsersWithBase64(failedUsers)
+  })
+
+  /**
    * 删除所有用户
    */
   .post(

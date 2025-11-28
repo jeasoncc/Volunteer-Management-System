@@ -350,6 +350,83 @@ export class WebSocketService {
   }
 
   /**
+   * 使用Base64格式重试失败的用户
+   */
+  static async retryFailedUsersWithBase64(failedUsers: Array<{ lotusId: string; name: string }>) {
+    logger.info(`🔄 开始使用Base64格式重试 ${failedUsers.length} 个失败的义工`)
+    
+    syncProgressManager.startSync(failedUsers.length)
+
+    let successCount = 0
+    let failCount = 0
+    const failedList: Array<{ lotusId: string; name: string; reason: string }> = []
+
+    for (const { lotusId } of failedUsers) {
+      try {
+        // 查询用户信息
+        const [user] = await db.select().from(volunteer).where(eq(volunteer.lotusId, lotusId))
+
+        if (!user) {
+          throw new Error('用户不存在')
+        }
+
+        if (!user.avatar) {
+          throw new Error('用户没有头像')
+        }
+
+        // 将图片转换为Base64格式
+        const { convertImageToBase64 } = await import('./image-processor')
+        const base64Photo = await convertImageToBase64(user.avatar)
+
+        // 构建命令（使用Base64格式的照片）
+        const command = {
+          cmd:           'addUser',
+          mode:          0,
+          name:          user.name,
+          user_id:       user.lotusId!,
+          user_id_card:  user.idNumber || '',
+          face_template: base64Photo, // 使用Base64格式
+          phone:         user.phone || '',
+        }
+
+        logger.info(`📋 下发Base64命令: ${user.name}(${user.lotusId})`)
+        
+        // 发送命令
+        const success = this.sendAddUserCommand(command, user)
+
+        if (success) {
+          successCount++
+        } else {
+          failCount++
+          failedList.push({ lotusId: user.lotusId!, name: user.name, reason: '设备未连接' })
+        }
+
+        // 添加延迟
+        if (failedUsers.indexOf({ lotusId, name: user.name }) < failedUsers.length - 1) {
+          await delay(SYNC_CONFIG.DELAY_BETWEEN_USERS)
+        }
+      } catch (error: any) {
+        failCount++
+        failedList.push({ lotusId, name: failedUsers.find(u => u.lotusId === lotusId)?.name || lotusId, reason: error.message })
+        logger.error(`❌ Base64重试失败: ${lotusId} - ${error.message}`)
+      }
+    }
+
+    logger.success(`📊 Base64重试完成: 成功 ${successCount}, 失败 ${failCount}`)
+
+    return {
+      success: true,
+      message: `Base64重试完成`,
+      data: {
+        total: failedUsers.length,
+        successCount,
+        failCount,
+        failedUsers: failedList,
+      },
+    }
+  }
+
+  /**
    * 删除所有用户
    */
   static async deleteAllUsers() {
