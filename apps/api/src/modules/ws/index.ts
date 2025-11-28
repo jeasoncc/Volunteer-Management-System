@@ -4,6 +4,93 @@ import { WebSocketConfig } from './config'
 import { ConnectionManager } from './connection-manager'
 import { errorHandler } from '../../lib/middleware/error-handler'
 import { logger } from '../../lib/logger'
+import { syncProgressManager } from './sync-progress-manager'
+
+// 存储所有连接的前端客户端
+const frontendClients: Set<any> = new Set()
+
+/**
+ * 广播消息到所有前端客户端
+ */
+function broadcastToFrontend(message: any) {
+  const messageStr = JSON.stringify(message)
+  
+  frontendClients.forEach((client) => {
+    try {
+      client.send(messageStr)
+    } catch (error) {
+      logger.error('发送消息到前端失败:', error)
+      frontendClients.delete(client)
+    }
+  })
+}
+
+/**
+ * 广播进度更新到所有前端客户端
+ */
+function broadcastProgressToFrontend(progress: any) {
+  broadcastToFrontend({
+    type: 'progress',
+    data: progress,
+  })
+}
+
+/**
+ * 广播用户反馈到所有前端客户端
+ */
+export function broadcastUserFeedback(feedback: {
+  batchId: string | null
+  lotusId: string
+  name: string
+  status: 'success' | 'failed'
+  code: number
+  message: string
+}) {
+  broadcastToFrontend({
+    type: 'user_feedback',
+    data: {
+      ...feedback,
+      timestamp: new Date().toISOString(),
+    },
+  })
+}
+
+/**
+ * 广播批次开始到所有前端客户端
+ */
+export function broadcastBatchStart(batch: {
+  batchId: string
+  total: number
+  strategy: string
+  photoFormat: string
+}) {
+  broadcastToFrontend({
+    type: 'batch_start',
+    data: batch,
+  })
+}
+
+/**
+ * 广播批次完成到所有前端客户端
+ */
+export function broadcastBatchComplete(result: {
+  batchId: string
+  total: number
+  confirmed: number
+  failed: number
+  skipped: number
+  duration: number
+}) {
+  broadcastToFrontend({
+    type: 'batch_complete',
+    data: result,
+  })
+}
+
+// 订阅进度更新
+syncProgressManager.subscribe((progress) => {
+  broadcastProgressToFrontend(progress)
+})
 
 /**
  * WebSocket 模块
@@ -14,6 +101,35 @@ export const wsModule = new Elysia()
   .use(errorHandler)
 
   // ==================== WebSocket 连接 ====================
+  
+  // 前端进度推送 WebSocket
+  .ws('/ws/sync-progress', {
+    open(ws) {
+      frontendClients.add(ws)
+      logger.info('✅ 前端客户端已连接到进度推送')
+      
+      // 立即发送当前进度
+      const currentProgress = WebSocketService.getSyncProgress()
+      ws.send(JSON.stringify({
+        type: 'progress',
+        data: currentProgress,
+      }))
+    },
+
+    close(ws) {
+      frontendClients.delete(ws)
+      logger.info('❌ 前端客户端已断开进度推送')
+    },
+
+    message(ws, message: any) {
+      // 前端可以发送 ping 保持连接
+      if (message.type === 'ping') {
+        ws.send(JSON.stringify({ type: 'pong' }))
+      }
+    },
+  })
+
+  // 考勤机设备 WebSocket
   .ws('/ws', {
     open(ws) {
       logger.info('WebSocket 连接已建立')
@@ -50,12 +166,24 @@ export const wsModule = new Elysia()
 
         // 处理考勤机返回的消息
         if (message.cmd === 'to_client' && message.data) {
-          const { cmd: dataCmd, code, msg, user_id } = message.data
+          const { cmd: dataCmd, code, msg, user_id, total, userIds } = message.data
           
           // 处理添加用户的返回结果
           if (dataCmd === 'addUserRet') {
             logger.info(`处理用户添加结果: ${user_id}, code: ${code}`)
             await WebSocketService.handleAddUserResult(user_id, code, msg)
+            return
+          }
+
+          // 处理查询人员信息的返回结果
+          if (dataCmd === 'getUserInfoRet') {
+            logger.info(`处理人员信息查询结果: code=${code}, total=${total}, userIds=${userIds?.length || 0}个`)
+            WebSocketService.handleGetUserInfoResult({
+              cmd: 'getUserInfoRet',
+              code,
+              total,
+              userIds,
+            })
             return
           }
         }
@@ -170,6 +298,42 @@ export const wsModule = new Elysia()
     return {
       success: true,
       data: WebSocketService.getSyncProgress(),
+    }
+  })
+
+  /**
+   * 获取设备人脸总数
+   */
+  .get('/device/face-count', async () => {
+    try {
+      const result = await WebSocketService.getDeviceFaceCount()
+      return {
+        success: true,
+        data: result,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      }
+    }
+  })
+
+  /**
+   * 获取设备所有人员ID
+   */
+  .get('/device/user-ids', async () => {
+    try {
+      const result = await WebSocketService.getDeviceUserIds()
+      return {
+        success: true,
+        data: result,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      }
     }
   })
 

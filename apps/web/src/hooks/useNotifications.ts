@@ -4,62 +4,9 @@ import type { Notification, NotificationStats } from "@/types/notification";
 const STORAGE_KEY = "app-notifications";
 const MAX_NOTIFICATIONS = 50;
 
-// 模拟通知数据（实际应该从后端获取）
+// 默认空通知列表（通知由实际操作产生）
 const generateMockNotifications = (): Notification[] => {
-	const now = new Date();
-	return [
-		{
-			id: "1",
-			type: "approval",
-			priority: "high",
-			title: "新义工申请",
-			message: "张三（138****1234）提交了义工申请，需要您审批",
-			timestamp: new Date(now.getTime() - 2 * 60 * 1000).toISOString(),
-			read: false,
-			actionUrl: "/volunteers",
-			actionLabel: "去审批",
-		},
-		{
-			id: "2",
-			type: "approval",
-			priority: "normal",
-			title: "审批通过",
-			message: "李四的义工申请已通过审批",
-			timestamp: new Date(now.getTime() - 10 * 60 * 1000).toISOString(),
-			read: false,
-			actionUrl: "/volunteers",
-			actionLabel: "查看",
-		},
-		{
-			id: "3",
-			type: "report",
-			priority: "normal",
-			title: "月度报表已生成",
-			message: "2024年11月考勤报表已生成完成",
-			timestamp: new Date(now.getTime() - 60 * 60 * 1000).toISOString(),
-			read: false,
-			actionUrl: "/checkin",
-			actionLabel: "查看报表",
-		},
-		{
-			id: "4",
-			type: "checkin",
-			priority: "low",
-			title: "今日考勤提醒",
-			message: "今天有15位义工完成了考勤签到",
-			timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-			read: true,
-		},
-		{
-			id: "5",
-			type: "system",
-			priority: "normal",
-			title: "系统更新",
-			message: "系统已更新到 v1.0.1，新增批量导入功能",
-			timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-			read: true,
-		},
-	];
+	return [];
 };
 
 export function useNotifications() {

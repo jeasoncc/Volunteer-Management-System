@@ -1,4 +1,4 @@
-export type NotificationType = "system" | "approval" | "checkin" | "report" | "warning";
+export type NotificationType = "system" | "approval" | "checkin" | "report" | "warning" | "device_sync";
 
 export type NotificationPriority = "low" | "normal" | "high" | "urgent";
 

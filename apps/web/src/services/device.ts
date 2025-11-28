@@ -95,4 +95,13 @@ export const deviceService = {
 	getRecentFailures: async (limit?: number): Promise<ApiResponse<any>> => {
 		return api.get("/sync/failures", { params: { limit } });
 	},
+
+	// 设备人员查询
+	getDeviceFaceCount: async (): Promise<ApiResponse<{ total: number }>> => {
+		return api.get("/device/face-count");
+	},
+
+	getDeviceUserIds: async (): Promise<ApiResponse<{ userIds: string[] }>> => {
+		return api.get("/device/user-ids");
+	},
 };

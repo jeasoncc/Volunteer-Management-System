@@ -19,6 +19,7 @@ import {
 	Users,
 	ClipboardCheck,
 	Settings as SettingsIcon,
+	Smartphone,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { Notification, NotificationType } from "@/types/notification";
@@ -31,6 +32,7 @@ const typeIcons: Record<NotificationType, React.ReactNode> = {
 	checkin: <ClipboardCheck className="h-4 w-4" />,
 	report: <FileText className="h-4 w-4" />,
 	warning: <AlertCircle className="h-4 w-4" />,
+	device_sync: <Smartphone className="h-4 w-4" />,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -39,6 +41,7 @@ const typeColors: Record<NotificationType, string> = {
 	checkin: "text-green-600 bg-green-50 dark:bg-green-950",
 	report: "text-purple-600 bg-purple-50 dark:bg-purple-950",
 	warning: "text-red-600 bg-red-50 dark:bg-red-950",
+	device_sync: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950",
 };
 
 const typeLabels: Record<NotificationType, string> = {
@@ -47,6 +50,7 @@ const typeLabels: Record<NotificationType, string> = {
 	checkin: "考勤",
 	report: "报表",
 	warning: "警告",
+	device_sync: "设备同步",
 };
 
 function NotificationItem({

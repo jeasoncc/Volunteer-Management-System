@@ -1,49 +1,85 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { deviceService } from "@/services/device";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/lib/toast";
-import { CheckCircle2, Loader2, RefreshCw, ServerCrash, UploadCloud, AlertTriangle, RotateCcw, History, ChevronRight, Clock } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Label } from "@/components/ui/label";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
+import {
+	CheckCircle2,
+	Loader2,
+	ServerCrash,
+	UploadCloud,
+	AlertTriangle,
+	Trash2,
+	RefreshCw,
+	RotateCcw,
+	Send,
+	History,
+	Clock,
+	XCircle,
+	AlertCircle,
+	ChevronRight,
+	Users,
+	Search,
+	Zap,
+	Database,
+	FileEdit,
+	Link2,
+	Binary,
+} from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
+import { deviceService } from "@/services/device";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/devices/old")({
 	component: DevicesPage,
 } as any);
 
-interface SyncLog {
-	time: string;
-	type: 'info' | 'success' | 'error' | 'warning';
-	message: string;
-	userId?: string;
-}
-
-// 格式化时间（秒转为分:秒）
-function formatTime(seconds: number): string {
-	if (seconds < 60) {
-		return `${Math.round(seconds)}秒`;
-	}
-	const minutes = Math.floor(seconds / 60);
-	const secs = Math.round(seconds % 60);
-	return `${minutes}分${secs}秒`;
-}
-
 function DevicesPage() {
 	const { isAuthenticated, isLoading: authLoading } = useAuth();
 	const queryClient = useQueryClient();
-	const [lotusId, setLotusId] = useState("");
-	const [syncStrategy, setSyncStrategy] = useState<'all' | 'unsynced' | 'changed'>('all'); // 默认全量同步
-	const [photoFormat, setPhotoFormat] = useState<'url' | 'base64'>('url'); // 照片格式：URL 或 Base64
-	const [validatePhotos, setValidatePhotos] = useState(false);
+	const { addNotification } = useNotifications();
+
+	// 同步配置
+	const [syncStrategy, setSyncStrategy] = useState<"all" | "unsynced" | "changed">("all");
+	const [photoFormat, setPhotoFormat] = useState<"url" | "base64">("url");
+
+	// 同步状态
+	const [syncProgress, setSyncProgress] = useState<any>(null);
+	const [showClearDialog, setShowClearDialog] = useState(false);
+	const [quickSyncId, setQuickSyncId] = useState("");
+	const [showHistorySheet, setShowHistorySheet] = useState(false);
+	const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+	const [showDeviceUsers, setShowDeviceUsers] = useState(false);
+	const [deviceUserIds, setDeviceUserIds] = useState<string[]>([]);
+	const pollFailCountRef = useRef(0);
 	const logsEndRef = useRef<HTMLDivElement>(null);
 
+	// 设备状态查询
 	const {
 		data: statusData,
 		isLoading: statusLoading,
@@ -51,314 +87,227 @@ function DevicesPage() {
 	} = useQuery({
 		queryKey: ["device", "status"],
 		queryFn: () => deviceService.getStatus(),
-		enabled: isAuthenticated,
+		refetchInterval: 5000,
 	})
 
-	const [syncProgress, setSyncProgress] = useState<{
-		total: number;
-		sent: number;
-		confirmed: number;
-		failed: number;
-		skipped: number;
-		status: string;
-		logs: SyncLog[];
-		failedUsers: Array<{ lotusId: string; name: string; reason: string }>;
-		// 新增：时间相关字段
-		startTime?: number | null;
-		estimatedTimeRemaining?: number | null;
-		averageTimePerUser?: number | null;
-		batchId?: string | null;
-	} | null>(null);
-
-	// 轮询失败计数 - 使用 ref 避免闭包问题
-	const pollFailCountRef = useRef(0);
+	// 同步历史查询
+	const { data: batchesData, refetch: refetchBatches } = useQuery({
+		queryKey: ["sync", "batches"],
+		queryFn: () => deviceService.getSyncBatches({ page: 1, pageSize: 10 }),
+	})
 
 	// 轮询同步进度
-	const { data: progressData, error: progressError, isError } = useQuery({
+	const { data: progressData, isError } = useQuery({
 		queryKey: ["sync", "progress"],
 		queryFn: () => deviceService.getSyncProgress(),
 		enabled: syncProgress?.status === "syncing",
-		refetchInterval: 1000, // 每1秒轮询一次
-		retry: false, // 不重试，快速检测服务不可用
+		refetchInterval: 1000,
+		retry: false,
 	})
 
-	// 处理轮询错误 - 服务不可用时重置状态
+	// 处理轮询错误
 	useEffect(() => {
 		if (isError && syncProgress?.status === "syncing") {
 			pollFailCountRef.current += 1;
-			console.warn(`同步进度轮询失败 (${pollFailCountRef.current}/3)`);
-			
-			// 连续失败3次后重置状态
 			if (pollFailCountRef.current >= 3) {
-				console.warn("服务可能已关闭，重置同步状态");
-				setSyncProgress(prev => prev ? { 
-					...prev, 
-					status: 'idle',
-					logs: [...(prev.logs || []), {
-						time: new Date().toLocaleTimeString('zh-CN'),
-						type: 'error' as const,
-						message: '⚠️ 服务连接中断，同步状态未知'
-					}]
-				} : null)
-				sessionStorage.removeItem('syncProgress');
+				setSyncProgress((prev: any) =>
+					prev
+						? {
+								...prev,
+								status: "error",
+								logs: [
+									...(prev.logs || []),
+									{
+										time: new Date().toLocaleTimeString("zh-CN"),
+										type: "error",
+										message: "⚠️ 服务连接中断",
+									},
+								],
+							}
+						: null
+				)
 				pollFailCountRef.current = 0;
 			}
 		} else if (progressData && !isError) {
-			pollFailCountRef.current = 0; // 成功时重置计数
+			pollFailCountRef.current = 0;
 		}
-	}, [progressError, isError, progressData, syncProgress?.status]);
+	}, [isError, progressData, syncProgress?.status]);
 
 	// 监听进度数据变化
 	useEffect(() => {
 		if (progressData?.data && syncProgress?.status === "syncing") {
 			const data = progressData.data as any;
-			if (data.status === 'completed') {
-				setSyncProgress({
-					total: data.total,
-					sent: data.sent,
-					confirmed: data.confirmed,
-					failed: data.failed,
-					skipped: data.skipped,
-					status: "completed",
-					logs: data.logs || [],
-					failedUsers: data.failedUsers || [],
-				})
-				
-				// 同步完成后刷新义工列表，显示最新的同步状态
-				queryClient.invalidateQueries({ queryKey: ["volunteers"] });
-				
-				// 显示完成提示
-				const successCount = data.confirmed;
-				const failedCount = data.failed;
-				const skippedCount = data.skipped;
-				
-				if (failedCount === 0 && skippedCount === 0) {
-					toast.success(`🎉 同步完成！成功 ${successCount} 个`);
-				} else if (failedCount > 0) {
-					toast.warning(`同步完成：成功 ${successCount}，失败 ${failedCount}，跳过 ${skippedCount}`);
+			const wasCompleted = syncProgress?.status === "completed";
+			setSyncProgress(data);
+
+			// 只在状态从 syncing 变为 completed 时显示提示
+			if (data.status === "completed" && !wasCompleted) {
+				refetchBatches();
+				// 根据结果显示不同的提示
+				const message = `成功 ${data.confirmed}，失败 ${data.failed}，跳过 ${data.skipped}`;
+				if (data.failed > 0) {
+					toast.warning(`同步完成：${message}`);
+					// 添加到通知中心
+					addNotification({
+						type: "warning",
+						priority: "high",
+						title: "同步完成（有失败）",
+						message: `设备同步完成：${message}`,
+						actionUrl: "/devices",
+						actionLabel: "查看详情",
+					})
 				} else {
-					toast.success(`同步完成：成功 ${successCount}，跳过 ${skippedCount}`);
+					toast.success(`同步完成：${message}`);
+					// 添加到通知中心
+					addNotification({
+						type: "system",
+						priority: "normal",
+						title: "同步完成",
+						message: `设备同步完成：${message}`,
+						actionUrl: "/devices",
+						actionLabel: "查看详情",
+					})
 				}
-				
-				// 5秒后隐藏进度条（但保留日志）
-				setTimeout(() => {
-					if (data.logs && data.logs.length > 0) {
-						// 保留日志，只改变状态
-						setSyncProgress(prev => prev ? { ...prev, status: 'idle' } : null);
-					}
-				}, 5000)
-			} else if (data.status === 'syncing') {
-				setSyncProgress({
-					total: data.total,
-					sent: data.sent,
-					confirmed: data.confirmed,
-					failed: data.failed,
-					skipped: data.skipped,
-					status: "syncing",
-					logs: data.logs || [],
-					failedUsers: data.failedUsers || [],
-					startTime: data.startTime,
-					estimatedTimeRemaining: data.estimatedTimeRemaining,
-					averageTimePerUser: data.averageTimePerUser,
-					batchId: data.batchId,
-				})
 			}
 		}
-	}, [progressData, queryClient]);
+	}, [progressData, syncProgress?.status, refetchBatches, addNotification]);
 
-	// 自动滚动到日志底部（只在容器内滚动）
+	// 自动滚动日志
 	useEffect(() => {
-		if (syncProgress?.logs && syncProgress.logs.length > 0 && logsEndRef.current) {
-			// 使用 scrollTop 而不是 scrollIntoView，避免滚动整个页面
-			const container = logsEndRef.current.parentElement;
-			if (container) {
-				container.scrollTop = container.scrollHeight;
-			}
+		if (logsEndRef.current) {
+			logsEndRef.current.scrollIntoView({ behavior: "smooth" });
 		}
-	}, [syncProgress?.logs]);
+	}, [syncProgress?.logs?.length]);
 
-	// 保存进度到 sessionStorage（带时间戳）
-	useEffect(() => {
-		if (syncProgress) {
-			sessionStorage.setItem('syncProgress', JSON.stringify({
-				...syncProgress,
-				savedAt: Date.now()
-			}))
-		}
-	}, [syncProgress]);
-
-	// 从 sessionStorage 恢复进度（带超时检测）
-	useEffect(() => {
-		const saved = sessionStorage.getItem('syncProgress');
-		if (saved) {
-			try {
-				const progress = JSON.parse(saved);
-				// 只恢复未完成的同步，且保存时间不超过10分钟
-				const maxAge = 10 * 60 * 1000; // 10分钟
-				const isExpired = progress.savedAt && (Date.now() - progress.savedAt > maxAge);
-				
-				if (progress.status === 'syncing' && !isExpired) {
-					setSyncProgress(progress);
-				} else if (isExpired) {
-					// 过期的同步状态，清除并提示
-					sessionStorage.removeItem('syncProgress');
-					console.warn('同步状态已过期，已清除');
-				}
-			} catch (e) {
-				console.error('恢复同步进度失败:', e);
-				sessionStorage.removeItem('syncProgress');
-			}
-		}
-	}, []);
-
-
+	// Mutations
 	const syncAllMutation = useMutation({
-		mutationFn: () => deviceService.syncAllUsers({ 
-			strategy: syncStrategy, 
-			validatePhotos,
-			photoFormat: photoFormat as 'url' | 'base64'
-		}),
+		mutationFn: () =>
+			deviceService.syncAllUsers({
+				strategy: syncStrategy,
+				validatePhotos: false,
+				photoFormat: photoFormat,
+			}),
 		onMutate: () => {
-			// 开始同步时显示进度
-			setSyncProgress({ 
-				total: 0, 
-				sent: 0, 
-				confirmed: 0, 
-				failed: 0, 
-				skipped: 0, 
+			setSyncProgress({
+				total: 0,
+				sent: 0,
+				confirmed: 0,
+				failed: 0,
+				skipped: 0,
 				status: "syncing",
-				logs: [{
-					time: new Date().toLocaleTimeString('zh-CN'),
-					type: 'info' as const,
-					message: '正在启动同步...'
-				}],
+				logs: [
+					{
+						time: new Date().toLocaleTimeString("zh-CN"),
+						type: "info",
+						message: "正在启动同步...",
+					},
+				],
 				failedUsers: [],
 			})
 		},
-		onSuccess: () => {
-			// 不在这里显示 toast，等待同步完成后再显示
-			refetchStatus();
-		},
+		onSuccess: () => refetchStatus(),
 		onError: (error: any) => {
-			// 同步失败时重置状态并清除存储
 			setSyncProgress(null);
-			sessionStorage.removeItem('syncProgress');
-			pollFailCountRef.current = 0;
-			toast.error(error.message || "批量同步失败");
-		},
-	})
-
-	const retryFailedMutation = useMutation({
-		mutationFn: (failedUsers: Array<{ lotusId: string; name: string }>) => 
-			deviceService.retryFailedUsers(failedUsers),
-		onMutate: () => {
-			setSyncProgress({ 
-				total: 0, 
-				sent: 0, 
-				confirmed: 0, 
-				failed: 0, 
-				skipped: 0, 
-				status: "syncing",
-				logs: [{
-					time: new Date().toLocaleTimeString('zh-CN'),
-					type: 'info' as const,
-					message: '正在重试失败项...'
-				}],
-				failedUsers: [],
-			})
-		},
-		onSuccess: (res: any) => {
-			toast.success(res?.message || "重试完成");
-			refetchStatus();
-		},
-		onError: (error: any) => {
-			toast.error(error.message || "重试失败");
-		},
-	})
-
-	const retryFailedWithBase64Mutation = useMutation({
-		mutationFn: (failedUsers: Array<{ lotusId: string; name: string }>) => 
-			deviceService.retryFailedUsersWithBase64(failedUsers),
-		onMutate: () => {
-			setSyncProgress({ 
-				total: 0, 
-				sent: 0, 
-				confirmed: 0, 
-				failed: 0, 
-				skipped: 0, 
-				status: "syncing",
-				logs: [{
-					time: new Date().toLocaleTimeString('zh-CN'),
-					type: 'info' as const,
-					message: '正在使用Base64格式重试...'
-				}],
-				failedUsers: [],
-			})
-		},
-		onSuccess: (res: any) => {
-			toast.success(res?.message || "Base64重试完成");
-			refetchStatus();
-		},
-		onError: (error: any) => {
-			toast.error(error.message || "Base64重试失败");
+			toast.error(error.message || "同步失败");
 		},
 	})
 
 	const syncOneMutation = useMutation({
 		mutationFn: (id: string) => deviceService.syncUser(id),
-		onSuccess: (res: any) => {
-			// 刷新义工列表
+		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
-			toast.success(res?.message || "已发送同步命令，等待考勤机确认");
+			toast.info("命令已发送，等待考勤机确认...");
+			setQuickSyncId("");
 		},
-		onError: (error: any) => {
-			toast.error(error.message || "单个同步失败");
-		},
+		onError: (error: any) => toast.error(error.message || "发送失败"),
 	})
 
-	const [showClearDialog, setShowClearDialog] = useState(false);
-	const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-	const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-
-	// 获取同步历史
-	const { data: syncHistoryData, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
-		queryKey: ["sync", "batches"],
-		queryFn: () => deviceService.getSyncBatches({ page: 1, pageSize: 10 }),
-		enabled: showHistoryDialog,
+	const retryFailedMutation = useMutation({
+		mutationFn: (failedUsers: Array<{ lotusId: string; name: string }>) =>
+			deviceService.retryFailedUsersWithBase64(failedUsers),
+		onSuccess: () => {
+			toast.info("重试命令已发送，等待考勤机确认...");
+			// 重新开始轮询进度
+			setSyncProgress({
+				total: 0,
+				sent: 0,
+				confirmed: 0,
+				failed: 0,
+				skipped: 0,
+				status: "syncing",
+				logs: [
+					{
+						time: new Date().toLocaleTimeString("zh-CN"),
+						type: "info",
+						message: "正在重试失败项...",
+					},
+				],
+				failedUsers: [],
+			})
+		},
+		onError: (error: any) => toast.error(error.message || "重试失败"),
 	})
 
-	// 获取批次详情
-	const { data: batchDetailData, isLoading: detailLoading } = useQuery({
+	const clearMutation = useMutation({
+		mutationFn: () => deviceService.clearAllUsers(),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
+			toast.success("设备用户已清空，数据库同步标记已重置");
+			setShowClearDialog(false);
+			refetchStatus();
+			// 添加到通知中心
+			addNotification({
+				type: "warning",
+				priority: "high",
+				title: "设备已清空",
+				message: "考勤机用户数据已清空，数据库同步标记已重置，需要重新同步",
+				actionUrl: "/devices",
+				actionLabel: "去同步",
+			})
+		},
+		onError: (error: any) => toast.error(error.message || "发送失败"),
+	})
+
+	// 查询设备人脸总数
+	const faceCountMutation = useMutation({
+		mutationFn: () => deviceService.getDeviceFaceCount(),
+		onError: (error: any) => toast.error(error.message || "查询失败"),
+	})
+
+	// 查询设备所有人员ID
+	const userIdsMutation = useMutation({
+		mutationFn: () => deviceService.getDeviceUserIds(),
+		onSuccess: (data: any) => {
+			if (data.success && data.data?.userIds) {
+				setDeviceUserIds(data.data.userIds);
+				setShowDeviceUsers(true);
+			}
+		},
+		onError: (error: any) => toast.error(error.message || "查询失败"),
+	})
+
+	// 查询批次详情
+	const { data: batchDetailData, isLoading: batchDetailLoading } = useQuery({
 		queryKey: ["sync", "batch", selectedBatchId],
 		queryFn: () => deviceService.getSyncBatchDetail(selectedBatchId!),
 		enabled: !!selectedBatchId,
 	})
 
-	const clearMutation = useMutation({
-		mutationFn: () => deviceService.clearAllUsers(),
-		onSuccess: (res: any) => {
-			// 刷新义工列表，清除同步标志
-			queryClient.invalidateQueries({ queryKey: ["volunteers"] });
-			toast.success(res?.message || "清空设备用户成功，已清除所有同步标志");
-			setShowClearDialog(false);
-			refetchStatus();
-		},
-		onError: (error: any) => {
-			toast.error(error.message || "清空设备用户失败");
-		},
-	})
+	// 格式化时间
+	const formatTime = (seconds: number): string => {
+		if (!seconds || seconds <= 0) return "--";
+		if (seconds < 60) return `${Math.round(seconds)}秒`;
+		const minutes = Math.floor(seconds / 60);
+		const secs = Math.round(seconds % 60);
+		return `${minutes}分${secs}秒`;
+	}
 
 	if (authLoading) {
 		return (
-			 
-				<div className="space-y-6">
-					<div className="flex justify-between items-center">
-						<div className="h-10 bg-muted rounded-md w-1/3 animate-pulse" />
-						<div className="h-10 bg-muted rounded-md w-24 animate-pulse" />
-					</div>
-					<div className="h-96 bg-muted rounded-lg animate-pulse" />
-				</div>
-			
+			<div className="space-y-6 animate-pulse">
+				<div className="h-10 bg-muted rounded-md w-1/3" />
+				<div className="h-64 bg-muted rounded-lg" />
+			</div>
 		)
 	}
 
@@ -368,581 +317,692 @@ function DevicesPage() {
 
 	const devices = (statusData as any)?.data?.devices || [];
 	const onlineDevices = devices.filter((d: any) => d.online);
+	const isDeviceOnline = onlineDevices.length > 0;
+	const recentBatches = (batchesData as any)?.data?.records || [];
+	const isSyncing = syncProgress?.status === "syncing";
 
-	const lastSyncResult = (syncAllMutation.data as any)?.data || null;
+	// 计算进度百分比
+	const getProgressPercent = () => {
+		if (!syncProgress || syncProgress.sent === 0) return 0;
+		const processed = syncProgress.confirmed + syncProgress.failed;
+		return Math.round((processed / syncProgress.sent) * 100);
+	}
 
 	return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold">设备与同步</h1>
-                    <p className="text-muted-foreground mt-1">管理考勤设备状态与义工同步</p>
-                </div>
-                <Button
-                    variant="outline"
-                    onClick={() => refetchStatus()}
-                    disabled={statusLoading}
-                >
-                    {statusLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    刷新状态
-                </Button>
-            </div>
-            {/* 设备状态 */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card className="p-4 flex items-center justify-between">
-                    <div>
-                        <div className="text-sm text-muted-foreground">在线设备数</div>
-                        <div className="text-2xl font-bold mt-1">{onlineDevices.length}</div>
-                    </div>
-                    <CheckCircle2 className="h-8 w-8 text-green-500" />
-                </Card>
-                <Card className="p-4 flex flex-col justify-between">
-                    <div>
-                        <div className="text-sm text-muted-foreground">考勤设备状态</div>
-                        <div className="mt-2 text-sm">
-                            {devices.length === 0 ? (
-                                <span className="flex items-center gap-2 text-muted-foreground">
-                                    <ServerCrash className="h-4 w-4" />
-                                    <span>暂无设备连接</span>
-                                </span>
-                            ) : (
-                                <div className="space-y-1">
-                                    {devices.map((d: any) => (
-                                        <div key={d.deviceSn} className="flex items-center justify-between">
-                                            <span className="font-mono text-xs">{d.deviceSn}</span>
-                                            <Badge variant={d.online ? "default" : "outline"}>
-                                                {d.online ? "在线" : "离线"}
-                                            </Badge>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </Card>
-                <Card className="p-4 flex flex-col justify-between">
-                    <div className="space-y-3">
-                        <p className="text-sm font-medium">批量同步义工</p>
-                        
-                        {/* 同步策略选择 */}
-                        <div className="space-y-2">
-                            <label className="text-xs text-muted-foreground">同步策略</label>
-                            <Select value={syncStrategy} onValueChange={(v: any) => setSyncStrategy(v)}>
-                                <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">全量同步（所有激活义工）</SelectItem>
-                                    <SelectItem value="unsynced">增量同步（仅未同步的）</SelectItem>
-                                    <SelectItem value="changed">更新同步（最近修改的）</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            {/* 页面标题 */}
+            <div className="flex items-center justify-between">
+				<div>
+					<h1 className="text-3xl font-bold tracking-tight">设备同步</h1>
+					<p className="text-muted-foreground mt-1">将义工数据同步到考勤设备</p>
+				</div>
+				<Button
+					variant="outline"
+					onClick={() => setShowHistorySheet(true)}
+				>
+					<History className="h-4 w-4 mr-2" />
+					同步历史
+				</Button>
+			</div>
+            {/* 设备状态 + 快速操作 */}
+            <div className="grid gap-4 md:grid-cols-2">
+				{/* 设备状态卡片 */}
+				<Card>
+					<CardContent className="p-6">
+						<div className="flex items-center gap-4">
+							<div
+								className={cn(
+									"h-12 w-12 rounded-xl flex items-center justify-center",
+									isDeviceOnline ? "bg-green-100" : "bg-muted"
+								)}
+							>
+								{isDeviceOnline ? (
+									<CheckCircle2 className="h-6 w-6 text-green-600" />
+								) : (
+									<ServerCrash className="h-6 w-6 text-muted-foreground" />
+								)}
+							</div>
+							<div className="flex-1">
+								<div className="flex items-center gap-2">
+									<span className="font-semibold">
+										{isDeviceOnline ? "设备在线" : "设备离线"}
+									</span>
+									{isDeviceOnline && (
+										<span className="relative flex h-2 w-2">
+											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+											<span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+										</span>
+									)}
+								</div>
+								<div className="text-sm text-muted-foreground">
+									{devices.length > 0
+										? devices.map((d: any) => d.deviceSn).join(", ")
+										: "未检测到设备"}
+								</div>
+							</div>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => refetchStatus()}
+								disabled={statusLoading}
+							>
+								{statusLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+								<RefreshCw className="h-4 w-4" />
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
 
-                        {/* 照片格式选择 */}
-                        <div className="space-y-2">
-                            <label className="text-xs text-muted-foreground">照片格式</label>
-                            <Select value={photoFormat} onValueChange={(v: any) => setPhotoFormat(v)}>
-                                <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="url">HTTP图片地址（推荐）</SelectItem>
-                                    <SelectItem value="base64">Base64编码（兼容模式）</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <p className="text-[10px] text-muted-foreground">
-                                {photoFormat === 'url' 
-                                    ? '💡 使用HTTP地址，速度快但需要设备能访问服务器' 
-                                    : '💡 使用Base64编码，兼容性好但传输较慢'}
-                            </p>
-                        </div>
+				{/* 快速操作卡片 */}
+				<Card>
+					<CardContent className="p-6">
+						<div className="flex items-center gap-2 mb-3">
+							<Send className="h-4 w-4 text-muted-foreground" />
+							<span className="text-sm font-medium">单个同步</span>
+						</div>
+						<div className="flex gap-2">
+							<Input
+								placeholder="输入莲花斋ID，如 LHZ0001"
+								value={quickSyncId}
+								onChange={(e) => setQuickSyncId(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" && quickSyncId) {
+										syncOneMutation.mutate(quickSyncId);
+									}
+								}}
+								className="h-9"
+							/>
+							<Button
+								size="sm"
+								onClick={() => quickSyncId && syncOneMutation.mutate(quickSyncId)}
+								disabled={!quickSyncId || syncOneMutation.isPending || !isDeviceOnline}
+							>
+								{syncOneMutation.isPending && (
+									<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+								)}
+								同步
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+            {/* 批量同步区域 */}
+            <Card>
+				<CardHeader className="pb-4">
+					<CardTitle className="flex items-center gap-2 text-lg">
+						<UploadCloud className="h-5 w-5" />
+						批量同步
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					{/* 同步配置 */}
+					{!isSyncing && syncProgress?.status !== "completed" && (
+						<div className="space-y-4">
+							<div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+								{/* 同步策略 */}
+								<div className="flex-1 space-y-2">
+									<Label className="text-sm font-medium">同步策略</Label>
+									<ToggleGroup
+										type="single"
+										value={syncStrategy}
+										onValueChange={(v) => v && setSyncStrategy(v as any)}
+										className="justify-start"
+									>
+										<ToggleGroupItem
+											value="all"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+										>
+											<Database
+												className={cn(
+													"h-4 w-4 mr-2",
+													syncStrategy === "all" && "animate-pulse"
+												)}
+											/>
+											全量同步
+										</ToggleGroupItem>
+										<ToggleGroupItem
+											value="unsynced"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+										>
+											<Zap
+												className={cn(
+													"h-4 w-4 mr-2",
+													syncStrategy === "unsynced" && "animate-pulse"
+												)}
+											/>
+											增量同步
+										</ToggleGroupItem>
+										<ToggleGroupItem
+											value="changed"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+										>
+											<FileEdit
+												className={cn(
+													"h-4 w-4 mr-2",
+													syncStrategy === "changed" && "animate-pulse"
+												)}
+											/>
+											更新同步
+										</ToggleGroupItem>
+									</ToggleGroup>
+								</div>
 
-                        {/* 照片预检查 */}
-                        <div className="flex items-center space-x-2">
-                            <Checkbox 
-                                id="validate-photos" 
-                                checked={validatePhotos}
-                                onCheckedChange={(checked) => setValidatePhotos(checked as boolean)}
-                            />
-                            <label
-                                htmlFor="validate-photos"
-                                className="text-xs text-muted-foreground cursor-pointer"
-                            >
-                                同步前检查照片（会显著变慢，不推荐）
-                            </label>
-                        </div>
+								{/* 照片格式 */}
+								<div className="flex-1 space-y-2">
+									<Label className="text-sm font-medium">照片格式</Label>
+									<ToggleGroup
+										type="single"
+										value={photoFormat}
+										onValueChange={(v) => v && setPhotoFormat(v as any)}
+										className="justify-start"
+									>
+										<ToggleGroupItem
+											value="url"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+										>
+											<Link2
+												className={cn(
+													"h-4 w-4 mr-2",
+													photoFormat === "url" && "animate-pulse"
+												)}
+											/>
+											HTTP 地址
+										</ToggleGroupItem>
+										<ToggleGroupItem
+											value="base64"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+										>
+											<Binary
+												className={cn(
+													"h-4 w-4 mr-2",
+													photoFormat === "base64" && "animate-pulse"
+												)}
+											/>
+											Base64 编码
+										</ToggleGroupItem>
+									</ToggleGroup>
+								</div>
 
-                        {syncProgress && syncProgress.status !== 'idle' && (
-                            <div className="space-y-2 pt-2">
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">
-                                        {syncProgress.status === "syncing" ? "等待考勤机反馈..." : "同步完成"}
-                                    </span>
-                                    <span className="font-medium">
-                                        {syncProgress.confirmed + syncProgress.failed} / {syncProgress.sent}
-                                    </span>
-                                </div>
-                                <Progress 
-                                    value={syncProgress.sent > 0 ? ((syncProgress.confirmed + syncProgress.failed) / syncProgress.sent) * 100 : 0} 
-                                    className="h-2"
-                                />
-                                <div className="flex gap-3 text-[10px] text-muted-foreground">
-                                    <span>已发送: {syncProgress.sent}</span>
-                                    <span className="text-green-600">已确认: {syncProgress.confirmed}</span>
-                                    <span className="text-red-600">已失败: {syncProgress.failed}</span>
-                                    <span className="text-amber-600">已跳过: {syncProgress.skipped}</span>
-                                </div>
-                                {/* 预估完成时间 */}
-                                {syncProgress.status === "syncing" && syncProgress.estimatedTimeRemaining != null && syncProgress.estimatedTimeRemaining > 0 && (
-                                    <div className="text-[10px] text-blue-600 bg-blue-50 rounded px-2 py-1">
-                                        ⏱️ 预估剩余时间: {formatTime(syncProgress.estimatedTimeRemaining)}
-                                        {syncProgress.averageTimePerUser && (
-                                            <span className="ml-2 text-muted-foreground">
-                                                (平均 {syncProgress.averageTimePerUser.toFixed(1)}秒/人)
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        {syncProgress?.status === 'syncing' ? (
-                            <>
+								{/* 开始同步按钮 */}
+								<Button
+									onClick={() => syncAllMutation.mutate()}
+									disabled={!isDeviceOnline || syncAllMutation.isPending}
+									className="w-full sm:w-auto"
+								>
+									{syncAllMutation.isPending && (
+										<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									)}
+									<UploadCloud className="h-4 w-4 mr-2" />
+									开始同步
+								</Button>
+							</div>
+						</div>
+					)}
+
+					{/* 同步进度面板 */}
+					{syncProgress && syncProgress.status !== "idle" && (
+						<div className="space-y-4 pt-4 border-t">
+							{/* 状态标题 */}
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									{isSyncing ? (
+										<Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+									) : syncProgress.status === "completed" ? (
+										<CheckCircle2 className="h-5 w-5 text-green-500" />
+									) : (
+										<XCircle className="h-5 w-5 text-red-500" />
+									)}
+									<span className="font-medium">
+										{isSyncing
+											? "正在同步..."
+											: syncProgress.status === "completed"
+												? "同步完成"
+												: "同步中断"}
+									</span>
+									{syncProgress.batchId && (
+										<Badge variant="outline" className="text-xs font-mono">
+											{syncProgress.batchId}
+										</Badge>
+									)}
+								</div>
+								{!isSyncing && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => setSyncProgress(null)}
+									>
+										关闭
+									</Button>
+								)}
+							</div>
+
+							{/* 进度条 */}
+							<div className="space-y-2">
+								<div className="flex justify-between text-sm">
+									<span className="text-muted-foreground">
+										已确认 {syncProgress.confirmed + syncProgress.failed} /{" "}
+										{syncProgress.sent} 已发送
+									</span>
+									<span className="font-medium">{getProgressPercent()}%</span>
+								</div>
+								<Progress value={getProgressPercent()} className="h-2" />
+								{isSyncing && syncProgress.estimatedTimeRemaining > 0 && (
+									<div className="flex items-center gap-1 text-sm text-muted-foreground">
+										<Clock className="h-3 w-3" />
+										预计剩余 {formatTime(syncProgress.estimatedTimeRemaining)}
+									</div>
+								)}
+							</div>
+
+							{/* 统计数据 */}
+							<div className="grid grid-cols-4 gap-3">
+								<div className="text-center p-3 bg-muted/50 rounded-lg">
+									<div className="text-xl font-bold">{syncProgress.sent}</div>
+									<div className="text-xs text-muted-foreground">已发送</div>
+								</div>
+								<div className="text-center p-3 bg-green-50 rounded-lg">
+									<div className="text-xl font-bold text-green-600">
+										{syncProgress.confirmed}
+									</div>
+									<div className="text-xs text-green-600">成功</div>
+								</div>
+								<div className="text-center p-3 bg-red-50 rounded-lg">
+									<div className="text-xl font-bold text-red-600">
+										{syncProgress.failed}
+									</div>
+									<div className="text-xs text-red-600">失败</div>
+								</div>
+								<div className="text-center p-3 bg-amber-50 rounded-lg">
+									<div className="text-xl font-bold text-amber-600">
+										{syncProgress.skipped}
+									</div>
+									<div className="text-xs text-amber-600">跳过</div>
+								</div>
+							</div>
+
+							{/* 实时日志 */}
+							{syncProgress.logs && syncProgress.logs.length > 0 && (
+								<div>
+									<div className="text-sm font-medium mb-2">同步日志</div>
+									<ScrollArea className="h-40 rounded-md border bg-muted/30 p-3">
+										<div className="space-y-1 font-mono text-xs">
+											{syncProgress.logs.map((log: any, i: number) => (
+												<div
+													key={i}
+													className={cn(
+														log.type === "success" && "text-green-600",
+														log.type === "error" && "text-red-600",
+														log.type === "warning" && "text-amber-600",
+														log.type === "info" && "text-muted-foreground"
+													)}
+												>
+													<span className="opacity-60">[{log.time}]</span>{" "}
+													{log.message}
+												</div>
+											))}
+											<div ref={logsEndRef} />
+										</div>
+									</ScrollArea>
+								</div>
+							)}
+
+							{/* 失败重试 */}
+							{syncProgress.failedUsers?.length > 0 && !isSyncing && (
+								<div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+									<div className="flex items-center gap-2">
+										<AlertCircle className="h-4 w-4 text-red-500" />
+										<span className="text-sm">
+											<span className="font-medium text-red-600">
+												{syncProgress.failedUsers.length} 个义工同步失败
+											</span>
+											<span className="text-muted-foreground ml-2">
+												建议使用 Base64 格式重试
+											</span>
+										</span>
+									</div>
+									<Button
+										size="sm"
+										variant="outline"
+										className="border-red-200 text-red-600 hover:bg-red-50"
+										onClick={() =>
+											retryFailedMutation.mutate(syncProgress.failedUsers)
+										}
+										disabled={retryFailedMutation.isPending}
+									>
+										{retryFailedMutation.isPending && (
+											<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+										)}
+										<RotateCcw className="h-4 w-4 mr-1" />
+										重试
+									</Button>
+								</div>
+							)}
+
+							{/* 取消按钮 */}
+							{isSyncing && (
+								<Button
+									variant="outline"
+									className="w-full"
+									onClick={() => {
+										setSyncProgress(null)
+										toast.info("已取消同步")
+									}}
+								>
+									取消同步
+								</Button>
+							)}
+						</div>
+					)}
+				</CardContent>
+			</Card>
+            {/* 设备人员查询 */}
+            <Card>
+				<CardHeader className="pb-3">
+					<CardTitle className="flex items-center gap-2 text-lg">
+						<Search className="h-5 w-5" />
+						设备人员查询
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-col sm:flex-row gap-4">
+						{/* 查询人脸总数 */}
+						<div className="flex-1 p-4 rounded-lg border bg-muted/30">
+							<div className="flex items-center justify-between">
+								<div>
+									<div className="text-sm text-muted-foreground">设备人脸总数</div>
+									<div className="text-2xl font-bold mt-1">
+										{faceCountMutation.data?.data?.total ?? "--"}
+									</div>
+								</div>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => faceCountMutation.mutate()}
+									disabled={faceCountMutation.isPending || !isDeviceOnline}
+								>
+									{faceCountMutation.isPending ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<RefreshCw className="h-4 w-4" />
+									)}
+								</Button>
+							</div>
+						</div>
+
+						{/* 查询人员ID列表 */}
+						<div className="flex-1 p-4 rounded-lg border bg-muted/30">
+							<div className="flex items-center justify-between">
+								<div>
+									<div className="text-sm text-muted-foreground">人员ID列表</div>
+									<div className="text-sm mt-1">
+										{deviceUserIds.length > 0
+											? "已加载 ${deviceUserIds.length} 个"
+											: "点击查询"}
+									</div>
+								</div>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => userIdsMutation.mutate()}
+									disabled={userIdsMutation.isPending || !isDeviceOnline}
+								>
+									{userIdsMutation.isPending ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<Users className="h-4 w-4" />
+									)}
+								</Button>
+							</div>
+						</div>
+					</div>
+
+					{/* 人员ID列表展示 */}
+					{showDeviceUsers && deviceUserIds.length > 0 && (
+						<div className="mt-4 pt-4 border-t">
+							<div className="flex items-center justify-between mb-2">
+								<span className="text-sm font-medium">
+									设备上的人员ID ({deviceUserIds.length}个)
+								</span>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setShowDeviceUsers(false)}
+								>
+									收起
+								</Button>
+							</div>
+							<ScrollArea className="h-40 rounded-md border bg-muted/30 p-3">
+								<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+									{deviceUserIds.map((id) => (
+										<Badge
+											key={id}
+											variant="outline"
+											className="justify-center font-mono text-xs"
+										>
+											{id}
+										</Badge>
+									))}
+								</div>
+							</ScrollArea>
+						</div>
+					)}
+				</CardContent>
+			</Card>
+            {/* 危险操作 */}
+            <Card>
+					<CardHeader className="pb-3">
+						<CardTitle className="flex items-center gap-2 text-base">
+							<AlertTriangle className="h-4 w-4 text-destructive" />
+							危险操作
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="pt-0">
+						<div className="p-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5">
+							<div className="flex items-start gap-3">
+								<Trash2 className="h-5 w-5 text-destructive mt-0.5" />
+								<div className="flex-1">
+									<div className="font-medium text-destructive">清空设备用户</div>
+									<p className="text-sm text-muted-foreground mt-1">
+										清空考勤机上的所有用户数据，需要重新同步才能恢复考勤功能
+									</p>
+									<Button
+										variant="outline"
+										size="sm"
+										className="mt-3 text-destructive border-destructive/30 hover:bg-destructive/10"
+										onClick={() => setShowClearDialog(true)}
+									>
+										清空设备
+									</Button>
+								</div>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+            {/* 同步历史侧边栏 */}
+            <Sheet open={showHistorySheet} onOpenChange={setShowHistorySheet}>
+				<SheetContent className="w-full sm:max-w-xl">
+					<SheetHeader>
+						<SheetTitle className="flex items-center gap-2">
+							<History className="h-5 w-5" />
+							同步历史
+						</SheetTitle>
+						<SheetDescription>查看所有同步记录和详细信息</SheetDescription>
+					</SheetHeader>
+					<div className="mt-6">
+						{selectedBatchId && batchDetailData ? (
+							// 详情视图
+							(<div>
                                 <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={() => {
-                                        // 取消同步
-                                        setSyncProgress(prev => prev ? {
-                                            ...prev,
-                                            status: 'idle',
-                                            logs: [...(prev.logs || []), {
-                                                time: new Date().toLocaleTimeString('zh-CN'),
-                                                type: 'warning' as const,
-                                                message: '⚠️ 用户手动取消同步'
-                                            }]
-                                        } : null);
-                                        sessionStorage.removeItem('syncProgress');
-                                        pollFailCountRef.current = 0;
-                                        toast.info('已取消同步');
-                                    }}
-                                >
-                                    <RefreshCw className="h-4 w-4 mr-2" />
-                                    取消同步
-                                </Button>
-                                <p className="text-xs text-muted-foreground text-center">
-                                    💡 同步在后台进行，可以切换到其他页面
-                                </p>
-                            </>
-                        ) : (
-                            <Button
-                                className="w-full"
-                                onClick={() => syncAllMutation.mutate()}
-                                disabled={
-                                    syncAllMutation.isPending || 
-                                    retryFailedMutation.isPending
-                                }
-                            >
-                                {syncAllMutation.isPending && (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                )}
-                                <UploadCloud className="h-4 w-4 mr-2" />
-                                开始同步
-                            </Button>
-                        )}
-                    </div>
-                </Card>
-            </div>
-            {/* 实时同步日志 */}
-            {syncProgress && syncProgress.logs && syncProgress.logs.length > 0 && (
-                <Card className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">
-                            同步日志
-                            {syncProgress.status === 'syncing' && (
-                                <Badge variant="outline" className="ml-2 text-xs">
-                                    进行中
-                                </Badge>
-                            )}
-                            {syncProgress.status === 'completed' && (
-                                <Badge variant="outline" className="ml-2 text-xs text-green-600">
-                                    已完成
-                                </Badge>
-                            )}
-                        </p>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                                setSyncProgress(null);
-                                sessionStorage.removeItem('syncProgress');
-                            }}
-                        >
-                            清空
-                        </Button>
-                    </div>
-                    <div className="max-h-60 overflow-y-auto bg-muted/30 rounded-md p-3 space-y-1 font-mono text-xs">
-                        {syncProgress.logs.map((log, i) => (
-                            <div 
-                                key={i} 
-                                className={
-                                    log.type === 'success' ? 'text-green-600' : 
-                                    log.type === 'error' ? 'text-red-600' : 
-                                    log.type === 'warning' ? 'text-amber-600' : 
-                                    'text-muted-foreground'
-                                }
-                            >
-                                [{log.time}] {log.message}
-                            </div>
-                        ))}
-                        <div ref={logsEndRef} />
-                    </div>
-                    
-                    {/* 重试失败项按钮 */}
-                    {syncProgress.failedUsers && syncProgress.failedUsers.length > 0 && (
-                        <div className="space-y-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => retryFailedMutation.mutate(syncProgress.failedUsers)}
-                                disabled={retryFailedMutation.isPending || retryFailedWithBase64Mutation.isPending}
-                                className="w-full"
-                            >
-                                {retryFailedMutation.isPending && (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                )}
-                                <RotateCcw className="h-4 w-4 mr-2" />
-                                重试 {syncProgress.failedUsers.length} 个失败项
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => retryFailedWithBase64Mutation.mutate(syncProgress.failedUsers)}
-                                disabled={retryFailedMutation.isPending || retryFailedWithBase64Mutation.isPending}
-                                className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
-                            >
-                                {retryFailedWithBase64Mutation.isPending && (
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                )}
-                                <UploadCloud className="h-4 w-4 mr-2" />
-                                转Base64重试 {syncProgress.failedUsers.length} 个失败项
-                            </Button>
-                            <p className="text-xs text-muted-foreground">
-                                💡 Base64模式会将图片压缩并转换为Base64格式后重新下发，适合照片格式问题导致的失败
-                            </p>
-                        </div>
-                    )}
-                </Card>
-            )}
-            {/* 单个下发 */}
-            <Card className="p-4 space-y-3">
-                <p className="text-sm font-medium">下发单个义工</p>
-                <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
-                    <Input
-                        placeholder="输入莲花斋ID，例如 LHZ0001"
-                        value={lotusId}
-                        onChange={(e) => setLotusId(e.target.value)}
-                        className="md:max-w-xs"
-                    />
-                    <Button
-                        variant="outline"
-                        onClick={() => lotusId && syncOneMutation.mutate(lotusId)}
-                        disabled={!lotusId || syncOneMutation.isPending}
-                    >
-                        {syncOneMutation.isPending && (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        )}
-                        同步该义工
-                    </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    适合小范围修正，例如刚新增或修改了某个义工的信息。
-                </p>
-            </Card>
-            {/* 最近一次批量同步结果 */}
-            {lastSyncResult && (
-                <Card className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">最近一次批量同步结果</p>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => syncAllMutation.reset()}
-                        >
-                            <RefreshCw className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-4 text-sm">
-                        <div>
-                            <p className="text-xs text-muted-foreground">参与同步</p>
-                            <p className="text-lg font-semibold">{lastSyncResult.total}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">成功</p>
-                            <p className="text-lg font-semibold text-green-600">
-                                {lastSyncResult.successCount}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">失败</p>
-                            <p className="text-lg font-semibold text-red-500">
-                                {lastSyncResult.failCount}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">跳过</p>
-                            <p className="text-lg font-semibold text-muted-foreground">
-                                {lastSyncResult.skippedCount}
-                            </p>
-                        </div>
-                    </div>
+									variant="ghost"
+									size="sm"
+									onClick={() => setSelectedBatchId(null)}
+									className="mb-4"
+								>
+									← 返回
+								</Button>
+                                {batchDetailLoading ? (
+									<div className="flex items-center justify-center py-12">
+										<Loader2 className="h-8 w-8 animate-spin" />
+									</div>
+								) : (
+									<div className="space-y-3">
+										{/* 统计 - 单行显示 */}
+										<div className="flex items-center gap-4 text-sm">
+											<span className="text-muted-foreground">
+												总数 <span className="font-semibold text-foreground">{batchDetailData.data?.summary?.total || 0}</span>
+											</span>
+											<span className="text-green-600">
+												成功 <span className="font-semibold">{batchDetailData.data?.summary?.success || 0}</span>
+											</span>
+											{(batchDetailData.data?.summary?.failed || 0) > 0 && (
+												<span className="text-red-600">
+													失败 <span className="font-semibold">{batchDetailData.data?.summary?.failed}</span>
+												</span>
+											)}
+											{(batchDetailData.data?.summary?.skipped || 0) > 0 && (
+												<span className="text-amber-600">
+													跳过 <span className="font-semibold">{batchDetailData.data?.summary?.skipped}</span>
+												</span>
+											)}
+										</div>
 
-                    {Array.isArray(lastSyncResult.failedUsers) &&
-                        lastSyncResult.failedUsers.length > 0 && (
-                            <div className="space-y-1 text-xs">
-                                <p className="font-medium text-red-500">下发失败的义工：</p>
-                                <ul className="list-disc list-inside text-muted-foreground">
-                                    {lastSyncResult.failedUsers.map((u: any, idx: number) => (
-                                        <li key={`${u.lotusId}-${idx}`}>
-                                            {u.name}（{u.lotusId || "无ID"}）
-                                        </li>
-                                    ))}
-                                </ul>
-                                <p className="mt-1">
-                                    可以使用上方“下发单个义工”功能逐个重试。
-                                </p>
-                            </div>
-                    )}
-
-                    {Array.isArray(lastSyncResult.skippedUsers) &&
-                        lastSyncResult.skippedUsers.length > 0 && (
-                            <div className="space-y-1 text-xs">
-                                <p className="font-medium text-muted-foreground">被跳过的义工：</p>
-                                <ul className="list-disc list-inside text-muted-foreground">
-                                    {lastSyncResult.skippedUsers.map((u: any, idx: number) => (
-                                        <li key={`${u.lotusId}-${idx}`}>
-                                            {u.name}（{u.lotusId || "无ID"}） - 原因：
-                                            {u.reason === "no_avatar" ? "无头像" : u.reason}
-                                        </li>
-                                    ))}
-                                </ul>
-                                <p className="mt-1">
-                                    补全头像后可再次执行“同步所有义工”。
-                                </p>
-                            </div>
-                    )}
-                </Card>
-            )}
-            {/* 同步历史 */}
-            <Card className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium">同步历史</p>
-                        <p className="text-xs text-muted-foreground">查看历史同步记录和失败详情</p>
-                    </div>
-                    <Button
-                        variant="outline"
-                        onClick={() => {
-                            setShowHistoryDialog(true);
-                            refetchHistory();
-                        }}
-                    >
-                        <History className="h-4 w-4 mr-2" />
-                        查看历史
-                    </Button>
-                </div>
-            </Card>
-            {/* 危险操作：清空设备 */}
-            <Card className="p-4 space-y-3 border-destructive/30">
-                <p className="text-sm font-medium text-destructive">危险操作</p>
-                <p className="text-xs text-muted-foreground">
-                    清空设备上的所有用户数据，请谨慎使用。一般只在设备更换或严重数据不一致时使用。
-                </p>
-                <Button
-                    variant="outline"
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() => setShowClearDialog(true)}
-                    disabled={clearMutation.isPending}
-                >
-                    {clearMutation.isPending && (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    )}
-                    清空设备用户
-                </Button>
-            </Card>
-            {/* 清空设备确认对话框 */}
+										{/* 失败记录 */}
+										{batchDetailData.data?.logs?.filter((l: any) => l.status === "failed")
+											.length > 0 ? (
+											<ScrollArea className="h-[calc(100vh-280px)]">
+												<div className="space-y-1.5 pr-4">
+													{batchDetailData.data.logs
+														.filter((l: any) => l.status === "failed")
+														.map((log: any) => (
+															<div
+																key={log.id}
+																className="p-2.5 rounded border-l-2 border-red-500 bg-red-50/50 hover:bg-red-50 transition-colors"
+															>
+																<div className="flex items-start justify-between gap-2">
+																	<div className="flex-1 min-w-0">
+																		<div className="text-sm font-medium">
+																			{log.name} <span className="text-xs text-muted-foreground font-mono">({log.lotusId})</span>
+																		</div>
+																		<div className="text-xs text-red-600 mt-0.5">
+																			{log.errorMessage || "未知错误"}
+																		</div>
+																	</div>
+																</div>
+															</div>
+														))}
+												</div>
+											</ScrollArea>
+										) : (
+											<div className="text-center py-12 text-muted-foreground">
+												<CheckCircle2 className="h-10 w-10 mx-auto mb-2 opacity-30 text-green-500" />
+												<p className="text-sm">全部成功</p>
+											</div>
+										)}
+									</div>
+								)}
+                            </div>)
+						) : recentBatches.length > 0 ? (
+							// 列表视图
+							(<ScrollArea className="h-[calc(100vh-200px)]">
+                                <div className="space-y-2 pr-4">
+									{recentBatches.map((batch: any) => (
+										<div
+											key={batch.id}
+											onClick={() => setSelectedBatchId(batch.id)}
+											className="p-3 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
+										>
+											<div className="flex items-center justify-between mb-2">
+												<div className="flex items-center gap-2">
+													<Badge
+														variant={
+															batch.status === "completed" ? "default" : "outline"
+														}
+														className="text-xs"
+													>
+														{batch.status === "completed" ? "完成" : "进行中"}
+													</Badge>
+													<span className="text-xs text-muted-foreground">
+														{new Date(batch.startedAt).toLocaleString("zh-CN", {
+															month: "numeric",
+															day: "numeric",
+															hour: "2-digit",
+															minute: "2-digit",
+														})}
+													</span>
+													{batch.duration && (
+														<span className="text-xs text-muted-foreground">
+															•{" "}
+															{batch.duration < 60
+																? "${Math.round(batch.duration)}秒"
+																: "${Math.floor(batch.duration / 60)}分"}
+														</span>
+													)}
+												</div>
+												<ChevronRight className="h-4 w-4 text-muted-foreground" />
+											</div>
+											<div className="flex items-center gap-4 text-sm">
+												<span className="text-green-600">
+													✓ {batch.successCount}
+												</span>
+												{batch.failedCount > 0 && (
+													<span className="text-red-600">
+														✗ {batch.failedCount}
+													</span>
+												)}
+												{batch.skippedCount > 0 && (
+													<span className="text-amber-600">
+														⊘ {batch.skippedCount}
+													</span>
+												)}
+											</div>
+										</div>
+									))}
+								</div>
+                            </ScrollArea>)
+						) : (
+							// 空状态
+							(<div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+                                <History className="h-16 w-16 mb-4 opacity-20" />
+                                <p className="text-lg font-medium">暂无同步记录</p>
+                                <p className="text-sm mt-1">完成首次同步后，历史记录将显示在这里</p>
+                            </div>)
+						)}
+					</div>
+				</SheetContent>
+			</Sheet>
+            {/* 清空确认对话框 */}
             <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                            <AlertTriangle className="h-5 w-5" />
-                            确认清空设备用户？
-                        </AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            <div className="text-sm text-muted-foreground space-y-2">
-                                <p>此操作将：</p>
-                                <ul className="list-disc list-inside space-y-1 text-sm">
-                                    <li>清空考勤机设备上的所有用户数据</li>
-                                    <li>清除数据库中所有义工的同步标记</li>
-                                    <li>需要重新同步才能恢复考勤功能</li>
-                                </ul>
-                                <p className="text-destructive font-medium mt-3">
-                                    此操作不可恢复，请谨慎操作！
-                                </p>
-                            </div>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-destructive hover:bg-destructive/90"
-                            onClick={() => clearMutation.mutate()}
-                        >
-                            确认清空
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            {/* 同步历史对话框 */}
-            <AlertDialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-                <AlertDialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                            <History className="h-5 w-5" />
-                            同步历史记录
-                        </AlertDialogTitle>
-                    </AlertDialogHeader>
-                    
-                    <div className="flex-1 overflow-y-auto space-y-4">
-                        {historyLoading ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-6 w-6 animate-spin" />
-                            </div>
-                        ) : selectedBatchId ? (
-                            // 批次详情视图
-                            (<div className="space-y-4">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setSelectedBatchId(null)}
-                                >
-                                    ← 返回列表
-                                </Button>
-                                {detailLoading ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="h-6 w-6 animate-spin" />
-                                    </div>
-                                ) : batchDetailData?.data ? (
-                                    <div className="space-y-4">
-                                        <div className="grid grid-cols-4 gap-4 text-sm">
-                                            <div className="bg-muted/50 rounded p-3">
-                                                <div className="text-xs text-muted-foreground">总数</div>
-                                                <div className="text-lg font-semibold">{batchDetailData.data.summary?.total || 0}</div>
-                                            </div>
-                                            <div className="bg-green-50 rounded p-3">
-                                                <div className="text-xs text-green-600">成功</div>
-                                                <div className="text-lg font-semibold text-green-600">{batchDetailData.data.summary?.success || 0}</div>
-                                            </div>
-                                            <div className="bg-red-50 rounded p-3">
-                                                <div className="text-xs text-red-600">失败</div>
-                                                <div className="text-lg font-semibold text-red-600">{batchDetailData.data.summary?.failed || 0}</div>
-                                            </div>
-                                            <div className="bg-amber-50 rounded p-3">
-                                                <div className="text-xs text-amber-600">跳过</div>
-                                                <div className="text-lg font-semibold text-amber-600">{batchDetailData.data.summary?.skipped || 0}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* 失败记录列表 */}
-                                        {batchDetailData.data.logs?.filter((l: any) => l.status === 'failed').length > 0 && (
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-medium text-red-600">失败记录</p>
-                                                <div className="max-h-60 overflow-y-auto space-y-1 bg-red-50/50 rounded p-2">
-                                                    {batchDetailData.data.logs
-                                                        .filter((l: any) => l.status === 'failed')
-                                                        .map((log: any) => (
-                                                            <div key={log.id} className="text-xs p-2 bg-white rounded border border-red-100">
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-medium">{log.name} ({log.lotusId})</span>
-                                                                    <span className="text-muted-foreground">
-                                                                        {new Date(log.syncedAt).toLocaleString('zh-CN')}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-red-600 mt-1">{log.errorMessage || "未知错误"}</p>
-                                                                {log.photoUrl && (
-                                                                    <p className="text-muted-foreground truncate mt-1">
-                                                                        照片: {log.photoUrl}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-4">无数据</p>
-                                )}
-                            </div>)
-                        ) : (
-                            // 批次列表视图
-                            (<div className="space-y-2">
-                                {(syncHistoryData as any)?.data?.records?.length > 0 ? (
-                                    (syncHistoryData as any).data.records.map((batch: any) => (
-                                        <div
-                                            key={batch.id}
-                                            className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                                            onClick={() => setSelectedBatchId(batch.id)}
-                                        >
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-xs text-muted-foreground">{batch.id}</span>
-                                                    <Badge variant={batch.status === 'completed' ? 'default' : 'outline'}>
-                                                        {batch.status === 'completed' ? '已完成' : batch.status === 'syncing' ? '进行中' : '已取消'}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex items-center gap-4 text-xs">
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="h-3 w-3" />
-                                                        {new Date(batch.startedAt).toLocaleString('zh-CN')}
-                                                    </span>
-                                                    {batch.duration && (
-                                                        <span className="text-muted-foreground">
-                                                            耗时: {formatTime(batch.duration)}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right text-xs">
-                                                    <span className="text-green-600">{batch.successCount}成功</span>
-                                                    <span className="mx-1">/</span>
-                                                    <span className="text-red-600">{batch.failedCount}失败</span>
-                                                    <span className="mx-1">/</span>
-                                                    <span className="text-amber-600">{batch.skippedCount}跳过</span>
-                                                </div>
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-8">暂无同步记录</p>
-                                )}
-                            </div>)
-                        )}
-                    </div>
-                    
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => {
-                            setSelectedBatchId(null);
-                        }}>
-                            关闭
-                        </AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle className="flex items-center gap-2 text-destructive">
+							<AlertTriangle className="h-5 w-5" />
+							确认清空设备？
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="space-y-2">
+								<p>此操作将：</p>
+								<ul className="list-disc list-inside text-sm space-y-1">
+									<li>清空考勤机设备上的所有用户数据</li>
+									<li>清除数据库中所有义工的同步标记</li>
+									<li>需要重新同步才能恢复考勤功能</li>
+								</ul>
+								<p className="text-destructive font-medium mt-3">
+									此操作不可恢复！
+								</p>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>取消</AlertDialogCancel>
+						<AlertDialogAction
+							className="bg-destructive hover:bg-destructive/90"
+							onClick={() => clearMutation.mutate()}
+						>
+							确认清空
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
         </div>
     )
 }

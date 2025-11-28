@@ -9,6 +9,8 @@ import {
   OnlineAuthorizationCommand,
   AddImageAdCommand,
   SetVisitorQRCodeCommand,
+  GetUserInfoCommand,
+  GetUserInfoResponse,
 } from './model'
 import { DeviceNotConnectedError, UserNotFoundError, FileNotFoundError } from './errors'
 import { logger } from '../../lib/logger'
@@ -202,6 +204,15 @@ export class WebSocketService {
 
     // 初始化进度管理器并获取批次ID
     const batchId = syncProgressManager.startSync(users.length)
+
+    // 🔔 广播批次开始到前端
+    const { broadcastBatchStart } = await import('./index')
+    broadcastBatchStart({
+      batchId,
+      total: users.length,
+      strategy,
+      photoFormat,
+    })
 
     // 创建同步批次记录
     await SyncLogService.createBatch({
@@ -657,6 +668,17 @@ export class WebSocketService {
             status: 'success',
           })
         }
+
+        // 🔔 广播用户反馈到前端
+        const { broadcastUserFeedback } = await import('./index')
+        broadcastUserFeedback({
+          batchId,
+          lotusId: userId,
+          name: userName,
+          status: 'success',
+          code,
+          message: '同步成功',
+        })
       } else {
         // 同步失败，记录详细错误
         syncProgressManager.incrementFailed(userId, userName, errorMessage)
@@ -672,6 +694,17 @@ export class WebSocketService {
             errorMessage,
           })
         }
+
+        // 🔔 广播用户反馈到前端
+        const { broadcastUserFeedback } = await import('./index')
+        broadcastUserFeedback({
+          batchId,
+          lotusId: userId,
+          name: userName,
+          status: 'failed',
+          code,
+          message: errorMessage,
+        })
         
         // 🔍 如果是照片相关错误，打印用户的照片URL
         if (code === 1 || errorMessage.includes('照片') || errorMessage.includes('人脸')) {
@@ -686,14 +719,28 @@ export class WebSocketService {
         }
       }
       
-      // 检查是否同步完成，如果完成则更新批次记录
+      // 检查是否同步完成，如果完成则更新批次记录并广播
       const stats = syncProgressManager.getSyncStats()
       if (stats.status === 'completed' && batchId) {
+        const startTime = syncProgressManager.getProgress().startTime
+        const duration = startTime ? Math.round((Date.now() - startTime) / 1000) : 0
+
         await SyncLogService.completeBatch({
           batchId,
           successCount: stats.confirmed,
           failedCount: stats.failed,
           skippedCount: stats.skipped,
+        })
+
+        // 🔔 广播批次完成到前端
+        const { broadcastBatchComplete } = await import('./index')
+        broadcastBatchComplete({
+          batchId,
+          total: stats.total,
+          confirmed: stats.confirmed,
+          failed: stats.failed,
+          skipped: stats.skipped,
+          duration,
         })
       }
     } catch (error) {
@@ -729,5 +776,90 @@ export class WebSocketService {
    */
   static getSyncProgress() {
     return syncProgressManager.getProgress()
+  }
+
+  // ==================== 设备人员查询 ====================
+  
+  // 存储待处理的查询请求
+  private static pendingUserInfoRequests: Map<string, {
+    resolve: (value: GetUserInfoResponse) => void
+    reject: (reason: any) => void
+    timeout: ReturnType<typeof setTimeout>
+  }> = new Map()
+
+  /**
+   * 查询设备人员信息
+   * @param value 0=人脸总数, 1=所有人员user id, 2=人证总数, 3=所有人证user id
+   */
+  static async getUserInfo(value: 0 | 1 | 2 | 3 = 0): Promise<GetUserInfoResponse> {
+    const command: GetUserInfoCommand = {
+      cmd: 'getUserInfo',
+      value,
+    }
+
+    const success = ConnectionManager.sendToAttendanceDevice(command)
+
+    if (!success) {
+      throw new DeviceNotConnectedError('YET88476')
+    }
+
+    logger.info(`📊 查询设备人员信息: value=${value}`)
+
+    // 创建一个 Promise 等待设备返回
+    return new Promise((resolve, reject) => {
+      const requestId = `getUserInfo_${value}_${Date.now()}`
+      
+      // 设置超时（10秒）
+      const timeout = setTimeout(() => {
+        this.pendingUserInfoRequests.delete(requestId)
+        reject(new Error('查询超时，设备未响应'))
+      }, 10000)
+
+      this.pendingUserInfoRequests.set(requestId, { resolve, reject, timeout })
+      
+      // 存储当前查询类型，用于匹配响应
+      this.currentUserInfoQueryType = value
+    })
+  }
+
+  // 当前查询类型
+  private static currentUserInfoQueryType: number | null = null
+
+  /**
+   * 处理设备返回的人员信息
+   */
+  static handleGetUserInfoResult(response: GetUserInfoResponse) {
+    logger.info(`📊 收到设备人员信息: code=${response.code}, total=${response.total}, userIds=${response.userIds?.length || 0}个`)
+
+    // 找到并处理待处理的请求
+    for (const [requestId, request] of this.pendingUserInfoRequests) {
+      clearTimeout(request.timeout)
+      this.pendingUserInfoRequests.delete(requestId)
+      
+      if (response.code === 0) {
+        request.resolve(response)
+      } else {
+        request.reject(new Error(`设备返回错误: code=${response.code}`))
+      }
+      break // 只处理第一个匹配的请求
+    }
+
+    this.currentUserInfoQueryType = null
+  }
+
+  /**
+   * 获取设备人脸总数
+   */
+  static async getDeviceFaceCount(): Promise<{ total: number }> {
+    const response = await this.getUserInfo(0)
+    return { total: response.total || 0 }
+  }
+
+  /**
+   * 获取设备所有人员ID
+   */
+  static async getDeviceUserIds(): Promise<{ userIds: string[] }> {
+    const response = await this.getUserInfo(1)
+    return { userIds: response.userIds || [] }
   }
 }

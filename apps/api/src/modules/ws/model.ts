@@ -106,6 +106,25 @@ export interface SetVisitorQRCodeCommand {
   photo: string
 }
 
+/**
+ * 查询设备人员信息命令
+ * value: 0=读取人脸总数, 1=读取所有人员user id, 2=读取人证总数, 3=读取所有人证user id
+ */
+export interface GetUserInfoCommand {
+  cmd:   'getUserInfo'
+  value: 0 | 1 | 2 | 3
+}
+
+/**
+ * 设备返回的人员信息
+ */
+export interface GetUserInfoResponse {
+  cmd:     'getUserInfoRet'
+  code:    number
+  userIds?: string[]  // value为1或3时返回
+  total?:  number     // value为0或2时返回
+}
+
 // ==================== TypeScript Types ====================
 
 export type DeviceDeclarationDto = typeof DeviceDeclarationSchema.static
@@ -120,6 +139,7 @@ export type DeviceCommand =
   | OnlineAuthorizationCommand
   | AddImageAdCommand
   | SetVisitorQRCodeCommand
+  | GetUserInfoCommand
   | string
 
 // ==================== Response Types ====================
@@ -129,3 +149,81 @@ export interface CommandResponse {
   message: string
   data?:   any
 }
+
+// ==================== WebSocket Push Message Types ====================
+
+/**
+ * 进度更新消息
+ */
+export interface ProgressMessage {
+  type: 'progress'
+  data: {
+    batchId: string | null
+    total: number
+    sent: number
+    confirmed: number
+    failed: number
+    skipped: number
+    status: 'idle' | 'syncing' | 'completed'
+    estimatedTimeRemaining: number | null
+    logs: Array<{
+      time: string
+      type: 'info' | 'success' | 'error' | 'warning'
+      message: string
+    }>
+    failedUsers: Array<{ lotusId: string; name: string; reason: string }>
+  }
+}
+
+/**
+ * 用户反馈消息
+ */
+export interface UserFeedbackMessage {
+  type: 'user_feedback'
+  data: {
+    batchId: string | null
+    lotusId: string
+    name: string
+    status: 'success' | 'failed'
+    code: number
+    message: string
+    timestamp: string
+  }
+}
+
+/**
+ * 批次开始消息
+ */
+export interface BatchStartMessage {
+  type: 'batch_start'
+  data: {
+    batchId: string
+    total: number
+    strategy: string
+    photoFormat: string
+  }
+}
+
+/**
+ * 批次完成消息
+ */
+export interface BatchCompleteMessage {
+  type: 'batch_complete'
+  data: {
+    batchId: string
+    total: number
+    confirmed: number
+    failed: number
+    skipped: number
+    duration: number
+  }
+}
+
+/**
+ * WebSocket 推送消息联合类型
+ */
+export type WebSocketPushMessage = 
+  | ProgressMessage 
+  | UserFeedbackMessage 
+  | BatchStartMessage 
+  | BatchCompleteMessage
