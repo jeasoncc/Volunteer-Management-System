@@ -104,4 +104,16 @@ export const deviceService = {
 	getDeviceUserIds: async (): Promise<ApiResponse<{ userIds: string[] }>> => {
 		return api.get("/device/user-ids");
 	},
+
+	compareDeviceUsers: async (deviceUserIds: string[]): Promise<ApiResponse<{
+		total: number;
+		inDevice: number;
+		notInDevice: number;
+		orphanedIds: number;
+		inDeviceList: Array<{ lotusId: string; name: string }>;
+		notInDeviceList: Array<{ lotusId: string; name: string; syncToAttendance: boolean }>;
+		orphanedIdsList: string[];
+	}>> => {
+		return api.post("/device/compare-users", { deviceUserIds });
+	},
 };

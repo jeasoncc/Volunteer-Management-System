@@ -895,4 +895,56 @@ export class WebSocketService {
     const response = await this.getUserInfo(1)
     return { userIds: response.userIds || [] }
   }
+
+  /**
+   * 对比设备人员和数据库义工
+   * @param deviceUserIds 设备上的人员ID列表
+   */
+  static async compareDeviceUsers(deviceUserIds: string[]) {
+    // 查询数据库中所有激活的义工
+    const allVolunteers = await db
+      .select({
+        lotusId: volunteer.lotusId,
+        name: volunteer.name,
+        syncToAttendance: volunteer.syncToAttendance,
+      })
+      .from(volunteer)
+      .where(eq(volunteer.status, 'active'))
+
+    // 创建设备ID集合用于快速查找
+    const deviceIdSet = new Set(deviceUserIds)
+
+    // 分类义工
+    const inDevice: Array<{ lotusId: string; name: string }> = []
+    const notInDevice: Array<{ lotusId: string; name: string; syncToAttendance: boolean }> = []
+
+    allVolunteers.forEach((v) => {
+      if (v.lotusId && deviceIdSet.has(v.lotusId)) {
+        inDevice.push({
+          lotusId: v.lotusId,
+          name: v.name,
+        })
+      } else if (v.lotusId) {
+        notInDevice.push({
+          lotusId: v.lotusId,
+          name: v.name,
+          syncToAttendance: v.syncToAttendance || false,
+        })
+      }
+    })
+
+    // 找出设备上有但数据库没有的ID（可能是已删除的义工）
+    const dbIdSet = new Set(allVolunteers.map(v => v.lotusId).filter(Boolean))
+    const orphanedIds = deviceUserIds.filter(id => !dbIdSet.has(id))
+
+    return {
+      total: allVolunteers.length,
+      inDevice: inDevice.length,
+      notInDevice: notInDevice.length,
+      orphanedIds: orphanedIds.length,
+      inDeviceList: inDevice,
+      notInDeviceList: notInDevice,
+      orphanedIdsList: orphanedIds,
+    }
+  }
 }

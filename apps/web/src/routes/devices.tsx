@@ -66,6 +66,8 @@ function DevicesPage() {
 	const [quickSyncId, setQuickSyncId] = useState("");
 	const [showDeviceUsers, setShowDeviceUsers] = useState(false);
 	const [deviceUserIds, setDeviceUserIds] = useState<string[]>([]);
+	const [compareResult, setCompareResult] = useState<any>(null);
+	const [showCompareView, setShowCompareView] = useState<"all" | "inDevice" | "notInDevice" | "orphaned">("all");
 	const logsEndRef = useRef<HTMLDivElement>(null);
 
 	// 设备状态查询
@@ -242,10 +244,21 @@ function DevicesPage() {
 	// 查询设备所有人员ID
 	const userIdsMutation = useMutation({
 		mutationFn: () => deviceService.getDeviceUserIds(),
-		onSuccess: (data: any) => {
+		onSuccess: async (data: any) => {
 			if (data.success && data.data?.userIds) {
-				setDeviceUserIds(data.data.userIds);
+				const userIds = data.data.userIds;
+				setDeviceUserIds(userIds);
 				setShowDeviceUsers(true);
+				
+				// 自动对比数据库
+				try {
+					const compareData = await deviceService.compareDeviceUsers(userIds);
+					if (compareData.success) {
+						setCompareResult(compareData.data);
+					}
+				} catch (error) {
+					console.error("对比失败:", error);
+				}
 			}
 		},
 		onError: (error: any) => toast.error(error.message || "查询失败"),
@@ -703,33 +716,151 @@ function DevicesPage() {
 					</div>
 
 					{/* 人员ID列表展示 */}
-					{showDeviceUsers && deviceUserIds.length > 0 && (
-						<div className="mt-4 pt-4 border-t">
-							<div className="flex items-center justify-between mb-2">
+					{showDeviceUsers && deviceUserIds.length > 0 && compareResult && (
+						<div className="mt-4 pt-4 border-t space-y-4">
+							<div className="flex items-center justify-between">
 								<span className="text-sm font-medium">
-									设备上的人员ID ({deviceUserIds.length}个)
+									设备人员对比结果
 								</span>
 								<Button
 									variant="ghost"
 									size="sm"
-									onClick={() => setShowDeviceUsers(false)}
+									onClick={() => {
+										setShowDeviceUsers(false);
+										setCompareResult(null);
+										setShowCompareView("all");
+									}}
 								>
 									收起
 								</Button>
 							</div>
-							<ScrollArea className="h-40 rounded-md border bg-muted/30 p-3">
-								<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-									{deviceUserIds.map((id) => (
-										<Badge
-											key={id}
-											variant="outline"
-											className="justify-center font-mono text-xs"
-										>
-											{id}
-										</Badge>
-									))}
-								</div>
-							</ScrollArea>
+
+							{/* 统计卡片 */}
+							<div className="grid grid-cols-4 gap-3">
+								<button
+									onClick={() => setShowCompareView("all")}
+									className={cn(
+										"text-center p-3 rounded-lg border transition-colors",
+										showCompareView === "all" ? "bg-primary/10 border-primary" : "bg-muted/50 hover:bg-muted"
+									)}
+								>
+									<div className="text-xl font-bold">{compareResult.total}</div>
+									<div className="text-xs text-muted-foreground">数据库总数</div>
+								</button>
+								<button
+									onClick={() => setShowCompareView("inDevice")}
+									className={cn(
+										"text-center p-3 rounded-lg border transition-colors",
+										showCompareView === "inDevice" ? "bg-green-50 border-green-500" : "bg-green-50/50 hover:bg-green-50"
+									)}
+								>
+									<div className="text-xl font-bold text-green-600">{compareResult.inDevice}</div>
+									<div className="text-xs text-green-600">已在设备</div>
+								</button>
+								<button
+									onClick={() => setShowCompareView("notInDevice")}
+									className={cn(
+										"text-center p-3 rounded-lg border transition-colors",
+										showCompareView === "notInDevice" ? "bg-amber-50 border-amber-500" : "bg-amber-50/50 hover:bg-amber-50"
+									)}
+								>
+									<div className="text-xl font-bold text-amber-600">{compareResult.notInDevice}</div>
+									<div className="text-xs text-amber-600">未在设备</div>
+								</button>
+								<button
+									onClick={() => setShowCompareView("orphaned")}
+									className={cn(
+										"text-center p-3 rounded-lg border transition-colors",
+										showCompareView === "orphaned" ? "bg-red-50 border-red-500" : "bg-red-50/50 hover:bg-red-50"
+									)}
+								>
+									<div className="text-xl font-bold text-red-600">{compareResult.orphanedIds}</div>
+									<div className="text-xs text-red-600">孤立ID</div>
+								</button>
+							</div>
+
+							{/* 详细列表 */}
+							<div>
+								{showCompareView === "all" && (
+									<div className="text-sm text-muted-foreground text-center py-4">
+										点击上方卡片查看详细列表
+									</div>
+								)}
+
+								{showCompareView === "inDevice" && (
+									<div>
+										<div className="text-sm font-medium mb-2 text-green-600">
+											已在设备 ({compareResult.inDevice}个)
+										</div>
+										<ScrollArea className="h-60 rounded-md border bg-green-50/30 p-3">
+											<div className="space-y-1">
+												{compareResult.inDeviceList.map((user: any) => (
+													<div
+														key={user.lotusId}
+														className="flex items-center justify-between p-2 rounded bg-white/50 text-sm"
+													>
+														<span className="font-medium">{user.name}</span>
+														<Badge variant="outline" className="font-mono text-xs">
+															{user.lotusId}
+														</Badge>
+													</div>
+												))}
+											</div>
+										</ScrollArea>
+									</div>
+								)}
+
+								{showCompareView === "notInDevice" && (
+									<div>
+										<div className="text-sm font-medium mb-2 text-amber-600">
+											未在设备 ({compareResult.notInDevice}个)
+										</div>
+										<ScrollArea className="h-60 rounded-md border bg-amber-50/30 p-3">
+											<div className="space-y-1">
+												{compareResult.notInDeviceList.map((user: any) => (
+													<div
+														key={user.lotusId}
+														className="flex items-center justify-between p-2 rounded bg-white/50 text-sm"
+													>
+														<div className="flex items-center gap-2">
+															<span className="font-medium">{user.name}</span>
+															{user.syncToAttendance && (
+																<Badge variant="secondary" className="text-xs">
+																	已标记同步
+																</Badge>
+															)}
+														</div>
+														<Badge variant="outline" className="font-mono text-xs">
+															{user.lotusId}
+														</Badge>
+													</div>
+												))}
+											</div>
+										</ScrollArea>
+									</div>
+								)}
+
+								{showCompareView === "orphaned" && (
+									<div>
+										<div className="text-sm font-medium mb-2 text-red-600">
+											孤立ID ({compareResult.orphanedIds}个) - 设备上有但数据库没有
+										</div>
+										<ScrollArea className="h-60 rounded-md border bg-red-50/30 p-3">
+											<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+												{compareResult.orphanedIdsList.map((id: string) => (
+													<Badge
+														key={id}
+														variant="outline"
+														className="justify-center font-mono text-xs border-red-200 text-red-600"
+													>
+														{id}
+													</Badge>
+												))}
+											</div>
+										</ScrollArea>
+									</div>
+								)}
+							</div>
 						</div>
 					)}
 				</CardContent>

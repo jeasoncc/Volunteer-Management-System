@@ -358,6 +358,25 @@ export const wsModule = new Elysia()
     }
   })
 
+  /**
+   * 对比设备人员和数据库义工
+   */
+  .post('/device/compare-users', async ({ body }) => {
+    try {
+      const { deviceUserIds } = body as { deviceUserIds: string[] }
+      const result = await WebSocketService.compareDeviceUsers(deviceUserIds)
+      return {
+        success: true,
+        data: result,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+      }
+    }
+  })
+
   // ==================== 同步记录查询接口 ====================
 
   /**
