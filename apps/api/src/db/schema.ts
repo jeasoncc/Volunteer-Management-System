@@ -250,6 +250,47 @@ export const deceased = mysqlTable('deceased', {
  * - 分配敲钟义工、领诵义工、备用义工
  * - 记录助念的实际执行情况和反馈
  */
+/**
+ * 考勤机同步记录表
+ * 记录每次同步到考勤机的详细信息
+ */
+export const attendanceSyncLog = mysqlTable('attendance_sync_log', {
+  id:           bigint('id', { mode: 'number', unsigned: true }).autoincrement().primaryKey(),
+  lotusId:      varchar('lotus_id', { length: 50 }).notNull(),
+  name:         varchar('name', { length: 50 }).notNull(),
+  deviceSn:     varchar('device_sn', { length: 50 }).default('YET88476'),
+  photoUrl:     text('photo_url'),
+  status:       mysqlEnum('status', ['pending', 'success', 'failed', 'skipped']).default('pending'),
+  errorCode:    int('error_code'),
+  errorMessage: text('error_message'),
+  syncBatchId:  varchar('sync_batch_id', { length: 50 }),
+  syncType:     mysqlEnum('sync_type', ['single', 'batch', 'retry']).default('batch'),
+  syncedAt:     timestamp('synced_at').defaultNow(),
+  confirmedAt:  timestamp('confirmed_at'),
+  createdAt:    timestamp('created_at').defaultNow(),
+})
+
+/**
+ * 同步批次记录表
+ * 记录每次批量同步的汇总信息
+ */
+export const attendanceSyncBatch = mysqlTable('attendance_sync_batch', {
+  id:            varchar('id', { length: 50 }).primaryKey(),
+  totalCount:    int('total_count').default(0),
+  successCount:  int('success_count').default(0),
+  failedCount:   int('failed_count').default(0),
+  skippedCount:  int('skipped_count').default(0),
+  status:        mysqlEnum('status', ['syncing', 'completed', 'cancelled']).default('syncing'),
+  syncStrategy:  mysqlEnum('sync_strategy', ['all', 'unsynced', 'changed', 'retry']).default('all'),
+  startedAt:     timestamp('started_at').defaultNow(),
+  completedAt:   timestamp('completed_at'),
+  duration:      int('duration'),
+  operatorId:    bigint('operator_id', { mode: 'number', unsigned: true }),
+  operatorName:  varchar('operator_name', { length: 50 }),
+  notes:         text('notes'),
+  createdAt:     timestamp('created_at').defaultNow(),
+})
+
 export const chantingSchedule = mysqlTable('chanting_schedule', {
   id:                   serial('id').primaryKey(),
   location:             mysqlEnum('location', ['fuhuiyuan', 'waiqin']).default('fuhuiyuan'),

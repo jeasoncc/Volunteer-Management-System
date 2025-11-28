@@ -13,7 +13,9 @@ import {
 import { DeviceNotConnectedError, UserNotFoundError, FileNotFoundError } from './errors'
 import { logger } from '../../lib/logger'
 import { syncProgressManager } from './sync-progress-manager'
+import { SyncLogService } from './sync-log.service'
 import { getBackendUrl } from '../../config/network'
+import { processUserAvatar, delay, SYNC_CONFIG, checkImageSize } from './image-processor'
 
 /**
  * WebSocket 服务类
@@ -28,9 +30,11 @@ export class WebSocketService {
 
   /**
    * 构建添加用户命令（公共方法）
+   * @param processedAvatarPath 已处理的头像路径（可能是压缩后的缩略图）
    */
-  private static buildAddUserCommand(user: any): any {
-    const photoUrl = user.avatar ? `${this.BASE_URL}${user.avatar}` : ''
+  private static buildAddUserCommand(user: any, processedAvatarPath?: string): any {
+    const avatarPath = processedAvatarPath || user.avatar
+    const photoUrl = avatarPath ? `${this.BASE_URL}${avatarPath}` : ''
     
     // 🔍 打印照片URL用于调试
     if (photoUrl) {
@@ -168,54 +172,103 @@ export class WebSocketService {
 
     logger.info(`📊 共查询到 ${users.length} 个义工用于同步考勤机`)
     logger.info(`🌐 照片服务器地址: ${this.BASE_URL}`)
+    logger.info(`⏱️  同步间隔: ${SYNC_CONFIG.DELAY_BETWEEN_USERS}ms/人`)
+    logger.info(`📏 图片大小限制: ${SYNC_CONFIG.MAX_IMAGE_SIZE / 1024}KB，超过将自动压缩`)
     logger.info(`💡 提示: 请确保考勤机能访问此地址`)
-    logger.info(`💡 照片URL格式示例: ${this.BASE_URL}/upload/avatar/xxx.jpg`)
-    logger.info(`💡 如果考勤机报"照片下载错误"，可能原因：`)
-    logger.info(`   1. 考勤机无法访问服务器地址 ${this.BASE_URL}`)
-    logger.info(`   2. 照片文件不存在或已被删除`)
-    logger.info(`   3. 照片格式不符合考勤机要求（建议使用JPG格式）`)
-    logger.info(`   4. 网络防火墙阻止了考勤机访问`)
 
-    // 初始化进度管理器
-    syncProgressManager.startSync(users.length)
+    // 初始化进度管理器并获取批次ID
+    const batchId = syncProgressManager.startSync(users.length)
+
+    // 创建同步批次记录
+    await SyncLogService.createBatch({
+      batchId,
+      totalCount: users.length,
+      syncStrategy: strategy,
+    })
 
     let successCount = 0
     let failCount = 0
     let skippedCount = 0
+    let compressedCount = 0
 
     const failedUsers: { lotusId: string | null; name: string; reason: string }[] = []
     const skippedUsers: { lotusId: string | null; name: string; reason: string }[] = []
 
     // 批量发送命令
-    for (const user of users) {
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i]
+      
       // 跳过没有头像的用户（考勤机需要人脸照片）
       if (!user.avatar) {
         logger.warn(`⏭️  跳过 ${user.name}(${user.lotusId}): 无头像`)
         skippedCount++
         skippedUsers.push({ lotusId: user.lotusId || null, name: user.name, reason: '无头像' })
         syncProgressManager.incrementSkipped(user.lotusId!, user.name, '无头像')
+        
+        // 记录跳过日志
+        await SyncLogService.logSync({
+          batchId,
+          lotusId: user.lotusId!,
+          name: user.name,
+          photoUrl: '',
+          status: 'skipped',
+          errorMessage: '无头像',
+        })
         continue
       }
 
+      // 🔧 检查并处理图片大小
+      let processedAvatarPath = user.avatar
+      const imageInfo = checkImageSize(user.avatar)
+      
+      if (imageInfo.needsCompression) {
+        logger.info(`🔄 压缩图片: ${user.name}(${user.lotusId})`)
+        processedAvatarPath = await processUserAvatar(user.avatar)
+        if (processedAvatarPath !== user.avatar) {
+          compressedCount++
+        }
+      }
+
+      const photoUrl = `${this.BASE_URL}${processedAvatarPath}`
+
       // 照片预检查
-      if (validatePhotos && user.avatar) {
-        const photoUrl = `${this.BASE_URL}${user.avatar}`
+      if (validatePhotos) {
         const validation = await this.validatePhoto(photoUrl)
         if (!validation.valid) {
           logger.warn(`⏭️  跳过 ${user.name}(${user.lotusId}): 照片无法访问`)
           skippedCount++
+          const reason = validation.reason === 'network_error' ? '照片网络错误' : '照片无法访问'
           skippedUsers.push({ 
             lotusId: user.lotusId || null, 
             name: user.name, 
-            reason: validation.reason === 'network_error' ? '照片网络错误' : '照片无法访问' 
+            reason,
           })
-          syncProgressManager.incrementSkipped(user.lotusId!, user.name, '照片无法访问')
+          syncProgressManager.incrementSkipped(user.lotusId!, user.name, reason)
+          
+          // 记录跳过日志
+          await SyncLogService.logSync({
+            batchId,
+            lotusId: user.lotusId!,
+            name: user.name,
+            photoUrl,
+            status: 'skipped',
+            errorMessage: reason,
+          })
           continue
         }
       }
       
-      // 使用公共方法构建命令
-      const command = this.buildAddUserCommand(user)
+      // 使用公共方法构建命令（传入处理后的头像路径）
+      const command = this.buildAddUserCommand(user, processedAvatarPath)
+
+      // 记录待处理日志
+      await SyncLogService.logSync({
+        batchId,
+        lotusId: user.lotusId!,
+        name: user.name,
+        photoUrl,
+        status: 'pending',
+      })
 
       // 使用公共方法发送命令
       if (this.sendAddUserCommand(command, user)) {
@@ -223,10 +276,28 @@ export class WebSocketService {
       } else {
         failCount++
         failedUsers.push({ lotusId: user.lotusId || null, name: user.name, reason: '设备未连接' })
+        
+        // 更新为失败状态
+        await SyncLogService.updateSyncStatus({
+          batchId,
+          lotusId: user.lotusId!,
+          status: 'failed',
+          errorCode: -1,
+          errorMessage: '设备未连接',
+        })
+      }
+
+      // ⏱️ 添加同步间隔，避免考勤机处理不过来
+      if (i < users.length - 1) {
+        await delay(SYNC_CONFIG.DELAY_BETWEEN_USERS)
       }
     }
 
-      logger.success(`📊 同步完成: 成功 ${successCount}, 失败 ${failCount}, 跳过 ${skippedCount}`)
+    if (compressedCount > 0) {
+      logger.info(`📦 共压缩 ${compressedCount} 张图片`)
+    }
+
+    logger.success(`📊 同步完成: 成功 ${successCount}, 失败 ${failCount}, 跳过 ${skippedCount}`)
 
       return {
         success: true,
@@ -424,6 +495,9 @@ export class WebSocketService {
 
       // 获取详细的错误信息
       const errorMessage = this.ERROR_MESSAGES[code] || msg || '未知错误'
+      
+      // 获取当前批次ID
+      const batchId = syncProgressManager.getBatchId()
 
       if (code === 0) {
         // 同步成功，更新数据库
@@ -434,14 +508,33 @@ export class WebSocketService {
         
         syncProgressManager.incrementConfirmed(userId, userName)
         logger.success(`✅ 考勤机确认成功: ${userId}`)
+        
+        // 更新同步记录
+        if (batchId) {
+          await SyncLogService.updateSyncStatus({
+            batchId,
+            lotusId: userId,
+            status: 'success',
+          })
+        }
       } else {
         // 同步失败，记录详细错误
         syncProgressManager.incrementFailed(userId, userName, errorMessage)
         logger.error(`❌ 考勤机返回失败: ${userName}(${userId}) - [错误码:${code}] ${errorMessage}`)
         
+        // 更新同步记录
+        if (batchId) {
+          await SyncLogService.updateSyncStatus({
+            batchId,
+            lotusId: userId,
+            status: 'failed',
+            errorCode: code,
+            errorMessage,
+          })
+        }
+        
         // 🔍 如果是照片相关错误，打印用户的照片URL
         if (code === 1 || errorMessage.includes('照片') || errorMessage.includes('人脸')) {
-          const [user] = await db.select().from(volunteer).where(eq(volunteer.lotusId, userId))
           if (user?.avatar) {
             const photoUrl = `${this.BASE_URL}${user.avatar}`
             logger.error(`🔗 照片URL: ${photoUrl}`)
@@ -451,6 +544,17 @@ export class WebSocketService {
             logger.error(`⚠️  用户没有照片记录`)
           }
         }
+      }
+      
+      // 检查是否同步完成，如果完成则更新批次记录
+      const stats = syncProgressManager.getSyncStats()
+      if (stats.status === 'completed' && batchId) {
+        await SyncLogService.completeBatch({
+          batchId,
+          successCount: stats.confirmed,
+          failedCount: stats.failed,
+          skippedCount: stats.skipped,
+        })
       }
     } catch (error) {
       logger.error(`处理考勤机返回结果失败:`, error)

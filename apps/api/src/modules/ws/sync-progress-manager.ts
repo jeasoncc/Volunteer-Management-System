@@ -19,6 +19,11 @@ interface SyncProgress {
   status: 'idle' | 'syncing' | 'completed'
   logs: SyncLog[]
   failedUsers: Array<{ lotusId: string; name: string; reason: string }>
+  // 新增：时间相关字段
+  startTime: number | null
+  estimatedTimeRemaining: number | null  // 预估剩余时间（秒）
+  averageTimePerUser: number | null      // 平均每个用户耗时（秒）
+  batchId: string | null                 // 批次ID
 }
 
 class SyncProgressManager {
@@ -31,15 +36,33 @@ class SyncProgressManager {
     status: 'idle',
     logs: [],
     failedUsers: [],
+    startTime: null,
+    estimatedTimeRemaining: null,
+    averageTimePerUser: null,
+    batchId: null,
   }
 
   private callbacks: Set<(progress: SyncProgress) => void> = new Set()
   private readonly MAX_LOGS = 100 // 最多保留100条日志
+  private processedTimes: number[] = [] // 记录每个用户的处理时间
+
+  /**
+   * 生成批次ID
+   */
+  private generateBatchId(): string {
+    const now = new Date()
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '')
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '')
+    const random = Math.random().toString(36).substring(2, 6)
+    return `SYNC-${dateStr}-${timeStr}-${random}`
+  }
 
   /**
    * 开始新的同步任务
    */
   startSync(total: number) {
+    const batchId = this.generateBatchId()
+    this.processedTimes = []
     this.progress = {
       total,
       sent: 0,
@@ -49,9 +72,14 @@ class SyncProgressManager {
       status: 'syncing',
       logs: [],
       failedUsers: [],
+      startTime: Date.now(),
+      estimatedTimeRemaining: null,
+      averageTimePerUser: null,
+      batchId,
     }
-    this.addLog('info', `开始同步，共 ${total} 个义工`)
+    this.addLog('info', `开始同步，共 ${total} 个义工 [批次: ${batchId}]`)
     this.notifyListeners()
+    return batchId
   }
 
   /**
@@ -68,6 +96,8 @@ class SyncProgressManager {
    */
   incrementConfirmed(userId: string, name: string) {
     this.progress.confirmed++
+    this.recordProcessTime()
+    this.updateEstimatedTime()
     this.addLog('success', `✅ 成功: ${name} (${userId})`, userId)
     this.checkCompletion()
     this.notifyListeners()
@@ -79,9 +109,46 @@ class SyncProgressManager {
   incrementFailed(userId: string, name: string, reason: string) {
     this.progress.failed++
     this.progress.failedUsers.push({ lotusId: userId, name, reason })
+    this.recordProcessTime()
+    this.updateEstimatedTime()
     this.addLog('error', `❌ 失败: ${name} (${userId}) - ${reason}`, userId)
     this.checkCompletion()
     this.notifyListeners()
+  }
+
+  /**
+   * 记录处理时间
+   */
+  private recordProcessTime() {
+    if (this.progress.startTime) {
+      const processed = this.progress.confirmed + this.progress.failed
+      if (processed > 0) {
+        const elapsed = (Date.now() - this.progress.startTime) / 1000
+        const avgTime = elapsed / processed
+        this.processedTimes.push(avgTime)
+        
+        // 只保留最近20个样本用于计算平均值
+        if (this.processedTimes.length > 20) {
+          this.processedTimes.shift()
+        }
+      }
+    }
+  }
+
+  /**
+   * 更新预估完成时间
+   */
+  private updateEstimatedTime() {
+    const processed = this.progress.confirmed + this.progress.failed
+    const remaining = this.progress.sent - processed
+    
+    if (processed > 0 && this.progress.startTime) {
+      const elapsed = (Date.now() - this.progress.startTime) / 1000
+      const avgTimePerUser = elapsed / processed
+      
+      this.progress.averageTimePerUser = Math.round(avgTimePerUser * 10) / 10
+      this.progress.estimatedTimeRemaining = Math.round(remaining * avgTimePerUser)
+    }
   }
 
   /**
@@ -156,6 +223,7 @@ class SyncProgressManager {
    * 重置进度
    */
   reset() {
+    this.processedTimes = []
     this.progress = {
       total: 0,
       sent: 0,
@@ -165,8 +233,42 @@ class SyncProgressManager {
       status: 'idle',
       logs: [],
       failedUsers: [],
+      startTime: null,
+      estimatedTimeRemaining: null,
+      averageTimePerUser: null,
+      batchId: null,
     }
     this.notifyListeners()
+  }
+
+  /**
+   * 获取批次ID
+   */
+  getBatchId(): string | null {
+    return this.progress.batchId
+  }
+
+  /**
+   * 获取同步统计信息
+   */
+  getSyncStats() {
+    const elapsed = this.progress.startTime 
+      ? Math.round((Date.now() - this.progress.startTime) / 1000)
+      : 0
+    
+    return {
+      batchId: this.progress.batchId,
+      total: this.progress.total,
+      sent: this.progress.sent,
+      confirmed: this.progress.confirmed,
+      failed: this.progress.failed,
+      skipped: this.progress.skipped,
+      status: this.progress.status,
+      elapsedTime: elapsed,
+      estimatedTimeRemaining: this.progress.estimatedTimeRemaining,
+      averageTimePerUser: this.progress.averageTimePerUser,
+      failedUsers: this.progress.failedUsers,
+    }
   }
 
   /**

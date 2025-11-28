@@ -32,6 +32,11 @@ interface SyncProgress {
 	status: 'idle' | 'syncing' | 'completed';
 	logs: SyncLog[];
 	failedUsers: Array<{ lotusId: string; name: string; reason: string }>;
+	// 新增：时间相关字段
+	startTime?: number | null;
+	estimatedTimeRemaining?: number | null;
+	averageTimePerUser?: number | null;
+	batchId?: string | null;
 }
 
 type SyncStrategy = 'all' | 'unsynced' | 'changed';
@@ -62,5 +67,27 @@ export const deviceService = {
 
 	retryFailedUsers: async (failedUsers: Array<{ lotusId: string; name: string }>): Promise<ApiResponse> => {
 		return api.post("/send/retryFailed", { failedUsers });
+	},
+
+	// 同步历史相关
+	getSyncBatches: async (params?: { 
+		page?: number; 
+		pageSize?: number;
+		startDate?: string;
+		endDate?: string;
+	}): Promise<ApiResponse<any>> => {
+		return api.get("/sync/batches", { params });
+	},
+
+	getSyncBatchDetail: async (batchId: string): Promise<ApiResponse<any>> => {
+		return api.get(`/sync/batches/${batchId}`);
+	},
+
+	getSyncStats: async (days?: number): Promise<ApiResponse<any>> => {
+		return api.get("/sync/stats", { params: { days } });
+	},
+
+	getRecentFailures: async (limit?: number): Promise<ApiResponse<any>> => {
+		return api.get("/sync/failures", { params: { limit } });
 	},
 };

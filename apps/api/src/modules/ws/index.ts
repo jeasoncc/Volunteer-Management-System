@@ -165,6 +165,60 @@ export const wsModule = new Elysia()
     }
   })
 
+  // ==================== 同步记录查询接口 ====================
+
+  /**
+   * 获取同步批次列表
+   */
+  .get('/sync/batches', async ({ query }) => {
+    const { SyncLogService } = await import('./sync-log.service')
+    return await SyncLogService.getBatchList({
+      page: query.page ? Number(query.page) : 1,
+      pageSize: query.pageSize ? Number(query.pageSize) : 20,
+      startDate: query.startDate as string,
+      endDate: query.endDate as string,
+    })
+  })
+
+  /**
+   * 获取同步批次详情
+   */
+  .get('/sync/batches/:batchId', async ({ params }) => {
+    const { SyncLogService } = await import('./sync-log.service')
+    return await SyncLogService.getBatchDetail(params.batchId)
+  })
+
+  /**
+   * 获取用户同步历史
+   */
+  .get('/sync/user/:lotusId', async ({ params, query }) => {
+    const { SyncLogService } = await import('./sync-log.service')
+    return await SyncLogService.getUserSyncHistory(
+      params.lotusId,
+      query.limit ? Number(query.limit) : 10
+    )
+  })
+
+  /**
+   * 获取最近失败的同步记录
+   */
+  .get('/sync/failures', async ({ query }) => {
+    const { SyncLogService } = await import('./sync-log.service')
+    return await SyncLogService.getRecentFailures(
+      query.limit ? Number(query.limit) : 50
+    )
+  })
+
+  /**
+   * 获取同步统计
+   */
+  .get('/sync/stats', async ({ query }) => {
+    const { SyncLogService } = await import('./sync-log.service')
+    return await SyncLogService.getSyncStats(
+      query.days ? Number(query.days) : 7
+    )
+  })
+
   /**
    * 测试接口
    */
