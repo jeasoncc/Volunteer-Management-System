@@ -17,6 +17,7 @@ import {
 import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle, XCircle, Shield, User, Copy } from "lucide-react";
 import { exportToExcel, exportToCSV, exportToTXT, exportToMarkdown, formatDateTime, type ExportColumn } from "@/lib/export";
 import { toast } from "@/lib/toast";
+import { useNavigate } from "@tanstack/react-router";
 
 interface VolunteerDataTableProps {
 	data: Volunteer[];
@@ -69,6 +70,7 @@ export function VolunteerDataTable({
 	isSearching,
 	pagination,
 }: VolunteerDataTableProps) {
+	const navigate = useNavigate();
 	const columns: ColumnDef<Volunteer>[] = [
 		// 选择框列
 		...(enableSelection
@@ -111,7 +113,15 @@ export function VolunteerDataTable({
 					</Avatar>
 					<div className="flex flex-col gap-0.5">
 						<div className="flex items-center gap-1.5">
-							<span className="font-serif font-medium text-sm text-foreground tracking-wide">{row.original.name}</span>
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									navigate({ to: "/volunteers/$lotusId", params: { lotusId: row.original.lotusId } });
+								}}
+								className="font-serif font-medium text-sm text-foreground tracking-wide hover:text-primary hover:underline transition-colors cursor-pointer text-left"
+							>
+								{row.original.name}
+							</button>
 							{row.original.syncToAttendance && (
 								<Badge 
 									variant="outline" 

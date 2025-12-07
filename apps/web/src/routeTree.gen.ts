@@ -21,6 +21,7 @@ import { Route as ChantingRouteImport } from './routes/chanting'
 import { Route as ApprovalRouteImport } from './routes/approval'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VolunteersIndexRouteImport } from './routes/volunteers.index'
 import { Route as CheckinIndexRouteImport } from './routes/checkin.index'
 import { Route as VolunteersLotusIdRouteImport } from './routes/volunteers.$lotusId'
 import { Route as DevicesOldRouteImport } from './routes/devices.old'
@@ -91,6 +92,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VolunteersIndexRoute = VolunteersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => VolunteersRoute,
+} as any)
 const CheckinIndexRoute = CheckinIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/devices/old': typeof DevicesOldRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/checkin/': typeof CheckinIndexRoute
+  '/volunteers/': typeof VolunteersIndexRoute
   '/checkin/details/old': typeof CheckinDetailsOldRoute
   '/checkin/improved/old': typeof CheckinImprovedOldRoute
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
@@ -171,13 +178,13 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mobile-upload': typeof MobileUploadRoute
   '/settings': typeof SettingsRoute
-  '/volunteers': typeof VolunteersRouteWithChildren
   '/checkin/old': typeof CheckinOldRoute
   '/checkin/records': typeof CheckinRecordsRoute
   '/checkin/strangers': typeof CheckinStrangersRoute
   '/devices/old': typeof DevicesOldRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/checkin': typeof CheckinIndexRoute
+  '/volunteers': typeof VolunteersIndexRoute
   '/checkin/details/old': typeof CheckinDetailsOldRoute
   '/checkin/improved/old': typeof CheckinImprovedOldRoute
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
@@ -202,6 +209,7 @@ export interface FileRoutesById {
   '/devices/old': typeof DevicesOldRoute
   '/volunteers/$lotusId': typeof VolunteersLotusIdRouteWithChildren
   '/checkin/': typeof CheckinIndexRoute
+  '/volunteers/': typeof VolunteersIndexRoute
   '/checkin/details/old': typeof CheckinDetailsOldRoute
   '/checkin/improved/old': typeof CheckinImprovedOldRoute
   '/volunteers/$lotusId/edit': typeof VolunteersLotusIdEditRoute
@@ -227,6 +235,7 @@ export interface FileRouteTypes {
     | '/devices/old'
     | '/volunteers/$lotusId'
     | '/checkin/'
+    | '/volunteers/'
     | '/checkin/details/old'
     | '/checkin/improved/old'
     | '/volunteers/$lotusId/edit'
@@ -242,13 +251,13 @@ export interface FileRouteTypes {
     | '/login'
     | '/mobile-upload'
     | '/settings'
-    | '/volunteers'
     | '/checkin/old'
     | '/checkin/records'
     | '/checkin/strangers'
     | '/devices/old'
     | '/volunteers/$lotusId'
     | '/checkin'
+    | '/volunteers'
     | '/checkin/details/old'
     | '/checkin/improved/old'
     | '/volunteers/$lotusId/edit'
@@ -272,6 +281,7 @@ export interface FileRouteTypes {
     | '/devices/old'
     | '/volunteers/$lotusId'
     | '/checkin/'
+    | '/volunteers/'
     | '/checkin/details/old'
     | '/checkin/improved/old'
     | '/volunteers/$lotusId/edit'
@@ -377,6 +387,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/volunteers/': {
+      id: '/volunteers/'
+      path: '/'
+      fullPath: '/volunteers/'
+      preLoaderRoute: typeof VolunteersIndexRouteImport
+      parentRoute: typeof VolunteersRoute
     }
     '/checkin/': {
       id: '/checkin/'
@@ -489,10 +506,12 @@ const VolunteersLotusIdRouteWithChildren =
 
 interface VolunteersRouteChildren {
   VolunteersLotusIdRoute: typeof VolunteersLotusIdRouteWithChildren
+  VolunteersIndexRoute: typeof VolunteersIndexRoute
 }
 
 const VolunteersRouteChildren: VolunteersRouteChildren = {
   VolunteersLotusIdRoute: VolunteersLotusIdRouteWithChildren,
+  VolunteersIndexRoute: VolunteersIndexRoute,
 }
 
 const VolunteersRouteWithChildren = VolunteersRoute._addFileChildren(
