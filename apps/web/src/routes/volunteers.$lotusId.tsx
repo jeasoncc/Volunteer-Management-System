@@ -51,6 +51,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/image";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dayjs from "dayjs";
 import { toast } from "@/lib/toast";
 
@@ -388,8 +389,27 @@ function VolunteerDetailPage() {
 				</div>
 			</div>
 
-			{/* 统计概览 */}
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+			{/* 使用标签页组织内容 */}
+			<Tabs defaultValue="overview" className="w-full">
+				<TabsList className="grid w-full grid-cols-3 mb-6">
+					<TabsTrigger value="overview" className="flex items-center gap-2">
+						<BarChart3 className="h-4 w-4" />
+						数据概览
+					</TabsTrigger>
+					<TabsTrigger value="details" className="flex items-center gap-2">
+						<User className="h-4 w-4" />
+						基本信息
+					</TabsTrigger>
+					<TabsTrigger value="attendance" className="flex items-center gap-2">
+						<Clock className="h-4 w-4" />
+						考勤记录
+					</TabsTrigger>
+				</TabsList>
+
+				{/* 概览标签页 */}
+				<TabsContent value="overview" className="space-y-6">
+					{/* 统计概览 */}
+					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 				<Card className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20 group">
 					<CardContent className="p-6">
 						<div className="flex items-center justify-between">
@@ -551,12 +571,172 @@ function VolunteerDetailPage() {
 						</div>
 					</CardContent>
 				</Card>
-			</div>
+					</div>
 
-			{/* 详细信息区域 - 独特的详情页布局 */}
-			<div className="grid gap-6 lg:grid-cols-3">
-				{/* 左侧：详细信息卡片组 */}
-				<div className="lg:col-span-2 space-y-6">
+					{/* 最近打卡和考勤统计 */}
+					<div className="grid gap-6 lg:grid-cols-3">
+						{/* 最近打卡 */}
+						<Card className="lg:col-span-1 shadow-md hover:shadow-lg transition-shadow">
+							<CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-primary/10">
+								<CardTitle className="flex items-center gap-2 text-lg font-semibold">
+									<div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+										<Activity className="h-5 w-5 text-primary" />
+									</div>
+									最近打卡
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-6">
+								{recentRecords.length === 0 ? (
+									<div className="text-center py-12">
+										<Activity className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+										<p className="text-sm text-muted-foreground">暂无打卡记录</p>
+									</div>
+								) : (
+									<div className="space-y-3">
+										{recentRecords.map((record: any, index: number) => {
+											const statusBadge = getStatusBadge(record.status);
+											const isToday = dayjs(record.date).isSame(dayjs(), "day");
+											return (
+												<div 
+													key={record.id || index} 
+													className={`flex items-start gap-3 p-4 rounded-lg hover:bg-muted/60 transition-all duration-200 border ${
+														isToday 
+															? "bg-primary/5 border-primary/30 shadow-sm" 
+															: "bg-muted/30 border-border/50"
+													}`}
+												>
+													<div className="flex-shrink-0 mt-0.5">
+														<div className={`h-3 w-3 rounded-full ${
+															statusBadge.variant === "default" ? "bg-green-500" :
+															statusBadge.variant === "secondary" ? "bg-orange-500" :
+															"bg-gray-400"
+														} shadow-sm`}></div>
+													</div>
+													<div className="flex-1 min-w-0">
+														<div className="flex items-center gap-2 mb-2">
+															<span className={`font-semibold text-sm ${
+																isToday ? "text-primary" : "text-foreground"
+															}`}>
+																{isToday ? "今天" : dayjs(record.date).format("MM月DD日")}
+															</span>
+															<Badge 
+																variant={statusBadge.variant} 
+																className={`text-xs px-2 py-0.5 ${
+																	statusBadge.variant === "default" ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800" :
+																	statusBadge.variant === "secondary" ? "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800" :
+																	""
+																}`}
+															>
+																{statusBadge.label}
+															</Badge>
+														</div>
+														{record.checkIn && (
+															<div className="text-xs text-muted-foreground flex items-center gap-1.5">
+																<Clock className="h-3.5 w-3.5" />
+																<span className="font-medium">{record.checkIn}</span>
+															</div>
+														)}
+														{record.hours && record.hours > 0 && (
+															<div className="text-xs text-muted-foreground mt-1">
+																工时: <span className="font-semibold text-green-600">{record.hours.toFixed(1)}h</span>
+															</div>
+														)}
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								)}
+							</CardContent>
+						</Card>
+
+						{/* 考勤统计详情 */}
+						<Card className="lg:col-span-2 shadow-md hover:shadow-lg transition-shadow">
+							<CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b">
+								<CardTitle className="flex items-center gap-2 text-lg font-semibold">
+									<div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+										<BarChart3 className="h-5 w-5 text-primary" />
+									</div>
+									考勤统计详情
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-6">
+								{/* 主要指标 */}
+								<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+									<div className="text-center p-5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border-2 border-primary/20 shadow-sm hover:shadow-md transition-shadow">
+										<div className="text-3xl font-bold text-primary mb-1">{totalDays}</div>
+										<div className="text-sm font-medium text-muted-foreground">总打卡天数</div>
+										<div className="text-xs text-muted-foreground mt-1">累计天数</div>
+									</div>
+									<div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 rounded-xl border-2 border-green-200 dark:border-green-800 shadow-sm hover:shadow-md transition-shadow">
+										<div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">{presentDays}</div>
+										<div className="text-sm font-medium text-muted-foreground">正常出勤</div>
+										<div className="text-xs text-green-600 dark:text-green-400 mt-1">
+											{totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0}%
+										</div>
+									</div>
+									<div className="text-center p-5 bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 rounded-xl border-2 border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
+										<div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">{lateDays}</div>
+										<div className="text-sm font-medium text-muted-foreground">迟到</div>
+										<div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+											{totalDays > 0 ? ((lateDays / totalDays) * 100).toFixed(1) : 0}%
+										</div>
+									</div>
+									<div className="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+										<div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{attendanceRate}%</div>
+										<div className="text-sm font-medium text-muted-foreground">出勤率</div>
+										<div className="mt-3">
+											<Progress 
+												value={parseFloat(attendanceRate)} 
+												className="h-2"
+											/>
+										</div>
+										<div className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center justify-center gap-1">
+											<TrendingUp className="h-3 w-3" />
+											整体表现
+										</div>
+									</div>
+								</div>
+
+								{/* 次要指标 */}
+								<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+									<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
+										<div className="text-xl font-bold text-foreground mb-1">{totalRecords}</div>
+										<div className="text-xs text-muted-foreground">总打卡次数</div>
+									</div>
+									<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
+										<div className="text-xl font-bold text-foreground mb-1">{totalHours.toFixed(1)}</div>
+										<div className="text-xs text-muted-foreground">总工时(小时)</div>
+									</div>
+									<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
+										<div className="text-xl font-bold text-foreground mb-1">{avgHoursPerDay.toFixed(1)}</div>
+										<div className="text-xs text-muted-foreground">日均工时</div>
+									</div>
+									<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
+										<div className="text-xl font-bold text-foreground mb-1">{totalDays > 0 ? (totalRecords / totalDays).toFixed(1) : 0}</div>
+										<div className="text-xs text-muted-foreground">日均打卡次数</div>
+									</div>
+								</div>
+
+								{/* 其他状态 */}
+								<div className="flex flex-wrap gap-2 pt-4 border-t">
+									<Badge variant="outline" className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800">
+										早退: {earlyLeaveDays}
+									</Badge>
+									<Badge variant="outline" className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">
+										缺勤: {absentDays}
+									</Badge>
+									<Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+										请假: {onLeaveDays}
+									</Badge>
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				</TabsContent>
+
+				{/* 详细信息标签页 */}
+				<TabsContent value="details" className="space-y-6">
 					{/* 联系信息 */}
 					<Card className="border-l-4 border-l-primary shadow-md hover:shadow-lg transition-all duration-300 hover:border-l-primary/80">
 						<CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-primary/10">
@@ -860,168 +1040,10 @@ function VolunteerDetailPage() {
 							</div>
 						</CardContent>
 					</Card>
-				</div>
+				</TabsContent>
 
-				{/* 右侧：最近打卡 */}
-				<Card className="lg:col-span-1 shadow-md hover:shadow-lg transition-shadow sticky top-6">
-					<CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-primary/10">
-						<CardTitle className="flex items-center gap-2 text-lg font-semibold">
-							<div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-								<Activity className="h-5 w-5 text-primary" />
-							</div>
-							最近打卡
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="pt-6">
-						{recentRecords.length === 0 ? (
-							<div className="text-center py-12">
-								<Activity className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-								<p className="text-sm text-muted-foreground">暂无打卡记录</p>
-							</div>
-						) : (
-							<div className="space-y-3">
-								{recentRecords.map((record: any, index: number) => {
-									const statusBadge = getStatusBadge(record.status);
-									const isToday = dayjs(record.date).isSame(dayjs(), "day");
-									return (
-										<div 
-											key={record.id || index} 
-											className={`flex items-start gap-3 p-4 rounded-lg hover:bg-muted/60 transition-all duration-200 border ${
-												isToday 
-													? "bg-primary/5 border-primary/30 shadow-sm" 
-													: "bg-muted/30 border-border/50"
-											}`}
-										>
-											<div className="flex-shrink-0 mt-0.5">
-												<div className={`h-3 w-3 rounded-full ${
-													statusBadge.variant === "default" ? "bg-green-500" :
-													statusBadge.variant === "secondary" ? "bg-orange-500" :
-													"bg-gray-400"
-												} shadow-sm`}></div>
-											</div>
-											<div className="flex-1 min-w-0">
-												<div className="flex items-center gap-2 mb-2">
-													<span className={`font-semibold text-sm ${
-														isToday ? "text-primary" : "text-foreground"
-													}`}>
-														{isToday ? "今天" : dayjs(record.date).format("MM月DD日")}
-													</span>
-													<Badge 
-														variant={statusBadge.variant} 
-														className={`text-xs px-2 py-0.5 ${
-															statusBadge.variant === "default" ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800" :
-															statusBadge.variant === "secondary" ? "bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800" :
-															""
-														}`}
-													>
-														{statusBadge.label}
-													</Badge>
-												</div>
-												{record.checkIn && (
-													<div className="text-xs text-muted-foreground flex items-center gap-1.5">
-														<Clock className="h-3.5 w-3.5" />
-														<span className="font-medium">{record.checkIn}</span>
-													</div>
-												)}
-												{record.hours && record.hours > 0 && (
-													<div className="text-xs text-muted-foreground mt-1">
-														工时: <span className="font-semibold text-green-600">{record.hours.toFixed(1)}h</span>
-													</div>
-												)}
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						)}
-					</CardContent>
-				</Card>
-			</div>
-
-			{/* 考勤统计详情 */}
-			<Card className="shadow-md hover:shadow-lg transition-shadow">
-				<CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b">
-					<CardTitle className="flex items-center gap-2 text-lg font-semibold">
-						<div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-							<BarChart3 className="h-5 w-5 text-primary" />
-						</div>
-						考勤统计详情
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="pt-6">
-					{/* 主要指标 */}
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-						<div className="text-center p-5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border-2 border-primary/20 shadow-sm hover:shadow-md transition-shadow">
-							<div className="text-3xl font-bold text-primary mb-1">{totalDays}</div>
-							<div className="text-sm font-medium text-muted-foreground">总打卡天数</div>
-							<div className="text-xs text-muted-foreground mt-1">累计天数</div>
-						</div>
-						<div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 rounded-xl border-2 border-green-200 dark:border-green-800 shadow-sm hover:shadow-md transition-shadow">
-							<div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">{presentDays}</div>
-							<div className="text-sm font-medium text-muted-foreground">正常出勤</div>
-							<div className="text-xs text-green-600 dark:text-green-400 mt-1">
-								{totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(1) : 0}%
-							</div>
-						</div>
-						<div className="text-center p-5 bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 rounded-xl border-2 border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
-							<div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">{lateDays}</div>
-							<div className="text-sm font-medium text-muted-foreground">迟到</div>
-							<div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-								{totalDays > 0 ? ((lateDays / totalDays) * 100).toFixed(1) : 0}%
-							</div>
-						</div>
-						<div className="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-							<div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{attendanceRate}%</div>
-							<div className="text-sm font-medium text-muted-foreground">出勤率</div>
-							<div className="mt-3">
-								<Progress 
-									value={parseFloat(attendanceRate)} 
-									className="h-2"
-								/>
-							</div>
-							<div className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center justify-center gap-1">
-								<TrendingUp className="h-3 w-3" />
-								整体表现
-							</div>
-						</div>
-					</div>
-
-					{/* 次要指标 */}
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-						<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
-							<div className="text-xl font-bold text-foreground mb-1">{totalRecords}</div>
-							<div className="text-xs text-muted-foreground">总打卡次数</div>
-						</div>
-						<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
-							<div className="text-xl font-bold text-foreground mb-1">{totalHours.toFixed(1)}</div>
-							<div className="text-xs text-muted-foreground">总工时(小时)</div>
-						</div>
-						<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
-							<div className="text-xl font-bold text-foreground mb-1">{avgHoursPerDay.toFixed(1)}</div>
-							<div className="text-xs text-muted-foreground">日均工时</div>
-						</div>
-						<div className="text-center p-4 bg-muted/40 rounded-lg border border-border/50 hover:bg-muted/60 transition-colors">
-							<div className="text-xl font-bold text-foreground mb-1">{totalDays > 0 ? (totalRecords / totalDays).toFixed(1) : 0}</div>
-							<div className="text-xs text-muted-foreground">日均打卡次数</div>
-						</div>
-					</div>
-
-					{/* 其他状态 */}
-					<div className="flex flex-wrap gap-2 pt-4 border-t">
-						<Badge variant="outline" className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800">
-							早退: {earlyLeaveDays}
-						</Badge>
-						<Badge variant="outline" className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">
-							缺勤: {absentDays}
-						</Badge>
-						<Badge variant="outline" className="bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-							请假: {onLeaveDays}
-						</Badge>
-					</div>
-				</CardContent>
-			</Card>
-
-			{/* 考勤记录 */}
+				{/* 考勤记录标签页 */}
+				<TabsContent value="attendance" className="space-y-6">
 			<Card className="shadow-md hover:shadow-lg transition-shadow">
 				<CardHeader className="bg-gradient-to-r from-primary/5 to-transparent border-b">
 					<div className="flex items-center justify-between">
@@ -1235,6 +1257,8 @@ function VolunteerDetailPage() {
 					)}
 				</CardContent>
 			</Card>
+				</TabsContent>
+			</Tabs>
 		</div>
 		</TooltipProvider>
 	);

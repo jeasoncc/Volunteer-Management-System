@@ -1,4 +1,4 @@
-import { LogOutIcon, MoreVerticalIcon, User2, Settings, KeyRound, Moon, Sun } from "lucide-react";
+import { LogOutIcon, MoreVerticalIcon, User2, Settings, Moon, Sun } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -141,10 +141,6 @@ export function NavUser({
 							<DropdownMenuItem onClick={handleSettings}>
 								<Settings />
 								个人设置
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={handleSettings}>
-								<KeyRound />
-								修改密码
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={toggleTheme}>
 								{theme === "light" ? <Moon /> : <Sun />}

@@ -2,18 +2,14 @@ import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-	Home,
 	Users,
 	ClipboardCheck,
 	Shield,
-	Settings,
-	FileText,
-	Plus
+	FileText
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
 import { LotusLogo } from "@/components/ui/lotus-logo";
-import { Button } from "@/components/ui/button";
 import {
 	Sidebar,
 	SidebarContent,
@@ -100,18 +96,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
 	const navMain = [
 		{
-			title: "首页",
-			url: "/",
-			icon: Home,
-		},
-		{
 			title: "义工管理",
 			url: "/volunteers",
 			icon: Users,
 			badge: "pending", // 待审批徽章显示在义工管理上
 		},
 		{
-			title: "往生者管理",
+			title: "往生管理",
 			url: "/deceased",
 			icon: LotusLogo,
 		},
@@ -131,19 +122,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			icon: FileText,
 		},
 		{
-			title: "设备与同步",
+			title: "设备同步",
 			url: "/devices",
 			icon: ClipboardCheck,
 		},
 		{
-			title: "管理员管理",
+			title: "系统管理",
 			url: "/admin",
 			icon: Shield,
-		},
-		{
-			title: "设置",
-			url: "/settings",
-			icon: Settings,
 		},
 	];
 
@@ -173,20 +159,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
-				
-				{/* 快捷操作按钮 - 仅在展开时显示 */}
-				<div className="px-2 py-2 group-data-[collapsible=icon]:hidden">
-					<Button 
-						className="w-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 shadow-none border border-transparent rounded-sm" 
-						size="sm"
-						asChild
-					>
-						<Link to="/volunteers" search={{ action: "add" }}>
-							<Plus className="h-4 w-4 mr-2" />
-							<span className="font-serif tracking-wide">新增义工</span>
-						</Link>
-					</Button>
-				</div>
 			</SidebarHeader>
 			
 			<SidebarContent>
