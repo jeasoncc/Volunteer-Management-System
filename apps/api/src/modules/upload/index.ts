@@ -186,12 +186,21 @@ export const uploadModule = new Elysia({ prefix: '/api/upload' })
         }
       }
 
+      // 获取前端地址（使用局域网IP）
+      const { getFrontendUrl } = await import('../../config/network')
+      const frontendUrl = getFrontendUrl()
+      const uploadUrl = `${frontendUrl}/mobile-upload?token=${token}`
+
       logger.info(`🔑 生成手机上传令牌: ${token}`)
+      logger.info(`📱 上传地址: ${uploadUrl}`)
 
       return {
         success: true,
         message: '令牌生成成功',
-        data: { token },
+        data: { 
+          token,
+          uploadUrl, // 返回完整的上传URL
+        },
       }
     } catch (error) {
       logger.error(`生成令牌失败: ${error}`)

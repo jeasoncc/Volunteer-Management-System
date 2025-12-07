@@ -17,6 +17,7 @@ import { documentModule } from './modules/document'
 import { uploadModule } from './modules/upload'
 import { deceasedModule } from './modules/deceased'
 import { chantingModule } from './modules/chanting'
+import { statsModule } from './modules/stats'
 import { startCronJobs } from './cron'
 
 dotenvExpand.expand(dotenv.config())
@@ -41,6 +42,7 @@ const app = new Elysia()
   .use(documentModule)
   .use(deceasedModule)
   .use(chantingModule)
+  .use(statsModule) // 统计数据模块（公开接口）
   .use(wsModule)
   .listen(3001)
 

@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getAvatarUrl } from "@/lib/image";
 import type { Volunteer } from "@/types";
 import { 
     User, Phone, Mail, MapPin, Calendar, 
@@ -119,7 +120,7 @@ export function VolunteerDetails({ volunteer }: VolunteerDetailsProps) {
             {/* 头部摘要 */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 bg-muted/30 rounded-lg border shadow-sm">
                 <Avatar className="h-24 w-24 border-4 border-background shadow-md">
-                    <AvatarImage src={volunteer.avatar} />
+                    <AvatarImage src={getAvatarUrl(volunteer.avatar)} />
                     <AvatarFallback className={`${getAvatarColor(volunteer.name)} text-white text-3xl font-bold`}>
                         {volunteer.name?.slice(0, 1)}
                     </AvatarFallback>

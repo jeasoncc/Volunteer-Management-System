@@ -7,10 +7,17 @@ import { Toaster } from "../components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { useEffect } from "react";
+import { initNetworkConfig } from "@/config/network";
 
 function RootComponent() {
 	const location = useLocation();
 	const isLoginPage = location.pathname === "/login";
+
+	// 初始化网络配置（从后端获取局域网IP）
+	useEffect(() => {
+		initNetworkConfig().catch(console.error);
+	}, []);
 
 	// 简单的面包屑生成逻辑
 	const pathSegments = location.pathname.split("/").filter(Boolean);

@@ -25,7 +25,8 @@ export async function checkUniqueFields(
 
   // 逐个检查每个字段
   for (const { field, value, message } of checks) {
-    if (value) {
+    // 只检查非空且非空字符串的值
+    if (value && value.trim() !== '') {
       const existing = await tx.select().from(volunteer).where(eq(volunteer[field], value)).limit(1)
 
       if (existing.length > 0) {

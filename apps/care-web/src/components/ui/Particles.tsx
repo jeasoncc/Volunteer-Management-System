@@ -1,6 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useInView } from "../../hooks/useInView";
-import { cn } from "../../lib/utils";
 
 interface ParticlesProps {
   className?: string;
@@ -40,7 +38,7 @@ export const Particles = ({
   const canvasSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
 
-  const [containerRef, isVisible] = useInView();
+
 
   useEffect(() => {
     if (canvasRef.current) {

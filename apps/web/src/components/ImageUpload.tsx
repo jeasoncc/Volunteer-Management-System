@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { X, User, Camera, Image as ImageIcon, Smartphone } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { MobileUploadDialog } from "./MobileUploadDialog";
+import { getAvatarUrl } from "@/lib/image";
 
 interface ImageUploadProps {
 	value?: string;
@@ -133,7 +134,7 @@ export function ImageUpload({
 			<div className="relative group">
 				<Avatar className="h-32 w-32 border-2 border-dashed border-muted-foreground/25">
 					{preview ? (
-						<AvatarImage src={preview} alt="预览" className="object-cover" />
+						<AvatarImage src={getAvatarUrl(preview) || preview} alt="预览" className="object-cover" />
 					) : (
 						<AvatarFallback className="bg-muted">
 							<User className="h-16 w-16 text-muted-foreground" />

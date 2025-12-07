@@ -3,8 +3,13 @@
  * 与前端 apps/web/src/config/network.ts 保持一致
  */
 
+import { getLocalIP } from '../lib/get-local-ip'
+
 // 环境类型
 export type Environment = 'development' | 'lan' | 'production'
+
+// 动态获取局域网IP
+const LOCAL_IP = getLocalIP()
 
 // 网络配置
 export const NETWORK_CONFIG = {
@@ -13,10 +18,10 @@ export const NETWORK_CONFIG = {
     frontend: 'http://localhost:3000',
     backend: 'http://localhost:3001',
   },
-  // 局域网环境
+  // 局域网环境（动态获取IP）
   lan: {
-    frontend: 'http://192.168.5.4:3000',
-    backend: 'http://192.168.5.4:3001',
+    frontend: `http://${LOCAL_IP}:3000`,
+    backend: `http://${LOCAL_IP}:3001`,
   },
   // 生产环境（外网）
   production: {
@@ -68,6 +73,7 @@ export const getFrontendUrl = (): string => {
 export const getNetworkInfo = () => {
   return {
     currentEnv: CURRENT_ENV,
+    localIP: LOCAL_IP,
     config: getCurrentConfig(),
     backendUrl: getBackendUrl(),
     frontendUrl: getFrontendUrl(),

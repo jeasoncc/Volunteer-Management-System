@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestRouteImport } from './routes/test'
 import { Route as StoriesRouteImport } from './routes/stories'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as JoinRouteImport } from './routes/join'
@@ -28,6 +29,11 @@ const TestRoute = TestRouteImport.update({
 const StoriesRoute = StoriesRouteImport.update({
   id: '/stories',
   path: '/stories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicesRoute = ServicesRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/news': typeof NewsRoute
   '/services': typeof ServicesRoute
+  '/stats': typeof StatsRoute
   '/stories': typeof StoriesRoute
   '/test': typeof TestRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/news': typeof NewsRoute
   '/services': typeof ServicesRoute
+  '/stats': typeof StatsRoute
   '/stories': typeof StoriesRoute
   '/test': typeof TestRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/news': typeof NewsRoute
   '/services': typeof ServicesRoute
+  '/stats': typeof StatsRoute
   '/stories': typeof StoriesRoute
   '/test': typeof TestRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/news'
     | '/services'
+    | '/stats'
     | '/stories'
     | '/test'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/news'
     | '/services'
+    | '/stats'
     | '/stories'
     | '/test'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/news'
     | '/services'
+    | '/stats'
     | '/stories'
     | '/test'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   NewsRoute: typeof NewsRoute
   ServicesRoute: typeof ServicesRoute
+  StatsRoute: typeof StatsRoute
   StoriesRoute: typeof StoriesRoute
   TestRoute: typeof TestRoute
 }
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   NewsRoute: NewsRoute,
   ServicesRoute: ServicesRoute,
+  StatsRoute: StatsRoute,
   StoriesRoute: StoriesRoute,
   TestRoute: TestRoute,
 }

@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/DataTable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/image";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -103,7 +104,7 @@ export function VolunteerDataTable({
 			cell: ({ row }) => (
 				<div className="flex items-center gap-3 py-1 group">
 					<Avatar className="h-9 w-9 border border-primary/20 shadow-sm transition-transform group-hover:scale-105">
-						<AvatarImage src={row.original.avatar} />
+						<AvatarImage src={getAvatarUrl(row.original.avatar)} />
 						<AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
 							{row.original.name.slice(0, 1)}
 						</AvatarFallback>

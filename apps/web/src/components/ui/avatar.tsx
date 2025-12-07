@@ -28,7 +28,14 @@ function AvatarImage({
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full object-cover", className)}
+      crossOrigin="anonymous"
+      onError={(e) => {
+        console.error('[Avatar] Image load error:', e.currentTarget.src);
+      }}
+      onLoad={() => {
+        console.log('[Avatar] Image loaded:', props.src);
+      }}
       {...props}
     />
   )

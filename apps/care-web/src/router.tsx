@@ -4,6 +4,7 @@ import { Route as rootRoute } from './routes/__root'
 import HomePage from './pages/HomePage'
 import { AboutPage } from './pages/AboutPage'
 import { ServicesPage } from './pages/ServicesPage'
+import { StatsPage } from './pages/StatsPage'
 import { StoriesPage } from './pages/StoriesPage'
 import { NewsPage } from './pages/NewsPage'
 import { JoinPage } from './pages/JoinPage'
@@ -28,6 +29,12 @@ const servicesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'services',
   component: ServicesPage,
+})
+
+const statsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'stats',
+  component: StatsPage,
 })
 
 const storiesRoute = createRoute({
@@ -76,6 +83,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   aboutRoute,
   servicesRoute,
+  statsRoute,
   storiesRoute,
   newsRoute,
   joinRoute,

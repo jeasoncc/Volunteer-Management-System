@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --port 4000",
     "build": "vite build && tsc",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:api": "bun run scripts/test-api.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.0",

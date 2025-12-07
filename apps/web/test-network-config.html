@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>网络配置测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌐 网络配置测试</h1>
+    
+    <div class="info">
+        <h3>当前浏览器信息：</h3>
+        <p>主机名: <strong id="hostname"></strong></p>
+        <p>端口: <strong id="port"></strong></p>
+        <p>完整URL: <strong id="origin"></strong></p>
+    </div>
+
+    <div class="info">
+        <h3>后端API信息：</h3>
+        <p>状态: <strong id="api-status">检查中...</strong></p>
+        <p>局域网IP: <strong id="local-ip">-</strong></p>
+        <p>前端地址: <strong id="frontend-url">-</strong></p>
+        <p>后端地址: <strong id="backend-url">-</strong></p>
+    </div>
+
+    <div class="info">
+        <h3>手机上传链接测试：</h3>
+        <p>生成的链接: <strong id="mobile-url">-</strong></p>
+        <p id="mobile-url-status"></p>
+    </div>
+
+    <button onclick="testConfig()">🔄 重新测试</button>
+    <button onclick="clearCache()">🗑️ 清除缓存</button>
+
+    <script>
+        // 显示当前浏览器信息
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('port').textContent = window.location.port || '3000';
+        document.getElementById('origin').textContent = window.location.origin;
+
+        async function testConfig() {
+            try {
+                // 测试后端API
+                const response = await fetch('http://localhost:3001/api/system/network');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('api-status').textContent = '✅ 正常';
+                    document.getElementById('api-status').parentElement.classList.add('success');
+                    
+                    document.getElementById('local-ip').textContent = data.data.localIP;
+                    document.getElementById('frontend-url').textContent = data.data.config.frontend;
+                    document.getElementById('backend-url').textContent = data.data.config.backend;
+                    
+                    // 生成手机上传链接
+                    const mobileUrl = `${data.data.config.frontend}/mobile-upload?token=test123`;
+                    document.getElementById('mobile-url').textContent = mobileUrl;
+                    
+                    // 检查链接是否正确
+                    if (mobileUrl.includes('localhost')) {
+                        document.getElementById('mobile-url-status').innerHTML = 
+                            '<span class="error">❌ 错误：链接包含localhost，手机无法访问！</span>';
+                    } else {
+                        document.getElementById('mobile-url-status').innerHTML = 
+                            '<span class="success">✅ 正确：链接使用局域网IP，手机可以访问</span>';
+                    }
+                    
+                    // 缓存IP到localStorage
+                    localStorage.setItem('localIP', data.data.localIP);
+                } else {
+                    throw new Error('API返回失败');
+                }
+            } catch (error) {
+                document.getElementById('api-status').textContent = '❌ 无法连接';
+                document.getElementById('api-status').parentElement.classList.add('error');
+                console.error('测试失败:', error);
+            }
+        }
+
+        function clearCache() {
+            localStorage.removeItem('localIP');
+            alert('缓存已清除！请刷新页面。');
+        }
+
+        // 页面加载时自动测试
+        testConfig();
+    </script>
+</body>
+</html>

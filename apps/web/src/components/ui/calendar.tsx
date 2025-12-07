@@ -2,6 +2,7 @@ import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export interface CalendarProps {
   mode?: "single" | "range"
@@ -170,6 +171,35 @@ export function Calendar({
     }))
   }
 
+  // 设置年份
+  const setYear = (year: number) => {
+    setState(prev => ({
+      ...prev,
+      currentMonth: new Date(year, prev.currentMonth.getMonth(), 1),
+    }))
+  }
+
+  // 设置月份
+  const setMonth = (month: number) => {
+    setState(prev => ({
+      ...prev,
+      currentMonth: new Date(prev.currentMonth.getFullYear(), month, 1),
+    }))
+  }
+
+  // 生成年份选项（从1900年到当前年份+10年）
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear()
+    const years: number[] = []
+    for (let year = 1900; year <= currentYear + 10; year++) {
+      years.push(year)
+    }
+    return years.reverse() // 最新的年份在前面
+  }
+
+  // 生成月份选项
+  const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+
   // 渲染单个月份
   const renderMonth = (monthOffset: number = 0) => {
     const monthDate = new Date(
@@ -182,26 +212,60 @@ export function Calendar({
 
     return (
       <div key={monthOffset} className="space-y-4">
-        {/* 月份标题 */}
-        <div className="flex items-center justify-between">
+        {/* 月份标题 - 改进版，支持快速选择年月 */}
+        <div className="flex items-center justify-between gap-2">
           {monthOffset === 0 && (
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-8 w-8 shrink-0"
               onClick={() => changeMonth(-1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
           )}
-          <div className="text-sm font-medium flex-1 text-center">
-            {monthDate.getFullYear()}年{monthDate.getMonth() + 1}月
+          
+          <div className="flex items-center gap-2 flex-1 justify-center">
+            {/* 年份选择器 */}
+            <Select
+              value={monthDate.getFullYear().toString()}
+              onValueChange={(value) => setYear(parseInt(value))}
+            >
+              <SelectTrigger className="h-8 w-[100px] text-sm font-medium">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {generateYearOptions().map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}年
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* 月份选择器 */}
+            <Select
+              value={monthDate.getMonth().toString()}
+              onValueChange={(value) => setMonth(parseInt(value))}
+            >
+              <SelectTrigger className="h-8 w-[80px] text-sm font-medium">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthNames.map((name, index) => (
+                  <SelectItem key={index} value={index.toString()}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
           {monthOffset === numberOfMonths - 1 && (
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-8 w-8 shrink-0"
               onClick={() => changeMonth(1)}
             >
               <ChevronRight className="h-4 w-4" />

@@ -4,7 +4,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Copy, Check, RefreshCw } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { getFrontendUrl, isLocalhost, LOCAL_IP } from "@/config/network";
+import { isLocalhost } from "@/config/network";
 
 interface MobileUploadDialogProps {
 	open: boolean;
@@ -22,10 +22,31 @@ export function MobileUploadDialog({
 	const [copied, setCopied] = useState(false);
 	const [checking, setChecking] = useState(false);
 	const [uploadToken, setUploadToken] = useState(initialToken);
+	const [uploadUrl, setUploadUrl] = useState<string>(''); // 从后端获取
 	const [regenerating, setRegenerating] = useState(false);
 
-	// 生成手机上传链接 - 使用全局配置
-	const uploadUrl = `${getFrontendUrl(true)}/mobile-upload?token=${uploadToken}`;
+	// 初始化时从后端获取完整的上传URL
+	useEffect(() => {
+		const fetchUploadUrl = async () => {
+			try {
+				const { api } = await import("@/lib/api");
+				const data: any = await api.post("/api/upload/token");
+				
+				if (data.data?.token && data.data?.uploadUrl) {
+					setUploadToken(data.data.token);
+					setUploadUrl(data.data.uploadUrl);
+					console.log('✅ 获取上传URL:', data.data.uploadUrl);
+				}
+			} catch (error) {
+				console.error('获取上传URL失败:', error);
+			}
+		};
+		
+		if (open && !uploadUrl) {
+			fetchUploadUrl();
+		}
+	}, [open, uploadUrl]);
+
 	const isLocal = isLocalhost();
 
 	// 重新生成令牌
@@ -35,11 +56,12 @@ export function MobileUploadDialog({
 			const { api } = await import("@/lib/api");
 			const data: any = await api.post("/api/upload/token");
 
-			if (!data.data?.token) {
+			if (!data.data?.token || !data.data?.uploadUrl) {
 				throw new Error("获取上传令牌失败");
 			}
 
 			setUploadToken(data.data.token);
+			setUploadUrl(data.data.uploadUrl);
 			toast.success("二维码已刷新");
 		} catch (error: any) {
 			console.error("重新生成令牌失败:", error);
@@ -184,9 +206,9 @@ export function MobileUploadDialog({
 						<p className="mt-1 text-blue-600 dark:text-blue-400">
 							💡 如果提示"令牌过期"，点击上方"刷新二维码"按钮
 						</p>
-						{isLocal && (
+						{uploadUrl && (
 							<p className="mt-2 text-green-600 dark:text-green-400 font-medium">
-								✅ 已自动使用局域网IP：{LOCAL_IP}
+								✅ 已自动使用局域网IP
 								<br />
 								请确保手机和电脑在同一WiFi网络
 							</p>
