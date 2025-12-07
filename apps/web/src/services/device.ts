@@ -74,6 +74,27 @@ export const deviceService = {
 		return api.post("/send/retryFailedWithBase64", { failedUsers });
 	},
 
+	retryFailedUsersWithoutCompression: async (failedUsers: Array<{ lotusId: string; name: string }>): Promise<ApiResponse> => {
+		return api.post("/send/retryFailedWithoutCompression", { failedUsers });
+	},
+
+	getCompressionConfig: async (): Promise<ApiResponse<any>> => {
+		return api.get("/compression/config");
+	},
+
+	updateCompressionConfig: async (config: {
+		threshold?: number;
+		targetSize?: number;
+		strategies?: Array<{
+			minSizeKB: number;
+			quality: number;
+			maxWidth: number;
+			description: string;
+		}>;
+	}): Promise<ApiResponse<any>> => {
+		return api.post("/compression/config", config);
+	},
+
 	// 同步历史相关
 	getSyncBatches: async (params?: { 
 		page?: number; 

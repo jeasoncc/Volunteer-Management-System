@@ -44,6 +44,7 @@ export function mapToUpdateData(
     ...(body.severPosition !== undefined && { severPosition: body.severPosition ?? null }),
     ...(body.familyConsent !== undefined && { familyConsent: body.familyConsent ?? null }),
     ...(body.requireFullAttendance !== undefined && { requireFullAttendance: body.requireFullAttendance }),
+    ...(body.attendanceTier !== undefined && { attendanceTier: body.attendanceTier }),
 
     // 系统字段
     updatedAt: new Date(),

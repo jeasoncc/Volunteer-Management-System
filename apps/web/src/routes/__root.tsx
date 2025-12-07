@@ -5,6 +5,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { NotFound } from "../components/NotFound";
 import { Toaster } from "../components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AppearanceProvider } from "@/components/AppearanceProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useEffect } from "react";
@@ -46,26 +47,28 @@ function RootComponent() {
 	return (
 		<ErrorBoundary>
 			<ThemeProvider>
-				{isLoginPage ? (
-					<Outlet />
-				) : (
-					<DashboardLayout breadcrumbs={breadcrumbs}>
+				<AppearanceProvider>
+					{isLoginPage ? (
 						<Outlet />
-					</DashboardLayout>
-				)}
-				<Toaster />
-				<ReactQueryDevtools buttonPosition="bottom-left" />
-				<TanStackDevtools
-					config={{
-						position: "bottom-right",
-					}}
-					plugins={[
-						{
-							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
-					]}
-				/>
+					) : (
+						<DashboardLayout breadcrumbs={breadcrumbs}>
+							<Outlet />
+						</DashboardLayout>
+					)}
+					<Toaster />
+					<ReactQueryDevtools buttonPosition="bottom-left" />
+					<TanStackDevtools
+						config={{
+							position: "bottom-right",
+						}}
+						plugins={[
+							{
+								name: "Tanstack Router",
+								render: <TanStackRouterDevtoolsPanel />,
+							},
+						]}
+					/>
+				</AppearanceProvider>
 			</ThemeProvider>
 		</ErrorBoundary>
 	);

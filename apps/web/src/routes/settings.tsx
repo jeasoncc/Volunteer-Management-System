@@ -12,8 +12,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { volunteerService } from "@/services/volunteer";
-import { User, Lock, Bell } from "lucide-react";
+import { User, Lock, Bell, Palette } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { AppearanceSettings } from "@/components/AppearanceSettings";
+import { NotificationSettings } from "@/components/NotificationSettings";
+import { DataSettings } from "@/components/DataSettings";
+import { SecuritySettings } from "@/components/SecuritySettings";
 
 export const Route = createFileRoute("/settings")({
 	component: SettingsPage,
@@ -178,50 +182,16 @@ function SettingsPage() {
 				</Card>
 
 				{/* 通知设置 */}
-				<Card>
-					<CardHeader>
-						<div className="flex items-center gap-2">
-							<Bell className="h-5 w-5" />
-							<CardTitle>通知设置</CardTitle>
-						</div>
-						<CardDescription>管理您的通知偏好</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="font-medium">考勤提醒</p>
-								<p className="text-sm text-muted-foreground">
-									每日考勤打卡提醒
-								</p>
-							</div>
-							<Button variant="outline" size="sm">
-								即将推出
-							</Button>
-						</div>
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="font-medium">排班通知</p>
-								<p className="text-sm text-muted-foreground">
-									助念排班变更通知
-								</p>
-							</div>
-							<Button variant="outline" size="sm">
-								即将推出
-							</Button>
-						</div>
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="font-medium">系统消息</p>
-								<p className="text-sm text-muted-foreground">
-									系统更新和重要通知
-								</p>
-							</div>
-							<Button variant="outline" size="sm">
-								即将推出
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
+				<NotificationSettings />
+
+				{/* 美化设置 */}
+				<AppearanceSettings />
+
+				{/* 数据设置 */}
+				<DataSettings />
+
+				{/* 账户安全 */}
+				<SecuritySettings />
 
 				{/* 系统信息 */}
 				<Card>

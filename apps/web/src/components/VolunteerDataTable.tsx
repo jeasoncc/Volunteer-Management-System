@@ -147,17 +147,21 @@ export function VolunteerDataTable({
 				const volunteerId = row.original.volunteerId;
 				if (!volunteerId) return <span className="text-muted-foreground text-xs">-</span>;
 				return (
-					<div 
-						className="flex items-center gap-1 text-xs font-mono text-foreground cursor-pointer hover:text-primary transition-colors group"
-						onClick={(e) => {
-							e.stopPropagation();
-							navigator.clipboard.writeText(volunteerId);
-							toast.success("义工号已复制");
-						}}
-						title="点击复制义工号"
-					>
-						<span>{volunteerId}</span>
-						<Copy className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+					<div className="flex items-center gap-1.5 group">
+						<Badge variant="outline" className="font-mono text-accent-foreground border-accent/30 bg-accent/10">
+							{volunteerId}
+						</Badge>
+						<button
+							onClick={(e) => {
+								e.stopPropagation();
+								navigator.clipboard.writeText(volunteerId);
+								toast.success("义工号已复制");
+							}}
+							className="opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-1 transition-all"
+							title="复制义工号"
+						>
+							<Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+						</button>
 					</div>
 				);
 			},
@@ -171,10 +175,10 @@ export function VolunteerDataTable({
 					string,
 					{ label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }
 				> = {
-					registered: { label: "已注册", variant: "outline", className: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900" },
-					trainee: { label: "培训中", variant: "outline", className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900" },
-					applicant: { label: "申请中", variant: "outline", className: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-900" },
-					inactive: { label: "未激活", variant: "secondary", className: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
+					registered: { label: "已注册", variant: "outline", className: "bg-primary/10 text-primary border-primary/30" },
+					trainee: { label: "培训中", variant: "outline", className: "bg-accent/10 text-accent-foreground border-accent/30" },
+					applicant: { label: "申请中", variant: "outline", className: "bg-secondary/10 text-secondary-foreground border-secondary/30" },
+					inactive: { label: "未激活", variant: "secondary", className: "" },
 					suspended: { label: "已暂停", variant: "destructive", className: "" },
 				};
 				const config = statusConfig[status] || {
@@ -193,12 +197,24 @@ export function VolunteerDataTable({
 			header: "满勤",
 			cell: ({ row }) => {
 				const requireFullAttendance = row.original.requireFullAttendance;
+				const attendanceTier = row.original.attendanceTier || 6;
+				
+				// 根据档位设置不同颜色 - 使用不同主题色
+				const tierColors = {
+					1: "bg-muted text-muted-foreground border-border",
+					2: "bg-secondary/10 text-secondary-foreground border-secondary/30",
+					3: "bg-accent/10 text-accent-foreground border-accent/30",
+					4: "bg-primary/10 text-primary border-primary/30",
+					5: "bg-primary/15 text-primary border-primary/40",
+					6: "bg-primary/20 text-primary border-primary/50",
+				};
+				
 				return (
 					<div className="flex items-center justify-center">
 						{requireFullAttendance ? (
-							<Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900">
+							<Badge variant="outline" className={tierColors[attendanceTier as keyof typeof tierColors] || tierColors[6]}>
 								<CheckCircle className="h-3 w-3 mr-1" />
-								满勤
+								{attendanceTier}档
 							</Badge>
 						) : (
 							<span className="text-xs text-muted-foreground">-</span>

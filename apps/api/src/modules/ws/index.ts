@@ -258,6 +258,93 @@ export const wsModule = new Elysia()
   })
 
   /**
+   * 不压缩重试失败的用户（使用原始照片）
+   */
+  .post('/send/retryFailedWithoutCompression', async ({ body }) => {
+    const { failedUsers } = body as any
+    return await WebSocketService.retryFailedUsersWithoutCompression(failedUsers)
+  })
+
+  /**
+   * 获取压缩配置信息
+   */
+  .get('/compression/config', async () => {
+    const { COMPRESSION_CONFIG } = await import('../../config/compression')
+    return {
+      success: true,
+      data: {
+        thresholdKB: Math.round(COMPRESSION_CONFIG.threshold / 1024),
+        quality: COMPRESSION_CONFIG.quality,
+        maxWidth: COMPRESSION_CONFIG.maxWidth,
+      },
+    }
+  })
+
+  /**
+   * 更新压缩配置
+   */
+  .post('/compression/config', async ({ body }) => {
+    const { COMPRESSION_CONFIG } = await import('../../config/compression')
+    const { threshold, quality, maxWidth } = body as any
+    const { join } = await import('path')
+    const { existsSync, readdirSync, unlinkSync } = await import('fs')
+
+    // 验证参数
+    if (threshold !== undefined) {
+      if (threshold < 100 || threshold > 5000) {
+        return { success: false, message: '压缩阈值必须在 100-5000 KB 之间' }
+      }
+      COMPRESSION_CONFIG.threshold = threshold * 1024
+    }
+    
+    if (quality !== undefined) {
+      if (quality < 70 || quality > 100) {
+        return { success: false, message: '压缩质量必须在 70-100 之间' }
+      }
+      COMPRESSION_CONFIG.quality = quality
+    }
+    
+    if (maxWidth !== undefined) {
+      if (maxWidth < 1024 || maxWidth > 4096) {
+        return { success: false, message: '最大宽度必须在 1024-4096 之间' }
+      }
+      COMPRESSION_CONFIG.maxWidth = maxWidth
+    }
+
+    // 清除缩略图缓存
+    try {
+      const thumbnailDir = join(process.cwd(), 'public/upload/avatar/thumbnails')
+      if (existsSync(thumbnailDir)) {
+        const files = readdirSync(thumbnailDir)
+        let deletedCount = 0
+        for (const file of files) {
+          if (file.startsWith('thumb_')) {
+            unlinkSync(join(thumbnailDir, file))
+            deletedCount++
+          }
+        }
+        if (deletedCount > 0) {
+          logger.info(`🗑️  已清除 ${deletedCount} 个缩略图缓存`)
+        }
+      }
+    } catch (error: any) {
+      logger.warn(`⚠️  清除缓存失败: ${error.message}`)
+    }
+
+    logger.info(`✅ 压缩配置已更新: 质量${COMPRESSION_CONFIG.quality}%, 宽度${COMPRESSION_CONFIG.maxWidth}px`)
+    
+    return {
+      success: true,
+      message: '配置已更新，缓存已清除',
+      data: {
+        thresholdKB: Math.round(COMPRESSION_CONFIG.threshold / 1024),
+        quality: COMPRESSION_CONFIG.quality,
+        maxWidth: COMPRESSION_CONFIG.maxWidth,
+      },
+    }
+  })
+
+  /**
    * 删除所有用户
    */
   .post(

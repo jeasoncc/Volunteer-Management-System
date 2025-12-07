@@ -94,11 +94,17 @@ class SyncProgressManager {
   /**
    * 记录确认成功
    */
-  incrementConfirmed(userId: string, name: string) {
+  incrementConfirmed(userId: string, name: string, photoInfo?: string) {
     this.progress.confirmed++
     this.recordProcessTime()
     this.updateEstimatedTime()
-    this.addLog('success', `✅ 成功: ${name} (${userId})`, userId)
+    
+    // 如果有照片信息，添加到成功消息中
+    const message = photoInfo 
+      ? `✅ 成功: ${name} (${userId}) [${photoInfo}]`
+      : `✅ 成功: ${name} (${userId})`
+    
+    this.addLog('success', message, userId)
     this.checkCompletion()
     this.notifyListeners()
   }
@@ -106,12 +112,18 @@ class SyncProgressManager {
   /**
    * 记录失败
    */
-  incrementFailed(userId: string, name: string, reason: string) {
+  incrementFailed(userId: string, name: string, reason: string, photoInfo?: string) {
     this.progress.failed++
     this.progress.failedUsers.push({ lotusId: userId, name, reason })
     this.recordProcessTime()
     this.updateEstimatedTime()
-    this.addLog('error', `❌ 失败: ${name} (${userId}) - ${reason}`, userId)
+    
+    // 如果有照片信息，添加到失败消息中
+    const message = photoInfo 
+      ? `❌ 失败: ${name} (${userId}) - ${reason} [${photoInfo}]`
+      : `❌ 失败: ${name} (${userId}) - ${reason}`
+    
+    this.addLog('error', message, userId)
     this.checkCompletion()
     this.notifyListeners()
   }
@@ -157,6 +169,14 @@ class SyncProgressManager {
   incrementSkipped(userId: string, name: string, reason: string) {
     this.progress.skipped++
     this.addLog('warning', `⏭️ 跳过: ${name} (${userId}) - ${reason}`, userId)
+    this.notifyListeners()
+  }
+
+  /**
+   * 添加自定义日志（公共方法）
+   */
+  addCustomLog(type: SyncLog['type'], message: string, userId?: string) {
+    this.addLog(type, message, userId)
     this.notifyListeners()
   }
 

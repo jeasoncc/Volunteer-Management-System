@@ -59,6 +59,7 @@ export function VolunteerForm({
 			severPosition: volunteer?.severPosition || "other",
 			familyConsent: volunteer?.familyConsent || "self_decided",
 			requireFullAttendance: volunteer?.requireFullAttendance || false,
+			attendanceTier: volunteer?.attendanceTier || 6, // 默认6档（12小时）
 		},
 		onSubmit: async ({ value }) => {
 			await onSubmit(value);
@@ -589,28 +590,63 @@ export function VolunteerForm({
 								</form.Field>
 							</div>
 
-							<div className="space-y-2">
+							<div className="space-y-2 md:col-span-2">
 								<Label className="flex items-center gap-2">
 									<CheckCircle className="h-4 w-4 text-muted-foreground" />
 									满勤配置
 								</Label>
-								<form.Field name="requireFullAttendance">
-									{(field) => (
-										<div className="flex items-center space-x-3 h-10 px-3 border rounded-md bg-background">
-											<Switch
-												id="requireFullAttendance"
-												checked={field.state.value}
-												onCheckedChange={(checked: boolean) => field.handleChange(checked)}
-											/>
-											<label
-												htmlFor="requireFullAttendance"
-												className="text-sm font-medium leading-none cursor-pointer select-none"
-											>
-												导出考勤时自动填充满勤（每天12小时）
-											</label>
-										</div>
-									)}
-								</form.Field>
+								<div className="space-y-3">
+									<form.Field name="requireFullAttendance">
+										{(field) => (
+											<div className="flex items-center space-x-3 h-10 px-3 border rounded-md bg-background">
+												<Switch
+													id="requireFullAttendance"
+													checked={field.state.value}
+													onCheckedChange={(checked: boolean) => field.handleChange(checked)}
+												/>
+												<label
+													htmlFor="requireFullAttendance"
+													className="text-sm font-medium leading-none cursor-pointer select-none"
+												>
+													导出考勤时自动填充满勤
+												</label>
+											</div>
+										)}
+									</form.Field>
+									
+									{/* 档位选择 - 只在勾选满勤时显示 */}
+									<form.Subscribe selector={(state) => state.values.requireFullAttendance}>
+										{(requireFullAttendance) =>
+											requireFullAttendance && (
+												<form.Field name="attendanceTier">
+													{(field) => (
+														<div className="flex items-center gap-3 pl-3">
+															<Label htmlFor="attendanceTier" className="text-sm text-muted-foreground whitespace-nowrap">
+																满勤档位：
+															</Label>
+															<Select
+																value={String(field.state.value)}
+																onValueChange={(value) => field.handleChange(Number(value))}
+															>
+																<SelectTrigger id="attendanceTier" className="h-9">
+																	<SelectValue />
+																</SelectTrigger>
+																<SelectContent>
+																	<SelectItem value="1">1档 - 2小时</SelectItem>
+																	<SelectItem value="2">2档 - 4小时</SelectItem>
+																	<SelectItem value="3">3档 - 6小时</SelectItem>
+																	<SelectItem value="4">4档 - 8小时（标准）</SelectItem>
+																	<SelectItem value="5">5档 - 10小时</SelectItem>
+																	<SelectItem value="6">6档 - 12小时（全天）</SelectItem>
+																</SelectContent>
+															</Select>
+														</div>
+													)}
+												</form.Field>
+											)
+										}
+									</form.Subscribe>
+								</div>
 							</div>
 
 							<div className="space-y-2 md:col-span-2">

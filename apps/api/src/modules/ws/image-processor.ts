@@ -6,10 +6,11 @@
 import { join } from 'path'
 import { existsSync, statSync, writeFileSync, readFileSync, mkdirSync } from 'fs'
 import { logger } from '../../lib/logger'
+import { COMPRESSION_CONFIG, getCompressionStrategy } from '../../config/compression'
 
-// 图片大小限制（字节）
-const MAX_IMAGE_SIZE = 500 * 1024 // 500KB
-const TARGET_IMAGE_SIZE = 300 * 1024 // 压缩目标 300KB
+// 从配置文件读取
+const MAX_IMAGE_SIZE = COMPRESSION_CONFIG.threshold
+const TARGET_IMAGE_SIZE = COMPRESSION_CONFIG.targetSize
 
 // 缩略图目录
 const THUMBNAIL_DIR = join(process.cwd(), 'public/upload/avatar/thumbnails')
@@ -114,24 +115,15 @@ export async function compressImage(avatarPath: string): Promise<CompressionResu
     // 尝试使用 sharp 进行压缩
     const sharp = await import('sharp')
     
-    const imageInfo = await sharp.default(fullPath).metadata()
+    // 使用简化的压缩配置
+    const quality = COMPRESSION_CONFIG.quality
+    const maxWidth = COMPRESSION_CONFIG.maxWidth
     
-    // 计算压缩参数
-    let quality = 80
-    let width = imageInfo.width || 800
-    
-    // 如果图片太大，逐步降低质量和尺寸
-    if (originalSize > MAX_IMAGE_SIZE * 2) {
-      quality = 60
-      width = Math.min(width, 600)
-    } else if (originalSize > MAX_IMAGE_SIZE) {
-      quality = 70
-      width = Math.min(width, 800)
-    }
+    logger.info(`📋 压缩参数: 质量${quality}%, 最大宽度${maxWidth}px`)
 
     // 压缩图片
     await sharp.default(fullPath)
-      .resize(width, null, { 
+      .resize(maxWidth, null, { 
         withoutEnlargement: true,
         fit: 'inside'
       })
@@ -139,7 +131,7 @@ export async function compressImage(avatarPath: string): Promise<CompressionResu
       .toFile(thumbnailPath)
 
     const compressedSize = statSync(thumbnailPath).size
-    logger.success(`✅ 图片压缩成功: ${(originalSize / 1024).toFixed(1)}KB -> ${(compressedSize / 1024).toFixed(1)}KB`)
+    logger.success(`✅ 图片压缩成功: ${(originalSize / 1024).toFixed(1)}KB 压缩至 ${(compressedSize / 1024).toFixed(1)}KB`)
     
     return {
       path: thumbnailUrlPath,

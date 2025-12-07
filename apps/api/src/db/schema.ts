@@ -115,6 +115,7 @@ export const volunteer = mysqlTable('volunteer', {
   roomId:               int('room_id').default(0),
   syncToAttendance:     boolean('sync_to_attendance').default(false), // 是否同步到考勤机
   requireFullAttendance: boolean('require_full_attendance').default(false), // 是否需要考勤全勤配置
+  attendanceTier:       int('attendance_tier').default(6), // 满勤档位：1-6档，默认6档（12小时）
   createdAt:            timestamp('created_at').defaultNow(),
   updatedAt:            timestamp('updated_at').defaultNow().onUpdateNow(),
 })

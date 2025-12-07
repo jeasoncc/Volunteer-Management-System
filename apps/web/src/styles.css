@@ -763,6 +763,33 @@
   --sidebar-border: oklch(0.19 0.05 175);
 }
 
+/* === 美化设置 CSS 变量 === */
+:root {
+  /* 默认值，会被 AppearanceProvider 动态覆盖 */
+  --app-font-size-base: 1rem;
+  --app-radius: 0.25rem;
+  --app-spacing-multiplier: 1;
+  --app-animation-multiplier: 1;
+  --app-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --app-transition-duration: 300ms;
+}
+
+/* 紧凑模式 */
+.app-compact {
+  --app-spacing-multiplier: 0.75;
+}
+
+/* 减少动画模式（无障碍） */
+.app-reduced-motion,
+.app-reduced-motion *,
+.app-reduced-motion *::before,
+.app-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 @layer base {
   * {
     border-color: var(--border);
@@ -772,12 +799,55 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    font-size: var(--app-font-size-base);
+    transition: font-size var(--app-transition-duration) ease;
   }
   /* 标题使用衬线体 */
   h1, h2, h3, h4, h5, h6 {
     font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     font-weight: 600;
     letter-spacing: 0.02em;
+  }
+  
+  /* 应用圆角设置 */
+  button, input, textarea, select,
+  [role="button"], [role="textbox"],
+  .card, .card-header, .card-content,
+  .dropdown-menu, .popover, .dialog,
+  .alert, .badge, .avatar {
+    border-radius: var(--app-radius);
+    transition: border-radius var(--app-transition-duration) ease;
+  }
+  
+  /* 应用阴影设置 */
+  .card, .dropdown-menu, .popover, .dialog,
+  .alert, .button[data-variant="elevated"] {
+    box-shadow: var(--app-shadow);
+    transition: box-shadow var(--app-transition-duration) ease;
+  }
+  
+  /* 应用动画倍数 */
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px);
+    }
+    50% { 
+      transform: translateY(calc(-10px * var(--app-animation-multiplier)));
+    }
+  }
+  
+  @keyframes glow-pulse {
+    0%, 100% { 
+      opacity: calc(0.9 * var(--app-animation-multiplier));
+      text-shadow: 0 0 calc(2px * var(--app-animation-multiplier)) currentColor, 
+                   0 0 calc(4px * var(--app-animation-multiplier)) currentColor;
+    }
+    50% { 
+      opacity: 1;
+      text-shadow: 0 0 calc(8px * var(--app-animation-multiplier)) currentColor, 
+                   0 0 calc(16px * var(--app-animation-multiplier)) currentColor, 
+                   0 0 calc(24px * var(--app-animation-multiplier)) currentColor;
+    }
   }
 }
 

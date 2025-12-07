@@ -39,6 +39,7 @@ import {
 	Binary,
 	Search,
 	Users,
+	Info,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -46,6 +47,7 @@ import { useSyncWebSocket } from "@/hooks/useSyncWebSocket";
 import { deviceService } from "@/services/device";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { CompressionConfigDialog } from "@/components/CompressionConfigDialog";
 
 export const Route = createFileRoute("/devices")({
 	component: DevicesPage,
@@ -69,6 +71,19 @@ function DevicesPage() {
 	const [compareResult, setCompareResult] = useState<any>(null);
 	const [showCompareView, setShowCompareView] = useState<"all" | "inDevice" | "notInDevice" | "orphaned">("all");
 	const logsEndRef = useRef<HTMLDivElement>(null);
+	
+	// 日志筛选
+	const [logFilter, setLogFilter] = useState<"all" | "success" | "error" | "warning" | "info">("all");
+	
+	// 压缩配置对话框
+	const [showConfigDialog, setShowConfigDialog] = useState(false);
+
+	// 获取压缩配置
+	const { data: compressionConfigData } = useQuery({
+		queryKey: ["compression", "config"],
+		queryFn: () => deviceService.getCompressionConfig(),
+		staleTime: 60000, // 1分钟缓存
+	});
 
 	// 设备状态查询
 	const {
@@ -200,6 +215,15 @@ function DevicesPage() {
 			deviceService.retryFailedUsersWithBase64(failedUsers),
 		onSuccess: () => {
 			toast.info("重试命令已发送，等待考勤机确认...");
+		},
+		onError: (error: any) => toast.error(error.message || "重试失败"),
+	})
+
+	const retryWithoutCompressionMutation = useMutation({
+		mutationFn: (failedUsers: Array<{ lotusId: string; name: string }>) =>
+			deviceService.retryFailedUsersWithoutCompression(failedUsers),
+		onSuccess: () => {
+			toast.info("不压缩重试命令已发送，使用原始照片...");
 		},
 		onError: (error: any) => toast.error(error.message || "重试失败"),
 	})
@@ -508,6 +532,39 @@ function DevicesPage() {
 									开始同步
 								</Button>
 							</div>
+
+							{/* 压缩配置说明 */}
+							{photoFormat === "url" && compressionConfigData?.data && (
+								<div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+									<div className="flex items-start gap-2">
+										<Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+										<div className="text-sm space-y-1 flex-1">
+											<div className="flex items-center justify-between">
+												<div className="font-medium text-blue-900 dark:text-blue-100">
+													照片压缩配置
+												</div>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() => setShowConfigDialog(true)}
+													className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
+												>
+													<FileEdit className="h-3 w-3 mr-1" />
+													修改配置
+												</Button>
+											</div>
+											<div className="text-blue-700 dark:text-blue-300 space-y-0.5">
+												<div>• 压缩阈值：<span className="font-mono font-semibold">{compressionConfigData.data.thresholdKB}KB</span> - 超过此大小将自动压缩</div>
+												<div>• 压缩质量：<span className="font-mono font-semibold">{compressionConfigData.data.quality}%</span> - 数值越高质量越好</div>
+												<div>• 最大宽度：<span className="font-mono font-semibold">{compressionConfigData.data.maxWidth}px</span> - 超过会缩小</div>
+												<div className="text-xs mt-1 pt-1 border-t border-blue-200 dark:border-blue-800">
+													💡 示例：2MB 照片 → 压缩至约 {Math.round(2000 * (compressionConfigData.data.quality / 100) * 0.4)}KB
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							)}
 						</div>
 					)}
 
@@ -531,6 +588,20 @@ function DevicesPage() {
 												? "同步完成"
 												: "同步中断"}
 									</span>
+									{isSyncing && (
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => {
+												setSyncProgress(null);
+												toast.info("已强制停止同步");
+											}}
+											className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+										>
+											<XCircle className="h-4 w-4 mr-1" />
+											强制停止
+										</Button>
+									)}
 									{syncProgress.batchId && (
 										<Badge variant="outline" className="text-xs font-mono">
 											{syncProgress.batchId}
@@ -568,50 +639,112 @@ function DevicesPage() {
 
 							{/* 统计数据 */}
 							<div className="grid grid-cols-4 gap-3">
-								<div className="text-center p-3 bg-muted/50 rounded-lg">
+								<div 
+									className="text-center p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
+									onClick={() => setLogFilter("all")}
+									title="点击查看所有日志"
+								>
 									<div className="text-xl font-bold">{syncProgress.sent}</div>
 									<div className="text-xs text-muted-foreground">已发送</div>
+									{logFilter === "all" && (
+										<div className="mt-1 h-0.5 bg-primary rounded-full" />
+									)}
 								</div>
-								<div className="text-center p-3 bg-green-50 rounded-lg">
+								<div 
+									className="text-center p-3 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+									onClick={() => setLogFilter("success")}
+									title="点击查看成功日志"
+								>
 									<div className="text-xl font-bold text-green-600">
 										{syncProgress.confirmed}
 									</div>
 									<div className="text-xs text-green-600">成功</div>
+									{logFilter === "success" && (
+										<div className="mt-1 h-0.5 bg-green-600 rounded-full" />
+									)}
 								</div>
-								<div className="text-center p-3 bg-red-50 rounded-lg">
+								<div 
+									className="text-center p-3 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
+									onClick={() => setLogFilter("error")}
+									title="点击查看失败日志"
+								>
 									<div className="text-xl font-bold text-red-600">
 										{syncProgress.failed}
 									</div>
 									<div className="text-xs text-red-600">失败</div>
+									{logFilter === "error" && (
+										<div className="mt-1 h-0.5 bg-red-600 rounded-full" />
+									)}
 								</div>
-								<div className="text-center p-3 bg-amber-50 rounded-lg">
+								<div 
+									className="text-center p-3 bg-amber-50 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
+									onClick={() => setLogFilter("warning")}
+									title="点击查看跳过日志"
+								>
 									<div className="text-xl font-bold text-amber-600">
 										{syncProgress.skipped}
 									</div>
 									<div className="text-xs text-amber-600">跳过</div>
+									{logFilter === "warning" && (
+										<div className="mt-1 h-0.5 bg-amber-600 rounded-full" />
+									)}
 								</div>
 							</div>
 
 							{/* 实时日志 */}
 							{syncProgress.logs && syncProgress.logs.length > 0 && (
 								<div>
-									<div className="text-sm font-medium mb-2">同步日志</div>
+									<div className="flex items-center justify-between mb-2">
+										<div className="text-sm font-medium">
+											同步日志
+											{logFilter !== "all" && (
+												<span className="ml-2 text-xs text-muted-foreground">
+													(已筛选: {
+														logFilter === "success" ? "成功" :
+														logFilter === "error" ? "失败" :
+														logFilter === "warning" ? "跳过" : "信息"
+													})
+												</span>
+											)}
+										</div>
+										{logFilter !== "all" && (
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => setLogFilter("all")}
+												className="h-6 text-xs"
+											>
+												显示全部
+											</Button>
+										)}
+									</div>
 									<ScrollArea className="h-40 rounded-md border bg-muted/30 p-3">
 										<div className="space-y-1 font-mono text-xs">
-											{syncProgress.logs.map((log: any, i: number) => (
-												<div
-													key={i}
-													className={cn(
-														log.type === "success" && "text-green-600",
-														log.type === "error" && "text-red-600",
-														log.type === "warning" && "text-amber-600",
-														log.type === "info" && "text-muted-foreground"
-													)}
-												>
-													<span className="opacity-60">[{log.time}]</span>{" "}
-													{log.message}
+											{syncProgress.logs
+												.filter((log: any) => logFilter === "all" || log.type === logFilter)
+												.map((log: any, i: number) => (
+													<div
+														key={i}
+														className={cn(
+															log.type === "success" && "text-green-600",
+															log.type === "error" && "text-red-600",
+															log.type === "warning" && "text-amber-600",
+															log.type === "info" && "text-muted-foreground"
+														)}
+													>
+														<span className="opacity-60">[{log.time}]</span>{" "}
+														{log.message}
+													</div>
+												))}
+											{syncProgress.logs.filter((log: any) => logFilter === "all" || log.type === logFilter).length === 0 && (
+												<div className="text-center text-muted-foreground py-4">
+													暂无{
+														logFilter === "success" ? "成功" :
+														logFilter === "error" ? "失败" :
+														logFilter === "warning" ? "跳过" : ""
+													}日志
 												</div>
-											))}
+											)}
 											<div ref={logsEndRef} />
 										</div>
 									</ScrollArea>
@@ -628,25 +761,44 @@ function DevicesPage() {
 												{syncProgress.failedUsers.length} 个义工同步失败
 											</span>
 											<span className="text-muted-foreground ml-2">
-												建议使用 Base64 格式重试
+												可尝试不同方式重试
 											</span>
 										</span>
 									</div>
-									<Button
-										size="sm"
-										variant="outline"
-										className="border-red-200 text-red-600 hover:bg-red-50"
-										onClick={() =>
-											retryFailedMutation.mutate(syncProgress.failedUsers)
-										}
-										disabled={retryFailedMutation.isPending}
-									>
-										{retryFailedMutation.isPending && (
-											<Loader2 className="h-4 w-4 mr-1 animate-spin" />
-										)}
-										<RotateCcw className="h-4 w-4 mr-1" />
-										重试
-									</Button>
+									<div className="flex gap-2">
+										<Button
+											size="sm"
+											variant="outline"
+											className="border-red-200 text-red-600 hover:bg-red-50"
+											onClick={() =>
+												retryWithoutCompressionMutation.mutate(syncProgress.failedUsers)
+											}
+											disabled={retryWithoutCompressionMutation.isPending}
+											title="使用原始照片重试（不压缩）"
+										>
+											{retryWithoutCompressionMutation.isPending && (
+												<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+											)}
+											<RotateCcw className="h-4 w-4 mr-1" />
+											不压缩下发
+										</Button>
+										<Button
+											size="sm"
+											variant="outline"
+											className="border-red-200 text-red-600 hover:bg-red-50"
+											onClick={() =>
+												retryFailedMutation.mutate(syncProgress.failedUsers)
+											}
+											disabled={retryFailedMutation.isPending}
+											title="使用Base64格式重试"
+										>
+											{retryFailedMutation.isPending && (
+												<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+											)}
+											<RotateCcw className="h-4 w-4 mr-1" />
+											Base64重试
+										</Button>
+									</div>
 								</div>
 							)}
 						</div>
@@ -930,6 +1082,13 @@ function DevicesPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			{/* 压缩配置对话框 */}
+			<CompressionConfigDialog
+				open={showConfigDialog}
+				onOpenChange={setShowConfigDialog}
+				currentConfig={compressionConfigData?.data}
+			/>
 		</div>
 	)
 }

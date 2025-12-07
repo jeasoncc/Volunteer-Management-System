@@ -130,6 +130,7 @@ export interface Volunteer {
 	// 考勤配置
 	syncToAttendance?: boolean; // 是否同步到考勤机
 	requireFullAttendance?: boolean; // 是否需要考勤全勤配置
+	attendanceTier?: number; // 满勤档位：1-6档
 
 	// 系统字段
 	createdAt?: string;

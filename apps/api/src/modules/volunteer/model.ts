@@ -172,6 +172,7 @@ const ServiceFields = {
     ]),
   ),
   requireFullAttendance: t.Optional(t.Union([t.Boolean(), t.Null()])),
+  attendanceTier: t.Optional(t.Union([t.Numeric({ minimum: 1, maximum: 6 }), t.Null()])), // 满勤档位：1-6档
 }
 
 // ==================== Schema 组合 ====================

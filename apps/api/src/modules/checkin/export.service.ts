@@ -69,6 +69,7 @@ export class CheckInExportService {
         lotusId: volunteer.lotusId,
         volunteerId: volunteer.volunteerId,
         name: volunteer.name,
+        attendanceTier: volunteer.attendanceTier, // 包含档位字段
       })
       .from(volunteer)
       .where(and(...fullAttendanceConditions))
@@ -78,6 +79,7 @@ export class CheckInExportService {
       lotusId: string;
       volunteerId: string | null;
       name: string;
+      attendanceTier: number | null;
     }>
     
     logger.info(`📝 查询到 ${validFullAttendanceVolunteers.length} 个满勤义工`)
@@ -173,37 +175,44 @@ export class CheckInExportService {
    * 为满勤义工生成每天的满勤记录
    */
   private static generateFullAttendanceRecords(
-    volunteers: Array<{ lotusId: string; volunteerId: string | null; name: string }>,
+    volunteers: Array<{ lotusId: string; volunteerId: string | null; name: string; attendanceTier?: number | null }>,
     startDate: string,
     endDate: string
   ) {
+    const { getAttendanceTier } = require('../../config/attendance')
     const records = []
     const start = dayjs(startDate)
     const end = dayjs(endDate)
     
     for (const volunteer of volunteers) {
+      // 获取该义工的档位配置，默认6档（12小时）
+      const tier = volunteer.attendanceTier || 6
+      const tierConfig = getAttendanceTier(tier)
+      
       let currentDate = start
       while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
-        // 为每一天生成两条记录：签到（08:00）和签退（20:00），共12小时
+        // 根据档位生成签到和签退记录
         records.push({
           lotusId: volunteer.lotusId,
           volunteerId: volunteer.volunteerId,
           name: volunteer.name,
           date: currentDate.toDate(),
-          checkIn: '08:00:00',
+          checkIn: tierConfig.checkInTime,
           originTime: null,
           requireFullAttendance: true,
           isFullAttendanceRecord: true, // 标记为满勤记录
+          attendanceTier: tier, // 记录档位
         })
         records.push({
           lotusId: volunteer.lotusId,
           volunteerId: volunteer.volunteerId,
           name: volunteer.name,
           date: currentDate.toDate(),
-          checkIn: '20:00:00',
+          checkIn: tierConfig.checkOutTime,
           originTime: null,
           requireFullAttendance: true,
           isFullAttendanceRecord: true, // 标记为满勤记录
+          attendanceTier: tier, // 记录档位
         })
         
         currentDate = currentDate.add(1, 'day')

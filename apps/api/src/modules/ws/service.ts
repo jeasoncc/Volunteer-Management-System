@@ -145,11 +145,13 @@ export class WebSocketService {
    * @param strategy 同步策略: 'all' | 'unsynced' | 'changed'
    * @param validatePhotos 是否预检查照片
    * @param photoFormat 照片格式: 'url' | 'base64'
+   * @param skipCompression 是否跳过压缩（使用原始照片）
    */
   static async addAllUsers(options?: { 
     strategy?: 'all' | 'unsynced' | 'changed'; 
     validatePhotos?: boolean;
     photoFormat?: 'url' | 'base64';
+    skipCompression?: boolean;
   }) {
     // 检查是否正在同步（带超时检测）
     if (this.isSyncing) {
@@ -167,7 +169,7 @@ export class WebSocketService {
       this.isSyncing = true
       this.syncStartTime = Date.now()
       
-      const { strategy = 'all', validatePhotos = false, photoFormat = 'url' } = options || {}
+      const { strategy = 'all', validatePhotos = false, photoFormat = 'url', skipCompression = false } = options || {}
 
       // 根据策略查询用户
       let query = db.select().from(volunteer).where(eq(volunteer.status, 'active'))
@@ -300,7 +302,18 @@ export class WebSocketService {
         // URL 模式：检查并压缩图片
         const imageInfo = checkImageSize(user.avatar)
         
-        if (imageInfo.needsCompression) {
+        if (skipCompression) {
+          // 跳过压缩，使用原始照片
+          logger.info(`📸 [${user.name}] 使用原始照片（不压缩）: ${(imageInfo.size / 1024).toFixed(1)}KB`)
+          syncProgressManager.addCustomLog('info', `📸 ${user.name}: 原始照片 ${(imageInfo.size / 1024).toFixed(1)}KB (不压缩)`, user.lotusId!)
+          compressionResult = {
+            path: user.avatar,
+            originalSize: imageInfo.size,
+            compressedSize: imageInfo.size,
+            wasCompressed: false,
+            compressionThreshold: imageInfo.compressionThreshold,
+          }
+        } else if (imageInfo.needsCompression) {
           logger.info(`🔄 压缩图片: ${user.name}(${user.lotusId}) - 原始大小: ${(imageInfo.size / 1024).toFixed(1)}KB, 阈值: ${(imageInfo.compressionThreshold / 1024).toFixed(1)}KB`)
           compressionResult = await processUserAvatar(user.avatar)
           processedAvatarPath = compressionResult.path
@@ -463,6 +476,77 @@ export class WebSocketService {
         total: failedUsers.length,
         successCount,
         failCount,
+      },
+    }
+  }
+
+  /**
+   * 不压缩重试失败的用户（使用原始照片）
+   */
+  static async retryFailedUsersWithoutCompression(failedUsers: Array<{ lotusId: string; name: string }>) {
+    logger.info(`🔄 开始不压缩重试 ${failedUsers.length} 个失败的义工（使用原始照片）`)
+    
+    syncProgressManager.startSync(failedUsers.length)
+
+    let successCount = 0
+    let failCount = 0
+    const failedList: Array<{ lotusId: string; name: string; reason: string }> = []
+
+    for (const { lotusId, name } of failedUsers) {
+      try {
+        // 查询用户信息
+        const [user] = await db.select().from(volunteer).where(eq(volunteer.lotusId, lotusId))
+
+        if (!user) {
+          throw new Error('用户不存在')
+        }
+
+        if (!user.avatar) {
+          throw new Error('用户没有头像')
+        }
+
+        // 检查照片大小但不压缩
+        const imageInfo = checkImageSize(user.avatar)
+        const originalKB = (imageInfo.size / 1024).toFixed(1)
+        logger.info(`📸 [${user.name}] 使用原始照片（不压缩）: ${originalKB}KB`)
+        syncProgressManager.addCustomLog('info', `📸 ${user.name}: 原始照片 ${originalKB}KB (不压缩)`, user.lotusId!)
+
+        // 使用原始照片URL（不压缩）
+        const photoUrl = `${this.BASE_URL}${user.avatar}`
+
+        // 构建命令
+        const command = this.buildAddUserCommand(user, user.avatar)
+
+        logger.info(`📋 下发原始照片命令: ${user.name}(${user.lotusId})`)
+        // 注意：不要在这里调用 incrementSent，因为 sendAddUserCommand 内部会调用
+
+        // 发送命令
+        if (this.sendAddUserCommand(command, user)) {
+          successCount++
+        } else {
+          failCount++
+          failedList.push({ lotusId: user.lotusId!, name: user.name, reason: '设备未连接' })
+        }
+
+        // 添加延迟
+        await delay(SYNC_CONFIG.DELAY_BETWEEN_USERS)
+      } catch (error: any) {
+        failCount++
+        const reason = error.message || '未知错误'
+        failedList.push({ lotusId, name, reason })
+        logger.error(`❌ 不压缩重试失败: ${name}(${lotusId}) - ${reason}`)
+        syncProgressManager.incrementFailed(lotusId, name, reason)
+      }
+    }
+
+    return {
+      success: true,
+      message: `不压缩重试完成`,
+      data: {
+        total: failedUsers.length,
+        successCount,
+        failCount,
+        failedList,
       },
     }
   }
@@ -739,7 +823,10 @@ export class WebSocketService {
           .set({ syncToAttendance: true })
           .where(eq(volunteer.lotusId, userId))
         
-        syncProgressManager.incrementConfirmed(userId, userName)
+        // 获取照片信息（如果有缓存）
+        const photoInfo = this.photoInfoCache.get(userId)
+        
+        syncProgressManager.incrementConfirmed(userId, userName, photoInfo)
         logger.success(`✅ 考勤机确认成功: ${userId}`)
         
         // 清除照片信息缓存

@@ -153,6 +153,30 @@ bun run dev
 
 **默认登录账号**: `admin` / `admin123`
 
+### 移动端开发
+
+```bash
+# 进入移动端目录
+cd apps/mobile
+
+# 安装依赖
+bun install
+
+# 配置 API 地址（使用辅助脚本）
+./scripts/setup-api.sh
+
+# 启动 Metro Bundler
+bun run start
+
+# 在另一个终端运行 Android
+bun run android
+
+# 或在 macOS 上运行 iOS
+bun run ios
+```
+
+📱 详细移动端设置请查看 [移动端文档](./apps/mobile/README.md)
+
 > 📖 详细安装指南请查看 [完整文档](./docs/setup/QUICK_START.md)
 
 ### Docker 部署（推荐）
@@ -188,12 +212,19 @@ docker-compose up -d
 <td width="50%" valign="top">
 
 ### 前端技术
-- **框架**: [React 19](https://react.dev) - 最新版本
+- **Web 框架**: [React 19](https://react.dev) - 最新版本
 - **构建工具**: [Vite 7](https://vitejs.dev) - 极速构建
 - **路由**: [TanStack Router](https://tanstack.com/router) - 类型安全路由
 - **状态管理**: [TanStack Query](https://tanstack.com/query) - 数据获取
 - **样式**: [Tailwind CSS 4](https://tailwindcss.com) - 原子化 CSS
 - **组件库**: [shadcn/ui](https://ui.shadcn.com) - 精美组件
+- **语言**: TypeScript 5.0+
+
+### 移动端技术
+- **框架**: [React Native](https://reactnative.dev) 0.73
+- **导航**: [React Navigation](https://reactnavigation.org) - 路由导航
+- **UI 组件**: [React Native Paper](https://callstack.github.io/react-native-paper) - Material Design
+- **数据获取**: [TanStack Query](https://tanstack.com/query) - 数据管理
 - **语言**: TypeScript 5.0+
 
 </td>
@@ -272,13 +303,24 @@ lianhuazhai-monorepo/
 │   │   │   └── utils/          # 工具函数
 │   │   └── package.json
 │   │
-│   └── web/                    # 前端应用
+│   ├── web/                    # 前端 Web 应用
+│   │   ├── src/
+│   │   │   ├── routes/         # 页面路由
+│   │   │   ├── components/    # UI 组件
+│   │   │   ├── services/      # API 服务
+│   │   │   ├── hooks/         # React Hooks
+│   │   │   └── lib/           # 工具库
+│   │   └── package.json
+│   │
+│   └── mobile/                 # 移动端应用 (React Native)
 │       ├── src/
-│       │   ├── routes/         # 页面路由
-│       │   ├── components/     # UI 组件
-│       │   ├── services/       # API 服务
-│       │   ├── hooks/          # React Hooks
-│       │   └── lib/            # 工具库
+│       │   ├── screens/       # 页面组件
+│       │   ├── components/    # UI 组件
+│       │   ├── services/      # API 服务
+│       │   ├── navigation/    # 导航配置
+│       │   ├── context/       # Context 提供者
+│       │   └── utils/         # 工具函数
+│       ├── android/           # Android 原生代码
 │       └── package.json
 │
 ├── docs/                       # 📚 统一文档目录
@@ -315,8 +357,10 @@ lianhuazhai-monorepo/
 - [x] 管理员系统
 - [x] API 文档
 
-### 🚧 v1.1 (开发中)
-- [ ] 移动端适配
+### ✅ v1.1 (已完成)
+- [x] 移动端应用 (React Native)
+- [x] 打卡记录查看
+- [x] 佛经阅读功能
 - [ ] 数据可视化大屏
 - [ ] 消息通知系统
 - [ ] 高级搜索功能
@@ -341,6 +385,7 @@ lianhuazhai-monorepo/
 - [安装指南](./docs/setup/QUICK_START.md)
 - [项目设置](./docs/setup/SETUP.md)
 - [启动指南](./docs/setup/START_GUIDE.md)
+- [移动端快速开始](./apps/mobile/QUICK_START.md)
 - [常见问题](./docs/FAQ.md)
 
 </td>
