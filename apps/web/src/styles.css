@@ -223,6 +223,546 @@
   --sidebar-border: oklch(0.15 0.05 260);
 }
 
+/* 4. 金色庄严 (theme-gold) - 金/黄/暖金色 */
+.theme-gold {
+  --primary: oklch(0.5 0.15 70); /* 深金色 */
+  --primary-foreground: oklch(0.98 0.02 85);
+  
+  --secondary: oklch(0.95 0.08 85); /* 浅金色 */
+  --secondary-foreground: oklch(0.4 0.12 70);
+  
+  --accent: oklch(0.92 0.06 80);
+  --accent-foreground: oklch(0.3 0.1 70);
+  
+  /* 侧边栏 - 深金色/琥珀色 */
+  --sidebar: oklch(0.25 0.08 60);
+  --sidebar-foreground: oklch(0.98 0.02 85);
+  --sidebar-primary: oklch(0.85 0.15 75); /* 亮金色 */
+  --sidebar-primary-foreground: oklch(0.2 0.08 60);
+  --sidebar-accent: oklch(0.3 0.08 60);
+  --sidebar-accent-foreground: oklch(0.98 0.02 85);
+  --sidebar-border: oklch(0.3 0.08 60);
+}
+
+.dark.theme-gold,
+.dark .theme-gold {
+  --primary: oklch(0.85 0.15 75); /* 亮金色 */
+  --primary-foreground: oklch(0.2 0.08 60);
+  
+  --secondary: oklch(0.3 0.08 60);
+  --secondary-foreground: oklch(0.95 0.08 85);
+  
+  /* 侧边栏 - 深琥珀色 */
+  --sidebar: oklch(0.15 0.06 60);
+  --sidebar-primary: oklch(0.85 0.15 75);
+  --sidebar-accent: oklch(0.2 0.06 60);
+  --sidebar-border: oklch(0.2 0.06 60);
+}
+
+/* 5. 红莲吉祥 (theme-red) - 红/粉/暖红色 */
+.theme-red {
+  --primary: oklch(0.45 0.15 15); /* 深红色 */
+  --primary-foreground: oklch(0.98 0.01 15);
+  
+  --secondary: oklch(0.96 0.05 15); /* 浅粉红 */
+  --secondary-foreground: oklch(0.4 0.12 15);
+  
+  --accent: oklch(0.94 0.04 20);
+  --accent-foreground: oklch(0.35 0.1 15);
+  
+  /* 侧边栏 - 深红/朱砂色 */
+  --sidebar: oklch(0.22 0.08 10);
+  --sidebar-foreground: oklch(0.98 0.01 15);
+  --sidebar-primary: oklch(0.8 0.12 20); /* 亮红 */
+  --sidebar-primary-foreground: oklch(0.2 0.08 10);
+  --sidebar-accent: oklch(0.28 0.08 10);
+  --sidebar-accent-foreground: oklch(0.98 0.01 15);
+  --sidebar-border: oklch(0.28 0.08 10);
+}
+
+.dark.theme-red,
+.dark .theme-red {
+  --primary: oklch(0.75 0.12 20); /* 亮红 */
+  --primary-foreground: oklch(0.18 0.08 10);
+  
+  --secondary: oklch(0.28 0.08 10);
+  --secondary-foreground: oklch(0.96 0.05 15);
+  
+  /* 侧边栏 - 深红 */
+  --sidebar: oklch(0.12 0.06 10);
+  --sidebar-primary: oklch(0.75 0.12 20);
+  --sidebar-accent: oklch(0.18 0.06 10);
+  --sidebar-border: oklch(0.18 0.06 10);
+}
+
+/* 6. 橙光慈悲 (theme-orange) - 橙/暖橙色 */
+.theme-orange {
+  --primary: oklch(0.5 0.15 50); /* 深橙色 */
+  --primary-foreground: oklch(0.98 0.02 50);
+  
+  --secondary: oklch(0.96 0.06 60); /* 浅橙色 */
+  --secondary-foreground: oklch(0.4 0.12 50);
+  
+  --accent: oklch(0.93 0.05 55);
+  --accent-foreground: oklch(0.35 0.1 50);
+  
+  /* 侧边栏 - 深橙/赭石色 */
+  --sidebar: oklch(0.24 0.08 45);
+  --sidebar-foreground: oklch(0.98 0.02 50);
+  --sidebar-primary: oklch(0.82 0.14 55); /* 亮橙 */
+  --sidebar-primary-foreground: oklch(0.2 0.08 45);
+  --sidebar-accent: oklch(0.3 0.08 45);
+  --sidebar-accent-foreground: oklch(0.98 0.02 50);
+  --sidebar-border: oklch(0.3 0.08 45);
+}
+
+.dark.theme-orange,
+.dark .theme-orange {
+  --primary: oklch(0.82 0.14 55); /* 亮橙 */
+  --primary-foreground: oklch(0.2 0.08 45);
+  
+  --secondary: oklch(0.3 0.08 45);
+  --secondary-foreground: oklch(0.96 0.06 60);
+  
+  /* 侧边栏 - 深赭石色 */
+  --sidebar: oklch(0.14 0.06 45);
+  --sidebar-primary: oklch(0.82 0.14 55);
+  --sidebar-accent: oklch(0.2 0.06 45);
+  --sidebar-border: oklch(0.2 0.06 45);
+}
+
+/* 7. 翠竹清心 (theme-green) - 绿/青绿/自然色 */
+.theme-green {
+  --primary: oklch(0.42 0.12 150); /* 深绿色 */
+  --primary-foreground: oklch(0.98 0.01 150);
+  
+  --secondary: oklch(0.96 0.03 160); /* 浅绿色 */
+  --secondary-foreground: oklch(0.35 0.1 150);
+  
+  --accent: oklch(0.94 0.02 155);
+  --accent-foreground: oklch(0.3 0.08 150);
+  
+  /* 侧边栏 - 深绿/竹青色 */
+  --sidebar: oklch(0.2 0.05 160);
+  --sidebar-foreground: oklch(0.98 0.01 150);
+  --sidebar-primary: oklch(0.7 0.12 140); /* 亮绿 */
+  --sidebar-primary-foreground: oklch(0.15 0.05 160);
+  --sidebar-accent: oklch(0.25 0.05 160);
+  --sidebar-accent-foreground: oklch(0.98 0.01 150);
+  --sidebar-border: oklch(0.25 0.05 160);
+}
+
+.dark.theme-green,
+.dark .theme-green {
+  --primary: oklch(0.7 0.12 140); /* 亮绿 */
+  --primary-foreground: oklch(0.15 0.05 160);
+  
+  --secondary: oklch(0.25 0.05 160);
+  --secondary-foreground: oklch(0.96 0.03 160);
+  
+  /* 侧边栏 - 深绿 */
+  --sidebar: oklch(0.12 0.04 160);
+  --sidebar-primary: oklch(0.7 0.12 140);
+  --sidebar-accent: oklch(0.18 0.04 160);
+  --sidebar-border: oklch(0.18 0.04 160);
+}
+
+/* 8. 白莲清净 (theme-white) - 白/浅灰/清净色 */
+.theme-white {
+  --primary: oklch(0.4 0.02 280); /* 深灰 */
+  --primary-foreground: oklch(0.98 0 0);
+  
+  --secondary: oklch(0.97 0.005 280); /* 极浅灰 */
+  --secondary-foreground: oklch(0.35 0.02 280);
+  
+  --accent: oklch(0.95 0.01 280);
+  --accent-foreground: oklch(0.3 0.02 280);
+  
+  /* 侧边栏 - 浅灰/银白色 */
+  --sidebar: oklch(0.25 0.01 280);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.6 0.02 280); /* 中灰 */
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.3 0.01 280);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.3 0.01 280);
+}
+
+.dark.theme-white,
+.dark .theme-white {
+  --primary: oklch(0.85 0.01 280); /* 浅灰 */
+  --primary-foreground: oklch(0.15 0.02 280);
+  
+  --secondary: oklch(0.3 0.01 280);
+  --secondary-foreground: oklch(0.95 0.005 280);
+  
+  /* 侧边栏 - 深灰 */
+  --sidebar: oklch(0.15 0.01 280);
+  --sidebar-primary: oklch(0.85 0.01 280);
+  --sidebar-accent: oklch(0.22 0.01 280);
+  --sidebar-border: oklch(0.22 0.01 280);
+}
+
+/* 9. 紫气东来 (theme-purple) - 紫/深紫/尊贵色 */
+.theme-purple {
+  --primary: oklch(0.42 0.12 300); /* 深紫色 */
+  --primary-foreground: oklch(0.98 0.01 300);
+  
+  --secondary: oklch(0.96 0.04 300); /* 浅紫色 */
+  --secondary-foreground: oklch(0.35 0.1 300);
+  
+  --accent: oklch(0.94 0.03 305);
+  --accent-foreground: oklch(0.3 0.08 300);
+  
+  /* 侧边栏 - 深紫/紫檀色 */
+  --sidebar: oklch(0.2 0.05 310);
+  --sidebar-foreground: oklch(0.98 0.01 300);
+  --sidebar-primary: oklch(0.75 0.1 290); /* 亮紫 */
+  --sidebar-primary-foreground: oklch(0.15 0.05 310);
+  --sidebar-accent: oklch(0.25 0.05 310);
+  --sidebar-accent-foreground: oklch(0.98 0.01 300);
+  --sidebar-border: oklch(0.25 0.05 310);
+}
+
+.dark.theme-purple,
+.dark .theme-purple {
+  --primary: oklch(0.75 0.1 290); /* 亮紫 */
+  --primary-foreground: oklch(0.15 0.05 310);
+  
+  --secondary: oklch(0.25 0.05 310);
+  --secondary-foreground: oklch(0.96 0.04 300);
+  
+  /* 侧边栏 - 深紫 */
+  --sidebar: oklch(0.12 0.04 310);
+  --sidebar-primary: oklch(0.75 0.1 290);
+  --sidebar-accent: oklch(0.18 0.04 310);
+  --sidebar-border: oklch(0.18 0.04 310);
+}
+
+/* 10. 禅意墨色 (theme-ink) - 墨/深灰/禅意色 */
+.theme-ink {
+  --primary: oklch(0.35 0.01 280); /* 深墨色 */
+  --primary-foreground: oklch(0.98 0 0);
+  
+  --secondary: oklch(0.92 0.005 280); /* 浅灰 */
+  --secondary-foreground: oklch(0.3 0.01 280);
+  
+  --accent: oklch(0.88 0.01 280);
+  --accent-foreground: oklch(0.25 0.01 280);
+  
+  /* 侧边栏 - 深墨/炭黑色 */
+  --sidebar: oklch(0.18 0.01 280);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.55 0.01 280); /* 中灰 */
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.25 0.01 280);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.25 0.01 280);
+}
+
+.dark.theme-ink,
+.dark .theme-ink {
+  --primary: oklch(0.8 0.01 280); /* 浅灰 */
+  --primary-foreground: oklch(0.12 0.01 280);
+  
+  --secondary: oklch(0.25 0.01 280);
+  --secondary-foreground: oklch(0.92 0.005 280);
+  
+  /* 侧边栏 - 极深墨色 */
+  --sidebar: oklch(0.08 0.005 280);
+  --sidebar-primary: oklch(0.8 0.01 280);
+  --sidebar-accent: oklch(0.15 0.01 280);
+  --sidebar-border: oklch(0.15 0.01 280);
+}
+
+/* 11. 禅茶一味 (theme-tea) - 茶/褐/古朴色 */
+.theme-tea {
+  --primary: oklch(0.38 0.06 45); /* 深茶色 */
+  --primary-foreground: oklch(0.98 0.02 85);
+  
+  --secondary: oklch(0.94 0.03 50); /* 浅茶色 */
+  --secondary-foreground: oklch(0.32 0.06 45);
+  
+  --accent: oklch(0.9 0.025 48);
+  --accent-foreground: oklch(0.28 0.05 45);
+  
+  /* 侧边栏 - 深茶/古铜色 */
+  --sidebar: oklch(0.22 0.05 40);
+  --sidebar-foreground: oklch(0.98 0.02 85);
+  --sidebar-primary: oklch(0.7 0.1 55); /* 亮茶色 */
+  --sidebar-primary-foreground: oklch(0.18 0.05 40);
+  --sidebar-accent: oklch(0.28 0.05 40);
+  --sidebar-accent-foreground: oklch(0.98 0.02 85);
+  --sidebar-border: oklch(0.28 0.05 40);
+}
+
+.dark.theme-tea,
+.dark .theme-tea {
+  --primary: oklch(0.7 0.1 55); /* 亮茶色 */
+  --primary-foreground: oklch(0.18 0.05 40);
+  
+  --secondary: oklch(0.28 0.05 40);
+  --secondary-foreground: oklch(0.94 0.03 50);
+  
+  /* 侧边栏 - 深古铜色 */
+  --sidebar: oklch(0.14 0.04 40);
+  --sidebar-primary: oklch(0.7 0.1 55);
+  --sidebar-accent: oklch(0.2 0.04 40);
+  --sidebar-border: oklch(0.2 0.04 40);
+}
+
+/* 12. 天青如洗 (theme-sky) - 天青/浅蓝/天空色 */
+.theme-sky {
+  --primary: oklch(0.48 0.1 210); /* 天青色 */
+  --primary-foreground: oklch(0.98 0.01 240);
+  
+  --secondary: oklch(0.97 0.02 220); /* 极浅天蓝 */
+  --secondary-foreground: oklch(0.38 0.08 210);
+  
+  --accent: oklch(0.95 0.015 215);
+  --accent-foreground: oklch(0.32 0.07 210);
+  
+  /* 侧边栏 - 天青色 */
+  --sidebar: oklch(0.24 0.06 220);
+  --sidebar-foreground: oklch(0.98 0.01 240);
+  --sidebar-primary: oklch(0.72 0.1 210); /* 亮天青 */
+  --sidebar-primary-foreground: oklch(0.16 0.06 220);
+  --sidebar-accent: oklch(0.3 0.06 220);
+  --sidebar-accent-foreground: oklch(0.98 0.01 240);
+  --sidebar-border: oklch(0.3 0.06 220);
+}
+
+.dark.theme-sky,
+.dark .theme-sky {
+  --primary: oklch(0.72 0.1 210); /* 亮天青 */
+  --primary-foreground: oklch(0.16 0.06 220);
+  
+  --secondary: oklch(0.3 0.06 220);
+  --secondary-foreground: oklch(0.97 0.02 220);
+  
+  /* 侧边栏 - 深天青色 */
+  --sidebar: oklch(0.13 0.05 220);
+  --sidebar-primary: oklch(0.72 0.1 210);
+  --sidebar-accent: oklch(0.2 0.05 220);
+  --sidebar-border: oklch(0.2 0.05 220);
+}
+
+/* 13. 珊瑚温润 (theme-coral) - 珊瑚/粉橙/温和色 */
+.theme-coral {
+  --primary: oklch(0.52 0.12 30); /* 珊瑚色 */
+  --primary-foreground: oklch(0.98 0.01 30);
+  
+  --secondary: oklch(0.97 0.05 25); /* 浅珊瑚 */
+  --secondary-foreground: oklch(0.4 0.1 30);
+  
+  --accent: oklch(0.94 0.04 28);
+  --accent-foreground: oklch(0.35 0.09 30);
+  
+  /* 侧边栏 - 深珊瑚色 */
+  --sidebar: oklch(0.26 0.07 25);
+  --sidebar-foreground: oklch(0.98 0.01 30);
+  --sidebar-primary: oklch(0.8 0.11 32); /* 亮珊瑚 */
+  --sidebar-primary-foreground: oklch(0.2 0.07 25);
+  --sidebar-accent: oklch(0.32 0.07 25);
+  --sidebar-accent-foreground: oklch(0.98 0.01 30);
+  --sidebar-border: oklch(0.32 0.07 25);
+}
+
+.dark.theme-coral,
+.dark .theme-coral {
+  --primary: oklch(0.8 0.11 32); /* 亮珊瑚 */
+  --primary-foreground: oklch(0.2 0.07 25);
+  
+  --secondary: oklch(0.32 0.07 25);
+  --secondary-foreground: oklch(0.97 0.05 25);
+  
+  /* 侧边栏 - 深珊瑚色 */
+  --sidebar: oklch(0.15 0.06 25);
+  --sidebar-primary: oklch(0.8 0.11 32);
+  --sidebar-accent: oklch(0.22 0.06 25);
+  --sidebar-border: oklch(0.22 0.06 25);
+}
+
+/* 14. 智慧深蓝 (theme-sapphire) - 深蓝/藏青/智慧色 */
+.theme-sapphire {
+  --primary: oklch(0.4 0.13 270); /* 深蓝/藏青 */
+  --primary-foreground: oklch(0.98 0.01 270);
+  
+  --secondary: oklch(0.96 0.03 240); /* 浅蓝 */
+  --secondary-foreground: oklch(0.35 0.1 270);
+  
+  --accent: oklch(0.94 0.02 250);
+  --accent-foreground: oklch(0.3 0.08 270);
+  
+  /* 侧边栏 - 深藏青色 */
+  --sidebar: oklch(0.19 0.06 275);
+  --sidebar-foreground: oklch(0.98 0.01 270);
+  --sidebar-primary: oklch(0.68 0.11 250); /* 亮蓝 */
+  --sidebar-primary-foreground: oklch(0.14 0.06 275);
+  --sidebar-accent: oklch(0.24 0.06 275);
+  --sidebar-accent-foreground: oklch(0.98 0.01 270);
+  --sidebar-border: oklch(0.24 0.06 275);
+}
+
+.dark.theme-sapphire,
+.dark .theme-sapphire {
+  --primary: oklch(0.68 0.11 250); /* 亮蓝 */
+  --primary-foreground: oklch(0.14 0.06 275);
+  
+  --secondary: oklch(0.24 0.06 275);
+  --secondary-foreground: oklch(0.96 0.03 240);
+  
+  /* 侧边栏 - 极深藏青 */
+  --sidebar: oklch(0.11 0.05 275);
+  --sidebar-primary: oklch(0.68 0.11 250);
+  --sidebar-accent: oklch(0.17 0.05 275);
+  --sidebar-border: oklch(0.17 0.05 275);
+}
+
+/* 15. 象牙温雅 (theme-ivory) - 米/象牙/温雅色 */
+.theme-ivory {
+  --primary: oklch(0.42 0.015 85); /* 深米色 */
+  --primary-foreground: oklch(0.98 0.01 85);
+  
+  --secondary: oklch(0.98 0.005 90); /* 象牙白 */
+  --secondary-foreground: oklch(0.34 0.015 85);
+  
+  --accent: oklch(0.96 0.008 88);
+  --accent-foreground: oklch(0.3 0.012 85);
+  
+  /* 侧边栏 - 浅米色 */
+  --sidebar: oklch(0.28 0.01 80);
+  --sidebar-foreground: oklch(0.98 0.01 85);
+  --sidebar-primary: oklch(0.65 0.02 85); /* 中米色 */
+  --sidebar-primary-foreground: oklch(0.98 0.01 85);
+  --sidebar-accent: oklch(0.35 0.01 80);
+  --sidebar-accent-foreground: oklch(0.98 0.01 85);
+  --sidebar-border: oklch(0.35 0.01 80);
+}
+
+.dark.theme-ivory,
+.dark .theme-ivory {
+  --primary: oklch(0.82 0.01 85); /* 浅米色 */
+  --primary-foreground: oklch(0.16 0.015 85);
+  
+  --secondary: oklch(0.35 0.01 80);
+  --secondary-foreground: oklch(0.98 0.005 90);
+  
+  /* 侧边栏 - 深米色 */
+  --sidebar: oklch(0.16 0.01 80);
+  --sidebar-primary: oklch(0.82 0.01 85);
+  --sidebar-accent: oklch(0.24 0.01 80);
+  --sidebar-border: oklch(0.24 0.01 80);
+}
+
+/* 16. 朱砂传统 (theme-cinnabar) - 朱砂/深红/传统色 */
+.theme-cinnabar {
+  --primary: oklch(0.44 0.16 18); /* 朱砂色 */
+  --primary-foreground: oklch(0.98 0.01 18);
+  
+  --secondary: oklch(0.96 0.06 20); /* 浅朱砂 */
+  --secondary-foreground: oklch(0.38 0.13 18);
+  
+  --accent: oklch(0.93 0.05 19);
+  --accent-foreground: oklch(0.33 0.11 18);
+  
+  /* 侧边栏 - 深朱砂色 */
+  --sidebar: oklch(0.23 0.09 15);
+  --sidebar-foreground: oklch(0.98 0.01 18);
+  --sidebar-primary: oklch(0.78 0.13 22); /* 亮朱砂 */
+  --sidebar-primary-foreground: oklch(0.19 0.09 15);
+  --sidebar-accent: oklch(0.29 0.09 15);
+  --sidebar-accent-foreground: oklch(0.98 0.01 18);
+  --sidebar-border: oklch(0.29 0.09 15);
+}
+
+.dark.theme-cinnabar,
+.dark .theme-cinnabar {
+  --primary: oklch(0.78 0.13 22); /* 亮朱砂 */
+  --primary-foreground: oklch(0.19 0.09 15);
+  
+  --secondary: oklch(0.29 0.09 15);
+  --secondary-foreground: oklch(0.96 0.06 20);
+  
+  /* 侧边栏 - 极深朱砂 */
+  --sidebar: oklch(0.13 0.07 15);
+  --sidebar-primary: oklch(0.78 0.13 22);
+  --sidebar-accent: oklch(0.2 0.07 15);
+  --sidebar-border: oklch(0.2 0.07 15);
+}
+
+/* 17. 琥珀暖阳 (theme-amber) - 琥珀/暖黄/暖阳色 */
+.theme-amber {
+  --primary: oklch(0.52 0.14 65); /* 琥珀色 */
+  --primary-foreground: oklch(0.98 0.02 65);
+  
+  --secondary: oklch(0.97 0.07 70); /* 浅琥珀 */
+  --secondary-foreground: oklch(0.4 0.13 65);
+  
+  --accent: oklch(0.94 0.06 68);
+  --accent-foreground: oklch(0.35 0.11 65);
+  
+  /* 侧边栏 - 深琥珀色 */
+  --sidebar: oklch(0.26 0.09 60);
+  --sidebar-foreground: oklch(0.98 0.02 65);
+  --sidebar-primary: oklch(0.83 0.16 70); /* 亮琥珀 */
+  --sidebar-primary-foreground: oklch(0.2 0.09 60);
+  --sidebar-accent: oklch(0.32 0.09 60);
+  --sidebar-accent-foreground: oklch(0.98 0.02 65);
+  --sidebar-border: oklch(0.32 0.09 60);
+}
+
+.dark.theme-amber,
+.dark .theme-amber {
+  --primary: oklch(0.83 0.16 70); /* 亮琥珀 */
+  --primary-foreground: oklch(0.2 0.09 60);
+  
+  --secondary: oklch(0.32 0.09 60);
+  --secondary-foreground: oklch(0.97 0.07 70);
+  
+  /* 侧边栏 - 深琥珀色 */
+  --sidebar: oklch(0.15 0.07 60);
+  --sidebar-primary: oklch(0.83 0.16 70);
+  --sidebar-accent: oklch(0.22 0.07 60);
+  --sidebar-border: oklch(0.22 0.07 60);
+}
+
+/* 18. 翡翠珍贵 (theme-jade) - 翡翠/青绿/珍贵色 */
+.theme-jade {
+  --primary: oklch(0.44 0.11 170); /* 翡翠色 */
+  --primary-foreground: oklch(0.98 0.01 170);
+  
+  --secondary: oklch(0.96 0.03 165); /* 浅翡翠 */
+  --secondary-foreground: oklch(0.36 0.1 170);
+  
+  --accent: oklch(0.94 0.025 168);
+  --accent-foreground: oklch(0.31 0.09 170);
+  
+  /* 侧边栏 - 深翡翠色 */
+  --sidebar: oklch(0.21 0.06 175);
+  --sidebar-foreground: oklch(0.98 0.01 170);
+  --sidebar-primary: oklch(0.71 0.12 165); /* 亮翡翠 */
+  --sidebar-primary-foreground: oklch(0.15 0.06 175);
+  --sidebar-accent: oklch(0.27 0.06 175);
+  --sidebar-accent-foreground: oklch(0.98 0.01 170);
+  --sidebar-border: oklch(0.27 0.06 175);
+}
+
+.dark.theme-jade,
+.dark .theme-jade {
+  --primary: oklch(0.71 0.12 165); /* 亮翡翠 */
+  --primary-foreground: oklch(0.15 0.06 175);
+  
+  --secondary: oklch(0.27 0.06 175);
+  --secondary-foreground: oklch(0.96 0.03 165);
+  
+  /* 侧边栏 - 深翡翠色 */
+  --sidebar: oklch(0.13 0.05 175);
+  --sidebar-primary: oklch(0.71 0.12 165);
+  --sidebar-accent: oklch(0.19 0.05 175);
+  --sidebar-border: oklch(0.19 0.05 175);
+}
+
 @layer base {
   * {
     border-color: var(--border);

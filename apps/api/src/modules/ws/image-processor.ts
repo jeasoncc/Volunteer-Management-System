@@ -24,6 +24,15 @@ export interface ImageInfo {
   size: number
   needsCompression: boolean
   thumbnailPath?: string
+  compressionThreshold: number
+}
+
+export interface CompressionResult {
+  path: string
+  originalSize: number
+  compressedSize: number
+  wasCompressed: boolean
+  compressionThreshold: number
 }
 
 /**
@@ -39,6 +48,7 @@ export function checkImageSize(avatarPath: string): ImageInfo {
       path: avatarPath,
       size: 0,
       needsCompression: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
     }
   }
 
@@ -54,19 +64,27 @@ export function checkImageSize(avatarPath: string): ImageInfo {
     path: avatarPath,
     size,
     needsCompression,
+    compressionThreshold: MAX_IMAGE_SIZE,
   }
 }
 
 /**
  * 压缩图片（使用 sharp 库）
- * 如果 sharp 不可用，返回原图路径
+ * 返回压缩结果详情
  */
-export async function compressImage(avatarPath: string): Promise<string> {
+export async function compressImage(avatarPath: string): Promise<CompressionResult> {
   const fullPath = join(process.cwd(), 'public', avatarPath)
+  const originalSize = existsSync(fullPath) ? statSync(fullPath).size : 0
   
   if (!existsSync(fullPath)) {
     logger.warn(`⚠️  图片不存在，无法压缩: ${fullPath}`)
-    return avatarPath
+    return {
+      path: avatarPath,
+      originalSize: 0,
+      compressedSize: 0,
+      wasCompressed: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   }
 
   // 生成缩略图文件名
@@ -82,7 +100,13 @@ export async function compressImage(avatarPath: string): Promise<string> {
     
     if (thumbStats.mtime >= originalStats.mtime) {
       logger.info(`📦 使用已有缩略图: ${thumbnailUrlPath}`)
-      return thumbnailUrlPath
+      return {
+        path: thumbnailUrlPath,
+        originalSize,
+        compressedSize: thumbStats.size,
+        wasCompressed: true,
+        compressionThreshold: MAX_IMAGE_SIZE,
+      }
     }
   }
 
@@ -97,7 +121,6 @@ export async function compressImage(avatarPath: string): Promise<string> {
     let width = imageInfo.width || 800
     
     // 如果图片太大，逐步降低质量和尺寸
-    const originalSize = statSync(fullPath).size
     if (originalSize > MAX_IMAGE_SIZE * 2) {
       quality = 60
       width = Math.min(width, 600)
@@ -115,19 +138,31 @@ export async function compressImage(avatarPath: string): Promise<string> {
       .jpeg({ quality, progressive: true })
       .toFile(thumbnailPath)
 
-    const newSize = statSync(thumbnailPath).size
-    logger.success(`✅ 图片压缩成功: ${(originalSize / 1024).toFixed(1)}KB -> ${(newSize / 1024).toFixed(1)}KB`)
+    const compressedSize = statSync(thumbnailPath).size
+    logger.success(`✅ 图片压缩成功: ${(originalSize / 1024).toFixed(1)}KB -> ${(compressedSize / 1024).toFixed(1)}KB`)
     
-    return thumbnailUrlPath
+    return {
+      path: thumbnailUrlPath,
+      originalSize,
+      compressedSize,
+      wasCompressed: true,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   } catch (error: any) {
     // sharp 不可用，尝试简单的质量降低
     if (error.code === 'MODULE_NOT_FOUND' || error.message?.includes('sharp')) {
       logger.warn(`⚠️  sharp 库不可用，尝试使用备用方案`)
-      return await compressImageFallback(avatarPath)
+      return await compressImageFallback(avatarPath, originalSize)
     }
     
     logger.error(`❌ 图片压缩失败: ${error.message}`)
-    return avatarPath
+    return {
+      path: avatarPath,
+      originalSize,
+      compressedSize: originalSize,
+      wasCompressed: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   }
 }
 
@@ -135,7 +170,7 @@ export async function compressImage(avatarPath: string): Promise<string> {
  * 备用压缩方案（不依赖 sharp）
  * 简单地复制文件，不做实际压缩
  */
-async function compressImageFallback(avatarPath: string): Promise<string> {
+async function compressImageFallback(avatarPath: string, originalSize: number): Promise<CompressionResult> {
   const fullPath = join(process.cwd(), 'public', avatarPath)
   const fileName = avatarPath.split('/').pop()!
   const thumbnailFileName = `thumb_${fileName}`
@@ -148,26 +183,50 @@ async function compressImageFallback(avatarPath: string): Promise<string> {
     writeFileSync(thumbnailPath, data)
     
     logger.warn(`⚠️  使用备用方案（未压缩）: ${thumbnailUrlPath}`)
-    return thumbnailUrlPath
+    return {
+      path: thumbnailUrlPath,
+      originalSize,
+      compressedSize: originalSize,
+      wasCompressed: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   } catch (error: any) {
     logger.error(`❌ 备用压缩方案失败: ${error.message}`)
-    return avatarPath
+    return {
+      path: avatarPath,
+      originalSize,
+      compressedSize: originalSize,
+      wasCompressed: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   }
 }
 
 /**
  * 处理用户头像
- * 检查大小，必要时压缩
+ * 检查大小，必要时压缩，返回详细结果
  */
-export async function processUserAvatar(avatarPath: string): Promise<string> {
+export async function processUserAvatar(avatarPath: string): Promise<CompressionResult> {
   if (!avatarPath) {
-    return ''
+    return {
+      path: '',
+      originalSize: 0,
+      compressedSize: 0,
+      wasCompressed: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   }
 
   const imageInfo = checkImageSize(avatarPath)
   
   if (!imageInfo.needsCompression) {
-    return avatarPath
+    return {
+      path: avatarPath,
+      originalSize: imageInfo.size,
+      compressedSize: imageInfo.size,
+      wasCompressed: false,
+      compressionThreshold: MAX_IMAGE_SIZE,
+    }
   }
 
   // 需要压缩

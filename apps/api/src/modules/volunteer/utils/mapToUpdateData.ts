@@ -43,6 +43,7 @@ export function mapToUpdateData(
     ...(body.volunteerStatus !== undefined && { volunteerStatus: body.volunteerStatus ?? null }),
     ...(body.severPosition !== undefined && { severPosition: body.severPosition ?? null }),
     ...(body.familyConsent !== undefined && { familyConsent: body.familyConsent ?? null }),
+    ...(body.requireFullAttendance !== undefined && { requireFullAttendance: body.requireFullAttendance }),
 
     // 系统字段
     updatedAt: new Date(),

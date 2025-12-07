@@ -1,7 +1,25 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Mode = "light" | "dark" | "system";
-type ColorTheme = "theme-lotus" | "theme-land" | "theme-lapis";
+type ColorTheme = 
+	| "theme-lotus" 
+	| "theme-land" 
+	| "theme-lapis"
+	| "theme-gold"
+	| "theme-red"
+	| "theme-orange"
+	| "theme-green"
+	| "theme-white"
+	| "theme-purple"
+	| "theme-ink"
+	| "theme-tea"
+	| "theme-sky"
+	| "theme-coral"
+	| "theme-sapphire"
+	| "theme-ivory"
+	| "theme-cinnabar"
+	| "theme-amber"
+	| "theme-jade";
 
 type ThemeProviderProps = {
 	children: React.ReactNode;
@@ -57,7 +75,26 @@ export function ThemeProvider({
 		}
 
 		// 2. 处理 Color Theme
-		root.classList.remove("theme-lotus", "theme-land", "theme-lapis");
+		root.classList.remove(
+			"theme-lotus", 
+			"theme-land", 
+			"theme-lapis",
+			"theme-gold",
+			"theme-red",
+			"theme-orange",
+			"theme-green",
+			"theme-white",
+			"theme-purple",
+			"theme-ink",
+			"theme-tea",
+			"theme-sky",
+			"theme-coral",
+			"theme-sapphire",
+			"theme-ivory",
+			"theme-cinnabar",
+			"theme-amber",
+			"theme-jade"
+		);
 		root.classList.add(colorTheme);
 		
 	}, [mode, colorTheme]);

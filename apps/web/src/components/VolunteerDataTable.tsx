@@ -189,6 +189,26 @@ export function VolunteerDataTable({
 			enableSorting: false,
 		},
 		{
+			accessorKey: "requireFullAttendance",
+			header: "满勤",
+			cell: ({ row }) => {
+				const requireFullAttendance = row.original.requireFullAttendance;
+				return (
+					<div className="flex items-center justify-center">
+						{requireFullAttendance ? (
+							<Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900">
+								<CheckCircle className="h-3 w-3 mr-1" />
+								满勤
+							</Badge>
+						) : (
+							<span className="text-xs text-muted-foreground">-</span>
+						)}
+					</div>
+				);
+			},
+			enableSorting: false,
+		},
+		{
 			accessorKey: "lotusRole",
 			header: "角色",
 			cell: ({ row }) => {

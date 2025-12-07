@@ -171,6 +171,7 @@ const ServiceFields = {
       t.Null(),
     ]),
   ),
+  requireFullAttendance: t.Optional(t.Union([t.Boolean(), t.Null()])),
 }
 
 // ==================== Schema 组合 ====================

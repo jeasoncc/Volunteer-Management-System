@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ImageUpload } from "@/components/ImageUpload";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
-import { User, Phone, Mail, MapPin, GraduationCap, Heart, CreditCard, Users } from "lucide-react";
+import { User, Phone, Mail, MapPin, GraduationCap, Heart, CreditCard, Users, CheckCircle } from "lucide-react";
 
 interface VolunteerFormProps {
 	volunteer?: Volunteer;
@@ -57,6 +58,7 @@ export function VolunteerForm({
 			volunteerStatus: volunteer?.volunteerStatus || "applicant",
 			severPosition: volunteer?.severPosition || "other",
 			familyConsent: volunteer?.familyConsent || "self_decided",
+			requireFullAttendance: volunteer?.requireFullAttendance || false,
 		},
 		onSubmit: async ({ value }) => {
 			await onSubmit(value);
@@ -583,6 +585,30 @@ export function VolunteerForm({
 											onChange={(e) => field.handleChange(e.target.value)}
 											placeholder="姓名+电话"
 										/>
+									)}
+								</form.Field>
+							</div>
+
+							<div className="space-y-2">
+								<Label className="flex items-center gap-2">
+									<CheckCircle className="h-4 w-4 text-muted-foreground" />
+									满勤配置
+								</Label>
+								<form.Field name="requireFullAttendance">
+									{(field) => (
+										<div className="flex items-center space-x-3 h-10 px-3 border rounded-md bg-background">
+											<Switch
+												id="requireFullAttendance"
+												checked={field.state.value}
+												onCheckedChange={(checked: boolean) => field.handleChange(checked)}
+											/>
+											<label
+												htmlFor="requireFullAttendance"
+												className="text-sm font-medium leading-none cursor-pointer select-none"
+											>
+												导出考勤时自动填充满勤（每天12小时）
+											</label>
+										</div>
 									)}
 								</form.Field>
 							</div>

@@ -75,6 +75,66 @@ export function ThemeSettings() {
 						<div className="w-3 h-3 rounded-full bg-indigo-700 mr-2 border border-border" />
 						七宝琉璃 (青蓝)
 					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-gold" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-yellow-600 mr-2 border border-border" />
+						金色庄严 (金)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-red" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-red-700 mr-2 border border-border" />
+						红莲吉祥 (红)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-orange" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-orange-600 mr-2 border border-border" />
+						橙光慈悲 (橙)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-green" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-green-700 mr-2 border border-border" />
+						翠竹清心 (绿)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-white" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-gray-400 mr-2 border border-border" />
+						白莲清净 (白)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-purple" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-purple-700 mr-2 border border-border" />
+						紫气东来 (紫)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-ink" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-gray-800 mr-2 border border-border" />
+						禅意墨色 (墨)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-tea" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-amber-900 mr-2 border border-border" />
+						禅茶一味 (茶)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-sky" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-sky-500 mr-2 border border-border" />
+						天青如洗 (天青)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-coral" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-rose-500 mr-2 border border-border" />
+						珊瑚温润 (珊瑚)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-sapphire" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-blue-800 mr-2 border border-border" />
+						智慧深蓝 (深蓝)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-ivory" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-stone-300 mr-2 border border-border" />
+						象牙温雅 (象牙)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-cinnabar" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-red-800 mr-2 border border-border" />
+						朱砂传统 (朱砂)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-amber" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-amber-500 mr-2 border border-border" />
+						琥珀暖阳 (琥珀)
+					</DropdownMenuRadioItem>
+					<DropdownMenuRadioItem value="theme-jade" className="cursor-pointer">
+						<div className="w-3 h-3 rounded-full bg-emerald-600 mr-2 border border-border" />
+						翡翠珍贵 (翡翠)
+					</DropdownMenuRadioItem>
 				</DropdownMenuRadioGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

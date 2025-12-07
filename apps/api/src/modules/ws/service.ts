@@ -232,6 +232,7 @@ export class WebSocketService {
     // 批量发送命令
     for (let i = 0; i < users.length; i++) {
       const user = users[i]
+      let compressionResult: any = null  // 存储压缩结果
       
       // 跳过没有头像的用户（考勤机需要人脸照片）
       if (!user.avatar) {
@@ -260,19 +261,27 @@ export class WebSocketService {
       if (photoFormat === 'base64') {
         // Base64 模式：转换图片为 Base64 格式
         try {
+          // 先检查原始照片大小
+          const imageInfo = checkImageSize(user.avatar)
+          const originalKB = (imageInfo.size / 1024).toFixed(1)
+          logger.info(`📸 [${user.name}] 原始照片: ${originalKB}KB`)
+          syncProgressManager.addCustomLog('info', `📸 ${user.name}: 原始照片 ${originalKB}KB`, user.lotusId!)
+          
           const { convertImageToBase64 } = await import('./image-processor')
           photoUrl = await convertImageToBase64(user.avatar)
           isBase64 = true
           
           // 检查Base64大小（粗略估算）
           const base64Size = photoUrl.length * 0.75 / 1024 // 转换为KB
-          if (base64Size > 500) {
-            logger.warn(`⚠️  Base64过大: ${user.name}(${user.lotusId}) - ${base64Size.toFixed(1)}KB`)
-          }
+          logger.info(`📦 [${user.name}] Base64转换: 原始${originalKB}KB -> Base64编码${base64Size.toFixed(1)}KB`)
+          syncProgressManager.addCustomLog('info', `📦 ${user.name}: Base64 ${base64Size.toFixed(1)}KB`, user.lotusId!)
           
-          logger.info(`📦 Base64转换: ${user.name}(${user.lotusId}) - ${base64Size.toFixed(1)}KB`)
+          if (base64Size > 500) {
+            logger.warn(`⚠️  [${user.name}] Base64过大: ${base64Size.toFixed(1)}KB (建议<500KB)`)
+            syncProgressManager.addCustomLog('warning', `⚠️ ${user.name}: Base64过大 ${base64Size.toFixed(1)}KB`, user.lotusId!)
+          }
         } catch (error: any) {
-          logger.error(`❌ Base64转换失败: ${user.name}(${user.lotusId}) - ${error.message}`)
+          logger.error(`❌ [${user.name}] Base64转换失败: ${error.message}`)
           skippedCount++
           skippedUsers.push({ lotusId: user.lotusId || null, name: user.name, reason: 'Base64转换失败' })
           syncProgressManager.incrementSkipped(user.lotusId!, user.name, 'Base64转换失败')
@@ -292,10 +301,22 @@ export class WebSocketService {
         const imageInfo = checkImageSize(user.avatar)
         
         if (imageInfo.needsCompression) {
-          logger.info(`🔄 压缩图片: ${user.name}(${user.lotusId})`)
-          processedAvatarPath = await processUserAvatar(user.avatar)
-          if (processedAvatarPath !== user.avatar) {
+          logger.info(`🔄 压缩图片: ${user.name}(${user.lotusId}) - 原始大小: ${(imageInfo.size / 1024).toFixed(1)}KB, 阈值: ${(imageInfo.compressionThreshold / 1024).toFixed(1)}KB`)
+          compressionResult = await processUserAvatar(user.avatar)
+          processedAvatarPath = compressionResult.path
+          
+          if (compressionResult.wasCompressed) {
             compressedCount++
+            logger.info(`✅ 压缩完成: ${(compressionResult.originalSize / 1024).toFixed(1)}KB -> ${(compressionResult.compressedSize / 1024).toFixed(1)}KB`)
+          }
+        } else {
+          // 不需要压缩，但仍然记录原始大小
+          compressionResult = {
+            path: user.avatar,
+            originalSize: imageInfo.size,
+            compressedSize: imageInfo.size,
+            wasCompressed: false,
+            compressionThreshold: imageInfo.compressionThreshold,
           }
         }
 
@@ -329,12 +350,35 @@ export class WebSocketService {
         }
       }
       
+      // 输出照片处理详情到日志（在构建命令前）
+      let photoInfoForLog = ''
+      if (compressionResult) {
+        const originalKB = (compressionResult.originalSize / 1024).toFixed(1)
+        const compressedKB = (compressionResult.compressedSize / 1024).toFixed(1)
+        const thresholdKB = (compressionResult.compressionThreshold / 1024).toFixed(1)
+        
+        if (compressionResult.wasCompressed) {
+          const message = `📸 ${user.name}: ${originalKB}KB -> ${compressedKB}KB ✅已压缩`
+          photoInfoForLog = `原${originalKB}KB->压缩${compressedKB}KB`
+          logger.info(`📸 [${user.name}(${user.lotusId})] 照片处理: ${originalKB}KB -> ${compressedKB}KB (阈值: ${thresholdKB}KB) ✅已压缩`)
+          syncProgressManager.addCustomLog('success', message, user.lotusId!)
+        } else {
+          const message = `📸 ${user.name}: ${originalKB}KB (阈值${thresholdKB}KB) ⏭️无需压缩`
+          photoInfoForLog = `原${originalKB}KB 未压缩`
+          logger.info(`📸 [${user.name}(${user.lotusId})] 照片处理: ${originalKB}KB (阈值: ${thresholdKB}KB) ⏭️无需压缩`)
+          syncProgressManager.addCustomLog('info', message, user.lotusId!)
+        }
+        
+        // 保存照片信息到缓存，用于失败时显示
+        WebSocketService.photoInfoCache.set(user.lotusId!, photoInfoForLog)
+      }
+      
       // 构建命令：Base64模式直接使用photoUrl，URL模式使用processedAvatarPath
       const command = isBase64 
         ? { ...this.buildAddUserCommand(user, ''), face_template: photoUrl }
         : this.buildAddUserCommand(user, processedAvatarPath)
-
-      // 记录待处理日志（Base64模式只存储原始路径）
+      
+      // 记录待处理日志
       await SyncLogService.logSync({
         batchId,
         lotusId: user.lotusId!,
@@ -653,6 +697,11 @@ export class WebSocketService {
   }
 
   /**
+   * 照片信息缓存（用于失败时显示）
+   */
+  private static photoInfoCache = new Map<string, string>()
+
+  /**
    * 错误码映射
    */
   private static readonly ERROR_MESSAGES: Record<number, string> = {
@@ -693,6 +742,9 @@ export class WebSocketService {
         syncProgressManager.incrementConfirmed(userId, userName)
         logger.success(`✅ 考勤机确认成功: ${userId}`)
         
+        // 清除照片信息缓存
+        this.photoInfoCache.delete(userId)
+        
         // 更新同步记录
         if (batchId) {
           await SyncLogService.updateSyncStatus({
@@ -714,8 +766,13 @@ export class WebSocketService {
         })
       } else {
         // 同步失败，记录详细错误
-        syncProgressManager.incrementFailed(userId, userName, errorMessage)
-        logger.error(`❌ 考勤机返回失败: ${userName}(${userId}) - [错误码:${code}] ${errorMessage}`)
+        // 获取照片信息
+        const photoInfo = this.photoInfoCache.get(userId)
+        syncProgressManager.incrementFailed(userId, userName, errorMessage, photoInfo)
+        logger.error(`❌ 考勤机返回失败: ${userName}(${userId}) - [错误码:${code}] ${errorMessage}${photoInfo ? ` [照片: ${photoInfo}]` : ''}`)
+        
+        // 清除缓存
+        this.photoInfoCache.delete(userId)
         
         // 更新同步记录
         if (batchId) {

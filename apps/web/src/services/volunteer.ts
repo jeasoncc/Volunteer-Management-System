@@ -114,6 +114,9 @@ export interface CreateVolunteerParams {
 	// 住宿信息
 	memberStatus?: "volunteer" | "resident";
 	roomId?: number;
+
+	// 考勤配置
+	requireFullAttendance?: boolean;
 }
 
 export const volunteerService = {

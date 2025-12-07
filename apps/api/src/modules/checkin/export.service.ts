@@ -31,7 +31,7 @@ export class CheckInExportService {
     
     logger.info(`📊 开始导出考勤数据: ${startDate} 至 ${endDate}`)
     
-    // 1. 查询数据（关联 volunteer 表获取 volunteer_id）
+    // 1. 查询数据（关联 volunteer 表获取 volunteer_id 和 requireFullAttendance）
     const conditions = [
       gte(volunteerCheckIn.date, new Date(startDate)),
       lte(volunteerCheckIn.date, new Date(endDate)),
@@ -49,16 +49,53 @@ export class CheckInExportService {
         date: volunteerCheckIn.date,
         checkIn: volunteerCheckIn.checkIn,
         originTime: volunteerCheckIn.originTime,
+        requireFullAttendance: volunteer.requireFullAttendance,
       })
       .from(volunteerCheckIn)
       .innerJoin(volunteer, eq(volunteerCheckIn.userId, volunteer.id))
       .where(and(...conditions))
       .orderBy(volunteerCheckIn.lotusId, volunteerCheckIn.date, volunteerCheckIn.checkIn)
     
-    logger.info(`📝 查询到 ${records.length} 条记录`)
+    logger.info(`📝 查询到 ${records.length} 条打卡记录`)
     
-    // 2. 按用户和日期分组，计算每天的签到签退和工时
-    const groupedData = this.groupAndCalculate(records)
+    // 2. 查询所有需要满勤的义工
+    const fullAttendanceConditions = [sql`${volunteer.requireFullAttendance} = true`]
+    if (lotusIds && lotusIds.length > 0) {
+      fullAttendanceConditions.push(sql`${volunteer.lotusId} IN (${sql.join(lotusIds.map(id => sql`${id}`), sql`, `)})`)
+    }
+    
+    const fullAttendanceVolunteers = await db
+      .select({
+        lotusId: volunteer.lotusId,
+        volunteerId: volunteer.volunteerId,
+        name: volunteer.name,
+      })
+      .from(volunteer)
+      .where(and(...fullAttendanceConditions))
+    
+    // 过滤掉 lotusId 为 null 的记录（理论上不应该存在）
+    const validFullAttendanceVolunteers = fullAttendanceVolunteers.filter(v => v.lotusId !== null) as Array<{
+      lotusId: string;
+      volunteerId: string | null;
+      name: string;
+    }>
+    
+    logger.info(`📝 查询到 ${validFullAttendanceVolunteers.length} 个满勤义工`)
+    
+    // 3. 为满勤义工生成每天的满勤记录
+    const fullAttendanceRecords = this.generateFullAttendanceRecords(
+      validFullAttendanceVolunteers,
+      startDate,
+      endDate
+    )
+    
+    logger.info(`📝 生成 ${fullAttendanceRecords.length} 条满勤记录`)
+    
+    // 4. 合并实际打卡记录和满勤记录（满勤记录优先）
+    const allRecords = this.mergeRecords(records, fullAttendanceRecords)
+    
+    // 5. 按用户和日期分组，计算每天的签到签退和工时
+    const groupedData = this.groupAndCalculate(allRecords)
     
     // 3. 生成 Excel
     const workbook = new ExcelJS.Workbook()
@@ -133,6 +170,72 @@ export class CheckInExportService {
   }
   
   /**
+   * 为满勤义工生成每天的满勤记录
+   */
+  private static generateFullAttendanceRecords(
+    volunteers: Array<{ lotusId: string; volunteerId: string | null; name: string }>,
+    startDate: string,
+    endDate: string
+  ) {
+    const records = []
+    const start = dayjs(startDate)
+    const end = dayjs(endDate)
+    
+    for (const volunteer of volunteers) {
+      let currentDate = start
+      while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
+        // 为每一天生成两条记录：签到（08:00）和签退（20:00），共12小时
+        records.push({
+          lotusId: volunteer.lotusId,
+          volunteerId: volunteer.volunteerId,
+          name: volunteer.name,
+          date: currentDate.toDate(),
+          checkIn: '08:00:00',
+          originTime: null,
+          requireFullAttendance: true,
+          isFullAttendanceRecord: true, // 标记为满勤记录
+        })
+        records.push({
+          lotusId: volunteer.lotusId,
+          volunteerId: volunteer.volunteerId,
+          name: volunteer.name,
+          date: currentDate.toDate(),
+          checkIn: '20:00:00',
+          originTime: null,
+          requireFullAttendance: true,
+          isFullAttendanceRecord: true, // 标记为满勤记录
+        })
+        
+        currentDate = currentDate.add(1, 'day')
+      }
+    }
+    
+    return records
+  }
+  
+  /**
+   * 合并实际打卡记录和满勤记录
+   * 满勤记录优先：如果某个义工某天有满勤记录，则忽略该天的实际打卡记录
+   */
+  private static mergeRecords(actualRecords: any[], fullAttendanceRecords: any[]) {
+    // 创建满勤记录的索引：lotusId_date -> true
+    const fullAttendanceIndex = new Set<string>()
+    for (const record of fullAttendanceRecords) {
+      const key = `${record.lotusId}_${dayjs(record.date).format('YYYY-MM-DD')}`
+      fullAttendanceIndex.add(key)
+    }
+    
+    // 过滤掉已有满勤记录的实际打卡记录
+    const filteredActualRecords = actualRecords.filter(record => {
+      const key = `${record.lotusId}_${dayjs(record.date).format('YYYY-MM-DD')}`
+      return !fullAttendanceIndex.has(key)
+    })
+    
+    // 合并
+    return [...filteredActualRecords, ...fullAttendanceRecords]
+  }
+  
+  /**
    * 分组并计算工时
    */
   private static groupAndCalculate(records: any[]) {
@@ -163,35 +266,43 @@ export class CheckInExportService {
       
       let checkInTime = this.formatTime(firstRecord.checkIn)
       let checkOutTime = this.formatTime(lastRecord.checkIn)
-      
-      // 计算工时
       let serviceHours = 0
-      if (dayRecords.length === 1) {
-        // 只有一次打卡，签退时间 = 签到时间 + 1 小时
-        const start = dayjs(`${dayjs(firstRecord.date).format('YYYY-MM-DD')} ${firstRecord.checkIn}`)
-        const end = start.add(1, 'hour')
-        checkOutTime = end.format('HH:mm')
-        serviceHours = 1
+      
+      // 检查是否为满勤记录
+      if (firstRecord.isFullAttendanceRecord) {
+        // 满勤记录：固定为 08:00 签到，20:00 签退，12小时
+        checkInTime = '08:00'
+        checkOutTime = '20:00'
+        serviceHours = 12
       } else {
-        // 计算实际时长
-        const start = dayjs(`${dayjs(firstRecord.date).format('YYYY-MM-DD')} ${firstRecord.checkIn}`)
-        const end = dayjs(`${dayjs(lastRecord.date).format('YYYY-MM-DD')} ${lastRecord.checkIn}`)
-        
-        // 检查是否跨天
-        if (end.isBefore(start)) {
-          // 跨天：加24小时
-          serviceHours = end.add(1, 'day').diff(start, 'hour', true)
+        // 实际打卡记录：按原逻辑计算
+        if (dayRecords.length === 1) {
+          // 只有一次打卡，签退时间 = 签到时间 + 1 小时
+          const start = dayjs(`${dayjs(firstRecord.date).format('YYYY-MM-DD')} ${firstRecord.checkIn}`)
+          const end = start.add(1, 'hour')
+          checkOutTime = end.format('HH:mm')
+          serviceHours = 1
         } else {
-          serviceHours = end.diff(start, 'hour', true)
+          // 计算实际时长
+          const start = dayjs(`${dayjs(firstRecord.date).format('YYYY-MM-DD')} ${firstRecord.checkIn}`)
+          const end = dayjs(`${dayjs(lastRecord.date).format('YYYY-MM-DD')} ${lastRecord.checkIn}`)
+          
+          // 检查是否跨天
+          if (end.isBefore(start)) {
+            // 跨天：加24小时
+            serviceHours = end.add(1, 'day').diff(start, 'hour', true)
+          } else {
+            serviceHours = end.diff(start, 'hour', true)
+          }
+          
+          // 限制最大8小时
+          if (serviceHours > 8) {
+            serviceHours = 8
+          }
+          
+          // 保留一位小数
+          serviceHours = Math.round(serviceHours * 10) / 10
         }
-        
-        // 限制最大8小时
-        if (serviceHours > 8) {
-          serviceHours = 8
-        }
-        
-        // 保留一位小数
-        serviceHours = Math.round(serviceHours * 10) / 10
       }
       
       result.push({
